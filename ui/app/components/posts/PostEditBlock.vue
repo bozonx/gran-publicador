@@ -774,26 +774,11 @@ async function executePublish() {
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('post.selectChannel', 'Select Channel') }}</span>
                 <span class="text-red-500">*</span>
             </div>
-            <USelectMenu
+            <CommonChannelSelect
                 v-model="formData.channelId"
                 :items="channelOptions"
-                value-key="value"
-                label-key="label"
                 class="w-full"
-                :placeholder="t('post.selectChannel', 'Select a channel...')"
-            >
-                <template #item="{ item }">
-                    <div class="flex items-center gap-2 w-full">
-                        <CommonSocialIcon 
-                            :platform="item.socialMedia" 
-                            size="xs" 
-                            :problem-level="item.problemLevel"
-                        />
-                        <span class="truncate">{{ item.label }}</span>
-                        <span class="ml-auto text-xs text-gray-500 uppercase">{{ item.language }}</span>
-                    </div>
-                </template>
-            </USelectMenu>
+            />
         </div>
 
         <!-- Social Media Validation Warning (Global for entire post) -->

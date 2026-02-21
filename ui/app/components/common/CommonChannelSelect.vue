@@ -41,10 +41,31 @@ const modelValue = defineModel<string | string[] | null>({ default: null })
 const { channels, fetchChannels, isLoading, getSocialMediaIcon, getSocialMediaColor } = useChannels()
 const { t } = useI18n()
 
+import { SELECT_ITEMS_LIMIT } from '~/constants'
+
 // Fetch channels when projectId changes or component mounted
 watch(() => props.projectId, async (newId) => {
-  await fetchChannels({ projectId: newId || undefined })
+  await fetchChannels({ projectId: newId || undefined, limit: SELECT_ITEMS_LIMIT })
 }, { immediate: true })
+
+const searchChannels = async (q: string) => {
+  const result = await fetchChannels({ 
+    projectId: props.projectId || undefined, 
+    search: q,
+    limit: SELECT_ITEMS_LIMIT
+  })
+  
+  // Format them mapping to options format
+  const mapped = result
+    .filter(c => !c.archivedAt && !props.excludeIds.includes(c.id))
+    .map(c => ({
+      value: c.id,
+      label: c.name,
+      socialMedia: c.socialMedia
+    }))
+    
+  return mapped
+}
 
 const filteredChannels = computed(() => {
   return channels.value.filter(c => !c.archivedAt && !props.excludeIds.includes(c.id))
@@ -106,8 +127,7 @@ const currentLeadingIconColor = computed(() => {
     :loading="isLoading"
     :disabled="disabled"
     :placeholder="placeholder || (multiple ? t('publication.select_channels') : t('channel.select_channel'))"
-    :searchable="true"
-    :search-attributes="['label']"
+    :searchable="searchChannels"
     class="w-full"
     v-bind="$attrs"
   >
