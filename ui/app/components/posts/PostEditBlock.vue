@@ -23,6 +23,7 @@ import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { normalizeTags, parseTags } from '~/utils/tags'
+import { getPostUrl } from '~/utils/posts'
 
 interface Props {
   post?: PostWithRelations
@@ -698,6 +699,19 @@ async function executePublish() {
                 <!-- Platform Options Icon -->
                 <UTooltip v-if="hasActivatedPlatformOptions" :text="t('post.platformOptionsActivated', 'Platform options activated')">
                    <UIcon name="i-heroicons-adjustments-horizontal" class="w-4 h-4 text-primary-500" />
+                </UTooltip>
+
+                <!-- Post URL Link -->
+                <UTooltip v-if="getPostUrl(props.post)" :text="t('post.openPublishedPost', 'Open published post')">
+                  <a 
+                    :href="getPostUrl(props.post)!" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-center ml-1"
+                    @click.stop
+                  >
+                    <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4 text-primary-500 hover:text-primary-600 dark:text-primary-400 dark:hover:text-primary-300 transition-colors" />
+                  </a>
                 </UTooltip>
             </div>
             

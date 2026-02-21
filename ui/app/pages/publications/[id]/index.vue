@@ -10,6 +10,7 @@ import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
 import { ArchiveEntityType } from '~/types/archive.types'
 import type { MediaItem } from '~/composables/useMedia'
 import MediaGallery from '~/components/media/MediaGallery.vue'
+import { getPostUrl } from '~/utils/posts'
 
 definePageMeta({
   middleware: 'auth',
@@ -449,6 +450,16 @@ async function handleApplyLlm(data: {
                 >
                   <UIcon :name="getSocialMediaIcon(post.channel?.socialMedia || post.socialMedia)" class="w-5 h-5" />
                 </div>
+              </UTooltip>
+              <UTooltip v-if="getPostUrl(post)" :text="t('post.openPublishedPost', 'Open published post')">
+                <a 
+                  :href="getPostUrl(post)!" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+                >
+                  <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" />
+                </a>
               </UTooltip>
             </div>
           </div>

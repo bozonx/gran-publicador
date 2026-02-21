@@ -90,3 +90,55 @@ export function getPostStatusIcon(status: string | undefined | null): string {
       return 'i-heroicons-question-mark-circle';
   }
 }
+
+export function getPostUrl(post: any): string | null {
+  if (!post || (post.status !== 'PUBLISHED' && post.status !== 'PARTIAL')) {
+    return null;
+  }
+
+  // Parse meta if it's a string
+  let meta = post.meta;
+  if (typeof meta === 'string') {
+    try {
+      meta = JSON.parse(meta);
+    } catch {
+      meta = {};
+    }
+  }
+
+  // Check if microservice returned URL in meta.attempts
+  if (meta?.attempts && Array.isArray(meta.attempts)) {
+    const sortedAttempts = [...meta.attempts].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    const lastSuccess = sortedAttempts.find((attempt) => attempt.success && attempt.response?.url);
+    if (lastSuccess) {
+      return lastSuccess.response.url;
+    }
+  }
+
+  // Backup: manual URL construction based on channel identifier and post id
+  if (meta?.attempts && Array.isArray(meta.attempts)) {
+    const sortedAttempts = [...meta.attempts].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    const lastSuccessAttempt = sortedAttempts.find((a: any) => a.success && a.response);
+    
+    if (lastSuccessAttempt) {
+      const platformPostId = lastSuccessAttempt.response.postId;
+      const socialMedia = post.socialMedia || post.channel?.socialMedia;
+      const channelId = post.channel?.channelIdentifier;
+      
+      if (platformPostId && channelId) {
+        if (socialMedia === 'telegram') {
+          return `https://t.me/${channelId.replace('@', '')}/${platformPostId}`;
+        } else if (socialMedia === 'vk') {
+          const vkGroupId = channelId.startsWith('-') ? channelId : `-${channelId}`;
+          return `https://vk.com/wall${vkGroupId}_${platformPostId}`;
+        }
+      }
+    }
+  }
+
+  return null;
+}
