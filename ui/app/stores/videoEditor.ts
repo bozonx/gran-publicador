@@ -12,6 +12,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const projects = ref<string[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+  
+  // Custom interface for file sys entry
+  const selectedFsEntry = ref<any | null>(null)
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window
 
@@ -187,6 +190,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     projectsHandle.value = null
     currentProjectName.value = null
     currentFileName.value = null
+    selectedFsEntry.value = null
     projects.value = []
     error.value = null
     // Clear IndexedDB
@@ -207,6 +211,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     projects,
     isLoading,
     error,
+    selectedFsEntry,
     isApiSupported,
     init,
     openWorkspace,

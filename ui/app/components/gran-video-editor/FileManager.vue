@@ -243,6 +243,10 @@ function onFileAction(action: 'createFolder' | 'info' | 'delete', entry: FsEntry
   }
 }
 
+function onEntrySelect(entry: FsEntry) {
+  videoEditorStore.selectedFsEntry = entry
+}
+
 function triggerFileUpload() {
   fileInput.value?.click()
 }
@@ -412,6 +416,7 @@ async function createTimeline() {
         :depth="0"
         :get-file-icon="getFileIcon"
         @toggle="toggleDirectory"
+        @select="onEntrySelect"
         @action="onFileAction"
       />
     </UContextMenu>

@@ -19,6 +19,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'toggle', entry: FsEntry): void
+  (e: 'select', entry: FsEntry): void
   (e: 'action', action: 'createFolder' | 'info' | 'delete', entry: FsEntry): void
 }>()
 
@@ -27,6 +28,8 @@ const { t } = useI18n()
 function onEntryClick(entry: FsEntry) {
   if (entry.kind === 'directory') {
     emit('toggle', entry)
+  } else {
+    emit('select', entry)
   }
 }
 
@@ -99,6 +102,7 @@ function getContextMenuItems(entry: FsEntry) {
         :depth="depth + 1"
         :get-file-icon="getFileIcon"
         @toggle="$emit('toggle', $event)"
+        @select="$emit('select', $event)"
         @action="(action, e) => $emit('action', action, e)"
       />
     </li>
