@@ -15,19 +15,25 @@ export interface CompositorClip {
 
 export class VideoCompositor {
   public app: Application | null = null
-  public canvas: OffscreenCanvas | null = null
+  public canvas: OffscreenCanvas | HTMLCanvasElement | null = null
   public clips: CompositorClip[] = []
   
   private width = 1920
   private height = 1080
 
-  async init(width: number, height: number, bgColor = '#000'): Promise<void> {
+  async init(width: number, height: number, bgColor = '#000', offscreen = true): Promise<void> {
     this.width = width
     this.height = height
     
     this.app = new Application()
-    // Using OffscreenCanvas for headless rendering
-    this.canvas = new OffscreenCanvas(width, height)
+    
+    if (offscreen) {
+      this.canvas = new OffscreenCanvas(width, height)
+    } else {
+      this.canvas = document.createElement('canvas')
+      this.canvas.width = width
+      this.canvas.height = height
+    }
     
     await this.app.init({
       width,
@@ -107,7 +113,7 @@ export class VideoCompositor {
     return maxDurationUs
   }
 
-  async renderFrame(timeUs: number): Promise<OffscreenCanvas | null> {
+  async renderFrame(timeUs: number): Promise<OffscreenCanvas | HTMLCanvasElement | null> {
     if (!this.app || !this.canvas) return null
 
     for (const clip of this.clips) {

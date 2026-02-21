@@ -111,7 +111,7 @@ async function buildTimeline() {
       return
     }
 
-    await compositor.init(exportWidth.value, exportHeight.value, '#000')
+    await compositor.init(exportWidth.value, exportHeight.value, '#000', false)
     if (containerEl.value) {
       containerEl.value.innerHTML = ''
       if (compositor.app && compositor.app.canvas) {
