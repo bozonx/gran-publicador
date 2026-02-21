@@ -211,7 +211,9 @@ function resolveExportCodecs(format: 'mp4' | 'webm' | 'mkv', selectedVideoCodec:
 }
 
 async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSystemFileHandle, onProgress: (progress: number) => void): Promise<void> {
-  const clips = videoEditorStore.timelineClips
+  const doc = videoEditorStore.timelineDoc
+  const track = doc?.tracks?.find((t: any) => t.kind === 'video')
+  const clips = (track?.items ?? []).filter((it: any) => it.kind === 'clip')
   if (!clips.length) throw new Error('Timeline is empty')
 
   const { Application, Sprite, Texture, CanvasSource: PixiCanvasSource } = await import('pixi.js')
@@ -245,8 +247,9 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
 
   try {
     for (const clip of clips) {
-      if (clip.track !== 'video' || !clip.fileHandle) continue
-      const file = await clip.fileHandle.getFile()
+      const resolvedHandle = await videoEditorStore.getFileHandleByPath(clip.source.path)
+      if (!resolvedHandle) continue
+      const file = await resolvedHandle.getFile()
       const source = new BlobSource(file)
       const input = new Input({ source, formats: ALL_FORMATS } as any)
       const track = await input.getPrimaryVideoTrack()
@@ -261,8 +264,8 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
       const sink = new VideoSampleSink(track)
       const durUs = Math.floor((await track.computeDuration()) * 1_000_000)
       
-      const startUs = sequentialTimeUs
-      sequentialTimeUs += durUs
+      const startUs = typeof clip.timelineRange?.startUs === 'number' ? clip.timelineRange.startUs : sequentialTimeUs
+      sequentialTimeUs = Math.max(sequentialTimeUs, startUs + durUs)
 
       const baseCanvas = new OffscreenCanvas(options.width, options.height)
       const baseCtx = baseCanvas.getContext('2d')!
@@ -278,7 +281,7 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
       trackSinks.push({ startUs, endUs: startUs + durUs, durationUs: durUs, input, track, sink, sprite, texture, baseCanvas, baseCtx, file })
     }
 
-    const maxDurationUs = sequentialTimeUs
+    const maxDurationUs = Math.max(0, ...trackSinks.map(c => c.endUs))
     if (maxDurationUs <= 0) throw new Error('No video clips to export')
 
     const durationS = maxDurationUs / 1_000_000

@@ -2,10 +2,14 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
 import { useMediabunny } from '~/composables/useMediabunny'
+import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
 const mediaBunny = useMediabunny()
+
+const videoTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
+const videoItems = computed(() => (videoTrack.value?.items ?? []).filter((it: TimelineTrackItem) => it.kind === 'clip'))
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const viewportEl = ref<HTMLDivElement | null>(null)
@@ -94,7 +98,7 @@ async function buildTimeline() {
   loadError.value = null
 
   try {
-    const clips = videoEditorStore.timelineClips
+    const clips = videoItems.value
     console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
       isLoading.value = false
@@ -104,18 +108,18 @@ async function buildTimeline() {
     await mediaBunny.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
     console.log('[Monitor] PixiJS+Mediabunny initialized canvas', exportWidth.value, exportHeight.value)
 
-    let sequentialTimeUs = 0
     let maxDuration = 0
 
-    // Load each video clip sequentially
+    // Load each video clip based on timelineRange.startUs
     for (const clip of clips) {
       if (requestId !== buildRequestId) return
-      if (clip.track === 'video' && clip.fileHandle) {
+      const fileHandle = await videoEditorStore.getFileHandleByPath(clip.source.path)
+      if (fileHandle) {
         console.log('[Monitor] Processing clip:', clip.name)
-        const file = await clip.fileHandle.getFile()
+        const file = await fileHandle.getFile()
         console.log('[Monitor] Got file:', file.name, 'size:', file.size)
 
-        const startUs = sequentialTimeUs
+        const startUs = clip.timelineRange.startUs
         
         const { Input, BlobSource, VideoSampleSink, ALL_FORMATS } = await import('mediabunny')
         
@@ -141,7 +145,7 @@ async function buildTimeline() {
           mediaBunny.app.value!.stage.addChild(sprite)
           
           mediaBunny.clips.value.push({
-            fileHandle: clip.fileHandle,
+            fileHandle,
             input,
             sink,
             startUs,
@@ -151,13 +155,11 @@ async function buildTimeline() {
             canvas,
             ctx
           })
-          
-          sequentialTimeUs += clipDurationUs
         }
       }
     }
     
-    maxDuration = sequentialTimeUs
+    maxDuration = Math.max(0, ...mediaBunny.clips.value.map(c => c.endUs))
     mediaBunny.durationUs.value = maxDuration
     videoEditorStore.duration = maxDuration
     console.log('[Monitor] Timeline duration:', maxDuration)
@@ -183,7 +185,7 @@ async function buildTimeline() {
 }
 
 // Watch global store timelineClips changes and rebuild timeline
-watch(() => videoEditorStore.timelineClips, () => {
+watch(() => videoEditorStore.timelineDoc, () => {
   buildTimeline()
 }, { deep: true })
 
@@ -272,7 +274,7 @@ function formatTime(seconds: number): string {
 
     <!-- Video area -->
     <div ref="viewportEl" class="flex-1 flex items-center justify-center overflow-hidden relative">
-      <div v-if="videoEditorStore.timelineClips.length === 0" class="flex flex-col items-center gap-3 text-gray-700">
+      <div v-if="videoItems.length === 0" class="flex flex-col items-center gap-3 text-gray-700">
         <UIcon name="i-heroicons-play-circle" class="w-16 h-16" />
         <p class="text-sm">
           {{ t('granVideoEditor.monitor.empty', 'No clip selected') }}
@@ -288,7 +290,7 @@ function formatTime(seconds: number): string {
       <div
         class="shrink-0"
         :style="getCanvasWrapperStyle()"
-        :class="{ invisible: loadError || videoEditorStore.timelineClips.length === 0 }"
+        :class="{ invisible: loadError || videoItems.length === 0 }"
       >
         <div ref="containerEl" :style="getCanvasInnerStyle()" />
       </div>
@@ -302,7 +304,7 @@ function formatTime(seconds: number): string {
         color="neutral"
         icon="i-heroicons-backward"
         :aria-label="t('granVideoEditor.monitor.rewind', 'Rewind')"
-        :disabled="videoEditorStore.timelineClips.length === 0 || isLoading"
+        :disabled="videoItems.length === 0 || isLoading"
         @click="videoEditorStore.currentTime = 0"
       />
       <UButton
@@ -311,7 +313,7 @@ function formatTime(seconds: number): string {
         color="primary"
         :icon="videoEditorStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
         :aria-label="t('granVideoEditor.monitor.play', 'Play')"
-        :disabled="videoEditorStore.timelineClips.length === 0 || isLoading"
+        :disabled="videoItems.length === 0 || isLoading"
         @click="videoEditorStore.isPlaying = !videoEditorStore.isPlaying"
       />
       <span class="text-xs text-gray-600 ml-2 font-mono">

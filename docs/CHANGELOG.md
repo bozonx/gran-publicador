@@ -18,6 +18,12 @@ All notable changes to this project will be documented in this file.
   - User/UI settings are stored in localStorage (open behavior).
   - Workspace/system settings are stored in `.gran/editor.settings.json` (proxy storage limit and new project defaults).
 
+- **Gran Video Editor: OTIO-backed timeline core (MVP)**
+  - Timeline is now stored as an OTIO-compatible `.otio` file per project and loaded on project open.
+  - Introduced timeline document model (`TimelineDocument/Track/TrackItem`) and command-based updates (add/move/remove).
+  - Track items use microsecond time ranges; overlap is denied for items on the same track.
+  - Timeline UI, Monitor and Export now read from the timeline document instead of the legacy flat clips list.
+
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.
 

@@ -2,13 +2,16 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { useLocalStorage } from '@vueuse/core';
 
-export interface TimelineClip {
-  id: string;
-  track: 'video' | 'audio';
-  name: string;
-  path: string;
-  fileHandle?: FileSystemFileHandle;
-}
+import type { TimelineDocument } from '~/timeline/types';
+import type { TimelineCommand } from '~/timeline/commands';
+import { applyTimelineCommand } from '~/timeline/commands';
+import {
+  createDefaultTimelineDocument,
+  parseTimelineFromOtio,
+  serializeTimelineToOtio,
+} from '~/timeline/otioSerializer';
+import { selectTimelineDurationUs } from '~/timeline/selectors';
+import { createTimelineDocId } from '~/timeline/id';
 
 function normalizeWorkspaceSettings(raw: unknown): VideoEditorWorkspaceSettings {
   if (!raw || typeof raw !== 'object') {
@@ -212,10 +215,11 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   // Custom interface for file sys entry
   const selectedFsEntry = ref<any | null>(null);
 
-  const timelineClips = ref<TimelineClip[]>([]);
   const isPlaying = ref(false);
   const currentTime = ref(0);
   const duration = ref(0);
+
+  const timelineDoc = ref<TimelineDocument | null>(null);
 
   const projectSettings = ref<VideoEditorProjectSettings>(createDefaultProjectSettings());
   const isLoadingProjectSettings = ref(false);
@@ -232,7 +236,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
 
   const fileTreeExpandedPaths = ref<Record<string, true>>({});
   let restoredFileTreeProjectName: string | null = null;
-  let persistFileTreeTimeout: ReturnType<typeof setTimeout> | null = null;
+  let persistFileTreeTimeout: number | null = null;
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -267,7 +271,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     const projectName = currentProjectName.value;
     if (!projectName) return;
 
-    if (persistFileTreeTimeout) window.clearTimeout(persistFileTreeTimeout);
+    if (persistFileTreeTimeout !== null) window.clearTimeout(persistFileTreeTimeout);
     persistFileTreeTimeout = window.setTimeout(() => {
       persistFileTreeTimeout = null;
       try {
@@ -329,6 +333,133 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     } catch (e) {
       console.error('Failed to get file handle for path:', path, e);
       return null;
+    }
+  }
+
+  async function ensureTimelineFileHandle(options?: {
+    create?: boolean;
+  }): Promise<FileSystemFileHandle | null> {
+    if (!projectsHandle.value || !currentProjectName.value || !currentFileName.value) return null;
+    const projectDir = await projectsHandle.value.getDirectoryHandle(currentProjectName.value);
+    return await projectDir.getFileHandle(currentFileName.value, {
+      create: options?.create ?? false,
+    });
+  }
+
+  async function loadTimeline() {
+    if (!currentProjectName.value || !currentFileName.value) return;
+    const fallback = {
+      id: createTimelineDocId(currentProjectName.value),
+      name: currentProjectName.value,
+      fps: workspaceSettings.value.defaults.newProject.fps,
+    };
+
+    try {
+      const handle = await ensureTimelineFileHandle({ create: false });
+      if (!handle) {
+        timelineDoc.value = createDefaultTimelineDocument(fallback);
+        return;
+      }
+
+      const file = await handle.getFile();
+      const text = await file.text();
+      timelineDoc.value = parseTimelineFromOtio(text, fallback);
+    } catch (e: any) {
+      console.warn('Failed to load timeline file, fallback to default', e);
+      timelineDoc.value = createDefaultTimelineDocument(fallback);
+    } finally {
+      duration.value = timelineDoc.value ? selectTimelineDurationUs(timelineDoc.value) : 0;
+    }
+  }
+
+  async function saveTimeline() {
+    if (!timelineDoc.value) return;
+    try {
+      const handle = await ensureTimelineFileHandle({ create: true });
+      if (!handle) return;
+      const writable = await (handle as any).createWritable();
+      await writable.write(serializeTimelineToOtio(timelineDoc.value));
+      await writable.close();
+    } catch (e) {
+      console.warn('Failed to save timeline file', e);
+    }
+  }
+
+  async function computeMediaDurationUs(
+    fileHandle: FileSystemFileHandle,
+    trackKind: 'video' | 'audio',
+  ) {
+    try {
+      const file = await fileHandle.getFile();
+      const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
+      const source = new BlobSource(file);
+      const input = new Input({ source, formats: ALL_FORMATS } as any);
+      try {
+        const track =
+          trackKind === 'audio'
+            ? await input.getPrimaryAudioTrack()
+            : await input.getPrimaryVideoTrack();
+        if (!track) return 0;
+        if (typeof track.canDecode === 'function' && !(await track.canDecode())) return 0;
+        const durS = await track.computeDuration();
+        const durUs = Math.floor(durS * 1_000_000);
+        return Number.isFinite(durUs) && durUs > 0 ? durUs : 0;
+      } finally {
+        if ('dispose' in input && typeof (input as any).dispose === 'function')
+          (input as any).dispose();
+        else if ('close' in input && typeof (input as any).close === 'function')
+          (input as any).close();
+      }
+    } catch (e) {
+      console.warn('Failed to compute media duration', e);
+      return 0;
+    }
+  }
+
+  async function addClipToTimelineFromPath(input: {
+    trackKind: 'video' | 'audio';
+    name: string;
+    path: string;
+  }) {
+    const handle = await getFileHandleByPath(input.path);
+    if (!handle) {
+      error.value = 'Failed to access file handle';
+      return;
+    }
+
+    const durationUs = await computeMediaDurationUs(handle, input.trackKind);
+    if (!durationUs) {
+      error.value = 'Failed to compute media duration';
+      return;
+    }
+
+    applyTimeline({
+      type: 'add_clip_to_track',
+      trackKind: input.trackKind,
+      name: input.name,
+      path: input.path,
+      durationUs,
+    });
+  }
+
+  function applyTimeline(cmd: TimelineCommand) {
+    if (!timelineDoc.value) {
+      if (!currentProjectName.value) return;
+      timelineDoc.value = createDefaultTimelineDocument({
+        id: createTimelineDocId(currentProjectName.value),
+        name: currentProjectName.value,
+        fps: workspaceSettings.value.defaults.newProject.fps,
+      });
+    }
+
+    try {
+      const { next } = applyTimelineCommand(timelineDoc.value, cmd);
+      timelineDoc.value = next;
+      duration.value = selectTimelineDurationUs(next);
+      void saveTimeline();
+    } catch (e: any) {
+      error.value = e?.message ?? 'Failed to apply timeline command';
+      throw e;
     }
   }
 
@@ -660,6 +791,15 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
 }`);
       await writable.close();
 
+      currentProjectName.value = name;
+      currentFileName.value = otioFileName;
+      timelineDoc.value = createDefaultTimelineDocument({
+        id: createTimelineDocId(name),
+        name,
+        fps: workspaceSettings.value.defaults.newProject.fps,
+      });
+      await saveTimeline();
+
       await loadProjects();
       await openProject(name);
     } catch (e: any) {
@@ -681,6 +821,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     lastProjectName.value = name;
     await loadProjectSettings();
     await saveProjectSettings();
+
+    await loadTimeline();
   }
 
   function resetWorkspace() {
@@ -691,10 +833,10 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     selectedFsEntry.value = null;
     projects.value = [];
     error.value = null;
-    timelineClips.value = [];
     isPlaying.value = false;
     currentTime.value = 0;
     duration.value = 0;
+    timelineDoc.value = null;
     projectSettings.value = createDefaultProjectSettings();
     isLoadingProjectSettings.value = false;
     isPersistingProjectSettings = false;
@@ -745,7 +887,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     error,
     selectedFsEntry,
     isApiSupported,
-    timelineClips,
+    timelineDoc,
     isPlaying,
     currentTime,
     duration,
@@ -760,6 +902,10 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     loadWorkspaceSettings,
     saveWorkspaceSettings,
     getFileHandleByPath,
+    loadTimeline,
+    saveTimeline,
+    applyTimeline,
+    addClipToTimelineFromPath,
     init,
     openWorkspace,
     createProject,

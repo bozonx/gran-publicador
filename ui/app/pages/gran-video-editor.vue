@@ -205,7 +205,7 @@ async function createNewProject() {
             variant="soft"
             color="primary"
             icon="i-heroicons-arrow-down-tray"
-            :disabled="videoEditorStore.timelineClips.length === 0"
+            :disabled="videoEditorStore.duration <= 0"
             :label="t('videoEditor.export.confirm', 'Export')"
             @click="isExportModalOpen = true"
           />

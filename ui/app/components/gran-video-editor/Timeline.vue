@@ -1,13 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
+import type { TimelineTrack } from '~/timeline/types'
 
 const { t } = useI18n()
 const toast = useToast()
 const videoEditorStore = useVideoEditorStore()
 
-const videoClips = computed(() => videoEditorStore.timelineClips.filter(c => c.track === 'video'))
-const audioClips = computed(() => videoEditorStore.timelineClips.filter(c => c.track === 'audio'))
+const videoTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
+const audioTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'audio') ?? null)
+
+const videoItems = computed(() => videoTrack.value?.items ?? [])
+const audioItems = computed(() => audioTrack.value?.items ?? [])
+
+const PX_PER_SECOND = 10
+
+function timeUsToPx(timeUs: number) {
+  return (timeUs / 1e6) * PX_PER_SECOND
+}
 
 async function onDrop(e: DragEvent, track: 'video' | 'audio') {
   const data = e.dataTransfer?.getData('application/json')
@@ -15,14 +25,10 @@ async function onDrop(e: DragEvent, track: 'video' | 'audio') {
     try {
       const parsed = JSON.parse(data)
       if (parsed.name && parsed.path) {
-        const fileHandle = await videoEditorStore.getFileHandleByPath(parsed.path)
-        
-        videoEditorStore.timelineClips.push({
-          id: Math.random().toString(36).substring(2, 9),
-          track,
+        await videoEditorStore.addClipToTimelineFromPath({
+          trackKind: track,
           name: parsed.name,
           path: parsed.path,
-          fileHandle: fileHandle || undefined
         })
         
         toast.add({
@@ -132,18 +138,18 @@ function stop() {
             @drop.prevent="onDrop($event, 'video')"
           >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="videoClips.length === 0">
+              <span class="text-xs text-gray-700" v-if="videoItems.length === 0">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
-            <!-- Render nested clips -->
+            <!-- Render items -->
             <div 
-              v-for="(clip, index) in videoClips" 
-              :key="clip.id"
+              v-for="item in videoItems" 
+              :key="item.id"
               class="absolute inset-y-1 bg-indigo-600 border border-indigo-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-indigo-500"
-              :style="{ left: `${2 + index * 100}px`, width: '90px' }"
+              :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
             >
-              <span class="truncate" :title="clip.name">{{ clip.name }}</span>
+              <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
             </div>
           </div>
           <!-- Audio track -->
@@ -153,18 +159,18 @@ function stop() {
             @drop.prevent="onDrop($event, 'audio')"
           >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="audioClips.length === 0">
+              <span class="text-xs text-gray-700" v-if="audioItems.length === 0">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
-            <!-- Render nested clips -->
+            <!-- Render items -->
             <div 
-              v-for="(clip, index) in audioClips" 
-              :key="clip.id"
+              v-for="item in audioItems" 
+              :key="item.id"
               class="absolute inset-y-1 bg-teal-600 border border-teal-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-teal-500"
-              :style="{ left: `${2 + index * 100}px`, width: '90px' }"
+              :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
             >
-              <span class="truncate" :title="clip.name">{{ clip.name }}</span>
+              <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
             </div>
           </div>
         </div>
@@ -172,7 +178,7 @@ function stop() {
         <!-- Playhead -->
         <div
           class="absolute top-0 bottom-0 w-px bg-primary-500 pointer-events-none"
-          :style="{ left: `${(videoEditorStore.currentTime / 1e6) * 10}px` }"
+          :style="{ left: `${timeUsToPx(videoEditorStore.currentTime)}px` }"
         >
           <div class="w-2.5 h-2.5 bg-primary-500 rounded-full -translate-x-1/2 mt-0.5" />
         </div>
