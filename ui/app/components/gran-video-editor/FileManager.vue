@@ -1,10 +1,68 @@
 <script setup lang="ts">
 const { t } = useI18n()
 
-const files = ref<{ name: string; size: number; type: string }[]>([])
+interface FsEntry {
+  name: string
+  kind: 'file' | 'directory'
+  handle: FileSystemFileHandle | FileSystemDirectoryHandle
+  children?: FsEntry[]
+  expanded?: boolean
+}
 
-function onAddFiles() {
-  // TODO: implement file picker / drag-and-drop
+const rootEntries = ref<FsEntry[]>([])
+const isLoading = ref(false)
+const error = ref<string | null>(null)
+
+const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window
+
+async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEntry[]> {
+  const entries: FsEntry[] = []
+  for await (const [, handle] of dirHandle as any) {
+    entries.push({
+      name: handle.name,
+      kind: handle.kind,
+      handle,
+      children: undefined,
+      expanded: false,
+    })
+  }
+  return entries.sort((a, b) => {
+    if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+}
+
+async function openFolder() {
+  if (!isApiSupported) return
+  error.value = null
+  isLoading.value = true
+  try {
+    const dirHandle = await (window as any).showDirectoryPicker({ mode: 'read' })
+    rootEntries.value = await readDirectory(dirHandle)
+  } catch (e: any) {
+    if (e?.name !== 'AbortError') {
+      error.value = e?.message ?? 'Failed to open folder'
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function toggleDirectory(entry: FsEntry) {
+  if (entry.kind !== 'directory') return
+  entry.expanded = !entry.expanded
+  if (entry.expanded && entry.children === undefined) {
+    entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle)
+  }
+}
+
+function getFileIcon(entry: FsEntry): string {
+  if (entry.kind === 'directory') return 'i-heroicons-folder'
+  const ext = entry.name.split('.').pop()?.toLowerCase() ?? ''
+  if (['mp4', 'mov', 'avi', 'mkv', 'webm'].includes(ext)) return 'i-heroicons-film'
+  if (['mp3', 'wav', 'aac', 'flac', 'ogg'].includes(ext)) return 'i-heroicons-musical-note'
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'i-heroicons-photo'
+  return 'i-heroicons-document'
 }
 </script>
 
@@ -19,34 +77,51 @@ function onAddFiles() {
         size="xs"
         variant="ghost"
         color="neutral"
-        icon="i-heroicons-plus"
-        :label="t('granVideoEditor.fileManager.addFiles', 'Add files')"
-        @click="onAddFiles"
+        icon="i-heroicons-folder-open"
+        :label="t('granVideoEditor.fileManager.openFolder', 'Open folder')"
+        :loading="isLoading"
+        :disabled="!isApiSupported"
+        @click="openFolder"
       />
     </div>
 
-    <!-- File list -->
+    <!-- Content -->
     <div class="flex-1 overflow-y-auto">
+      <!-- Empty state -->
       <div
-        v-if="files.length === 0"
+        v-if="!isLoading && rootEntries.length === 0 && !error"
         class="flex flex-col items-center justify-center h-full gap-3 text-gray-600 px-4 text-center"
       >
         <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
         <p class="text-sm">
-          {{ t('granVideoEditor.fileManager.empty', 'No files added yet. Click "Add files" to get started.') }}
+          {{ isApiSupported
+            ? t('granVideoEditor.fileManager.empty', 'Open a local folder to browse files')
+            : t('granVideoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
         </p>
+        <UButton
+          v-if="isApiSupported"
+          size="sm"
+          variant="outline"
+          color="neutral"
+          icon="i-heroicons-folder-open"
+          :label="t('granVideoEditor.fileManager.openFolder', 'Open folder')"
+          @click="openFolder"
+        />
       </div>
 
-      <ul v-else class="divide-y divide-gray-800">
-        <li
-          v-for="file in files"
-          :key="file.name"
-          class="flex items-center gap-2 px-3 py-2 hover:bg-gray-800 cursor-pointer transition-colors"
-        >
-          <UIcon name="i-heroicons-film" class="w-4 h-4 text-gray-500 shrink-0" />
-          <span class="text-sm text-gray-300 truncate flex-1">{{ file.name }}</span>
-        </li>
-      </ul>
+      <!-- Error -->
+      <div v-else-if="error" class="px-3 py-4 text-sm text-red-400">
+        {{ error }}
+      </div>
+
+      <!-- File tree -->
+      <GranVideoEditorFileManagerTree
+        v-else
+        :entries="rootEntries"
+        :depth="0"
+        :get-file-icon="getFileIcon"
+        @toggle="toggleDirectory"
+      />
     </div>
   </div>
 </template>

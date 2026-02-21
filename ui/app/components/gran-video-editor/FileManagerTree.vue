@@ -1,0 +1,73 @@
+<script setup lang="ts">
+interface FsEntry {
+  name: string
+  kind: 'file' | 'directory'
+  handle: FileSystemFileHandle | FileSystemDirectoryHandle
+  children?: FsEntry[]
+  expanded?: boolean
+}
+
+interface Props {
+  entries: FsEntry[]
+  depth: number
+  getFileIcon: (entry: FsEntry) => string
+}
+
+const props = defineProps<Props>()
+
+const emit = defineEmits<{
+  (e: 'toggle', entry: FsEntry): void
+}>()
+
+function onEntryClick(entry: FsEntry) {
+  if (entry.kind === 'directory') {
+    emit('toggle', entry)
+  }
+}
+</script>
+
+<template>
+  <ul class="select-none">
+    <li
+      v-for="entry in entries"
+      :key="entry.name"
+    >
+      <!-- Row -->
+      <div
+        class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group"
+        :style="{ paddingLeft: `${8 + depth * 14}px` }"
+        @click="onEntryClick(entry)"
+      >
+        <!-- Chevron for directories -->
+        <UIcon
+          v-if="entry.kind === 'directory'"
+          name="i-heroicons-chevron-right"
+          class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-150"
+          :class="{ 'rotate-90': entry.expanded }"
+        />
+        <span v-else class="w-3.5 shrink-0" />
+
+        <!-- File / folder icon -->
+        <UIcon
+          :name="getFileIcon(entry)"
+          class="w-4 h-4 shrink-0"
+          :class="entry.kind === 'directory' ? 'text-yellow-500' : 'text-gray-400'"
+        />
+
+        <!-- Name -->
+        <span class="text-sm text-gray-300 truncate flex-1 group-hover:text-white">
+          {{ entry.name }}
+        </span>
+      </div>
+
+      <!-- Children (recursive) -->
+      <GranVideoEditorFileManagerTree
+        v-if="entry.kind === 'directory' && entry.expanded && entry.children"
+        :entries="entry.children"
+        :depth="depth + 1"
+        :get-file-icon="getFileIcon"
+        @toggle="$emit('toggle', $event)"
+      />
+    </li>
+  </ul>
+</template>

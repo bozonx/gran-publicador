@@ -2,7 +2,7 @@
 const { t } = useI18n()
 
 definePageMeta({
-  layout: 'default',
+  layout: 'editor',
   middleware: 'auth',
 })
 
@@ -12,9 +12,9 @@ useHead({
 </script>
 
 <template>
-  <div class="flex flex-col h-[calc(100vh-4rem)] -mx-3 sm:-mx-4 md:-mx-6 lg:-mx-8 -my-4 sm:-my-6 overflow-hidden">
+  <div class="flex flex-col h-screen w-screen overflow-hidden bg-gray-950">
     <!-- Top half: File Manager + Preview -->
-    <div class="grid grid-cols-2 flex-1 min-h-0 border-b border-gray-200 dark:border-gray-700">
+    <div class="grid grid-cols-2 flex-1 min-h-0 border-b border-gray-700">
       <GranVideoEditorFileManager />
       <GranVideoEditorPreview />
     </div>
