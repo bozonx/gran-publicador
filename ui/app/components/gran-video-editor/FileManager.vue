@@ -369,7 +369,7 @@ async function createTimeline() {
 
 <template>
   <div
-    class="flex flex-col h-full bg-gray-900 border-r border-gray-800 transition-colors duration-200 min-w-0"
+    class="flex flex-col h-full bg-gray-900 border-r border-gray-800 transition-colors duration-200 min-w-0 overflow-hidden"
     :class="{ 'bg-gray-800/50 ring-2 ring-inset ring-primary-500/50': isDragging }"
     @dragover.prevent="isDragging = true"
     @dragleave.prevent="isDragging = false"
@@ -436,7 +436,7 @@ async function createTimeline() {
     <!-- Content -->
     <div
       v-if="activeTab === 'files'"
-      class="flex-1 overflow-auto min-h-0 relative"
+      class="flex-1 overflow-auto min-h-0 min-w-0 relative"
     >
       <UContextMenu
         :items="rootContextMenuItems"
