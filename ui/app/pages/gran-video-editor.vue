@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { useVideoEditorStore } from '~/stores/videoEditor'
 import { ref } from 'vue'
 import TimelineExportModal from '~/components/gran-video-editor/TimelineExportModal.vue'
 import EditorSettingsModal from '~/components/gran-video-editor/EditorSettingsModal.vue'
+import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
+import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
+import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
+import { useGranVideoEditorUiStore } from '~/stores/granVideoEditor/ui.store'
 
 const { t } = useI18n()
-const videoEditorStore = useVideoEditorStore()
+const workspaceStore = useGranVideoEditorWorkspaceStore()
+const projectStore = useGranVideoEditorProjectStore()
+const timelineStore = useGranVideoEditorTimelineStore()
+const uiStore = useGranVideoEditorUiStore()
 
 const isExportModalOpen = ref(false)
 const isEditorSettingsOpen = ref(false)
@@ -22,12 +28,17 @@ useHead({
 const newProjectName = ref('')
 
 onMounted(() => {
-  videoEditorStore.init()
+  workspaceStore.init()
 })
 
 async function createNewProject() {
   if (!newProjectName.value.trim()) return
-  await videoEditorStore.createProject(newProjectName.value.trim())
+  await projectStore.createProject(newProjectName.value.trim())
+  if (workspaceStore.userSettings.openBehavior === 'open_last_project') {
+    await projectStore.openProject(newProjectName.value.trim())
+    await timelineStore.loadTimeline()
+    void timelineStore.loadTimelineMetadata()
+  }
   newProjectName.value = ''
 }
 </script>
@@ -37,7 +48,7 @@ async function createNewProject() {
     
     <!-- Welcome / Select Folder Screen -->
     <div 
-      v-if="!videoEditorStore.workspaceHandle" 
+      v-if="!workspaceStore.workspaceHandle" 
       class="flex flex-col items-center justify-center flex-1 bg-linear-to-br from-indigo-900 via-gray-900 to-black p-6"
     >
       <div class="max-w-md w-full text-center space-y-6 bg-gray-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/50 shadow-2xl">
@@ -53,20 +64,20 @@ async function createNewProject() {
           {{ t('granVideoEditor.welcome.selectFolder', 'Select a workspace folder on your computer. This folder will store all your project files, media proxies, and cache.') }}
         </p>
         
-        <div v-if="videoEditorStore.error" class="text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20">
-          {{ videoEditorStore.error }}
+        <div v-if="workspaceStore.error" class="text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-400/20">
+          {{ workspaceStore.error }}
         </div>
         
         <UButton
-          v-if="videoEditorStore.isApiSupported"
+          v-if="workspaceStore.isApiSupported"
           size="lg"
           variant="solid"
           color="primary"
           icon="i-heroicons-folder-open"
           class="w-full justify-center transition-all hover:scale-[1.02]"
           :label="t('granVideoEditor.welcome.openWorkspace', 'Select Workspace Folder')"
-          :loading="videoEditorStore.isLoading"
-          @click="videoEditorStore.openWorkspace"
+          :loading="workspaceStore.isLoading"
+          @click="workspaceStore.openWorkspace"
         />
         <div v-else class="text-orange-400 text-sm">
           {{ t('granVideoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
@@ -76,7 +87,7 @@ async function createNewProject() {
 
     <!-- Projects List Screen -->
     <div 
-      v-else-if="!videoEditorStore.currentProjectName" 
+      v-else-if="!projectStore.currentProjectName" 
       class="flex flex-col flex-1 bg-gray-950 p-8 overflow-y-auto"
     >
       <div class="max-w-5xl w-full mx-auto space-y-8 pb-12">
@@ -84,7 +95,7 @@ async function createNewProject() {
           <div>
             <h1 class="text-2xl font-bold text-white">{{ t('granVideoEditor.projects.title', 'Projects') }}</h1>
             <p class="text-gray-400 text-sm mt-1">
-              Workspace: {{ videoEditorStore.workspaceHandle?.name }}
+              Workspace: {{ workspaceStore.workspaceHandle?.name }}
             </p>
           </div>
           <UButton
@@ -93,24 +104,24 @@ async function createNewProject() {
             color="neutral"
             icon="i-heroicons-arrow-left-on-rectangle"
             :label="t('granVideoEditor.projects.changeWorkspace', 'Change Workspace')"
-            @click="videoEditorStore.resetWorkspace"
+            @click="workspaceStore.resetWorkspace"
           />
         </div>
 
-        <div v-if="videoEditorStore.error" class="text-red-400 text-sm">
-          {{ videoEditorStore.error }}
+        <div v-if="workspaceStore.error" class="text-red-400 text-sm">
+          {{ workspaceStore.error }}
         </div>
 
         <!-- Last Project Hero Section -->
         <div 
-          v-if="videoEditorStore.lastProjectName && videoEditorStore.projects.includes(videoEditorStore.lastProjectName)"
+          v-if="workspaceStore.lastProjectName && workspaceStore.projects.includes(workspaceStore.lastProjectName)"
           class="bg-linear-to-r from-indigo-900/40 to-purple-900/40 border border-indigo-500/30 rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6"
         >
           <div class="space-y-2">
             <span class="text-indigo-400 text-xs font-bold uppercase tracking-widest">
               {{ t('granVideoEditor.projects.continueWorking', 'Continue Working') }}
             </span>
-            <h2 class="text-3xl font-bold text-white">{{ videoEditorStore.lastProjectName }}</h2>
+            <h2 class="text-3xl font-bold text-white">{{ workspaceStore.lastProjectName }}</h2>
           </div>
           <UButton
             size="xl"
@@ -118,7 +129,14 @@ async function createNewProject() {
             class="px-8 shadow-lg shadow-indigo-500/20"
             icon="i-heroicons-play"
             :label="t('granVideoEditor.projects.openLast', 'Open Project')"
-            @click="videoEditorStore.openProject(videoEditorStore.lastProjectName)"
+            @click="() => {
+              if (workspaceStore.lastProjectName) {
+                projectStore.openProject(workspaceStore.lastProjectName)
+                uiStore.restoreFileTreeStateOnce(workspaceStore.lastProjectName)
+                timelineStore.loadTimeline()
+                timelineStore.loadTimelineMetadata()
+              }
+            }"
           />
         </div>
 
@@ -135,7 +153,7 @@ async function createNewProject() {
               color="primary"
               variant="soft"
               class="justify-center mt-auto"
-              :loading="videoEditorStore.isLoading"
+              :loading="workspaceStore.isLoading"
               :disabled="!newProjectName.trim()"
               :label="t('common.create', 'Create')"
               @click="createNewProject"
@@ -144,10 +162,15 @@ async function createNewProject() {
 
           <!-- Existing Projects -->
           <div
-            v-for="project in videoEditorStore.projects"
+            v-for="project in workspaceStore.projects"
             :key="project"
             class="bg-gray-900 border border-gray-800 rounded-xl p-6 flex flex-col hover:border-indigo-500/50 hover:bg-gray-800/80 transition-all cursor-pointer group shadow-lg"
-            @click="videoEditorStore.openProject(project)"
+            @click="() => {
+              projectStore.openProject(project)
+              uiStore.restoreFileTreeStateOnce(project)
+              timelineStore.loadTimeline()
+              timelineStore.loadTimelineMetadata()
+            }"
           >
             <div class="flex items-center gap-3 mb-4">
               <div class="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center group-hover:bg-indigo-500/10 transition-colors">
@@ -179,14 +202,14 @@ async function createNewProject() {
             variant="ghost"
             color="neutral"
             icon="i-heroicons-arrow-left"
-            @click="videoEditorStore.currentProjectName = null"
+            @click="projectStore.currentProjectName = null"
           />
           <div class="flex items-center gap-2">
-            <span class="text-gray-400 font-medium text-sm">{{ videoEditorStore.currentProjectName }}</span>
+            <span class="text-gray-400 font-medium text-sm">{{ projectStore.currentProjectName }}</span>
             <span class="text-gray-600">/</span>
             <span class="text-white font-medium text-sm flex items-center gap-1">
               <UIcon name="i-heroicons-document" class="w-4 h-4 text-gray-500" />
-              {{ videoEditorStore.currentFileName }}
+              {{ projectStore.currentFileName }}
             </span>
           </div>
         </div>
@@ -205,7 +228,7 @@ async function createNewProject() {
             variant="soft"
             color="primary"
             icon="i-heroicons-arrow-down-tray"
-            :disabled="videoEditorStore.duration <= 0"
+            :disabled="timelineStore.duration <= 0"
             :label="t('videoEditor.export.confirm', 'Export')"
             @click="isExportModalOpen = true"
           />

@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { useVideoEditorStore } from '~/stores/videoEditor'
+import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
+import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
+import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
+import { useGranVideoEditorUiStore } from '~/stores/granVideoEditor/ui.store'
+import { useGranVideoEditorMediaStore } from '~/stores/granVideoEditor/media.store'
 import CreateFolderModal from '~/components/common/CreateFolderModal.vue'
 import FileInfoModal from '~/components/common/FileInfoModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
@@ -13,7 +17,11 @@ import {
 } from '~/utils/webcodecs'
 
 const { t } = useI18n()
-const videoEditorStore = useVideoEditorStore()
+const workspaceStore = useGranVideoEditorWorkspaceStore()
+const projectStore = useGranVideoEditorProjectStore()
+const timelineStore = useGranVideoEditorTimelineStore()
+const uiStore = useGranVideoEditorUiStore()
+const mediaStore = useGranVideoEditorMediaStore()
 
 interface FsEntry {
   name: string
@@ -47,10 +55,10 @@ async function loadCodecSupport() {
   isLoadingCodecSupport.value = true
   try {
     videoCodecSupport.value = await checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
-    const selected = videoEditorStore.projectSettings.export.encoding.videoCodec
+    const selected = projectStore.projectSettings.export.encoding.videoCodec
     if (videoCodecSupport.value[selected] === false) {
       const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
-      if (firstSupported) videoEditorStore.projectSettings.export.encoding.videoCodec = firstSupported.value
+      if (firstSupported) projectStore.projectSettings.export.encoding.videoCodec = firstSupported.value
     }
   } finally {
     isLoadingCodecSupport.value = false
@@ -67,7 +75,7 @@ const rootEntries = ref<FsEntry[]>([])
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
-const isApiSupported = videoEditorStore.isApiSupported
+const isApiSupported = workspaceStore.isApiSupported
 
 const isCreateFolderModalOpen = ref(false)
 const folderCreationTarget = ref<FileSystemDirectoryHandle | null>(null)
@@ -82,7 +90,7 @@ const isDeleteConfirmModalOpen = ref(false)
 const deleteTarget = ref<FsEntry | null>(null)
 
 const rootContextMenuItems = computed(() => {
-  if (!videoEditorStore.currentProjectName) return []
+  if (!projectStore.currentProjectName) return []
   return [[{
     label: t('videoEditor.fileManager.actions.createFolder', 'Create Folder'),
     icon: 'i-heroicons-folder-plus',
@@ -118,10 +126,10 @@ async function readDirectory(dirHandle: FileSystemDirectoryHandle, basePath = ''
 }
 
 async function expandPersistedDirectories() {
-  const projectName = videoEditorStore.currentProjectName
+  const projectName = projectStore.currentProjectName
   if (!projectName) return
 
-  const expandedPaths = Object.keys(videoEditorStore.fileTreeExpandedPaths)
+  const expandedPaths = Object.keys(uiStore.fileTreeExpandedPaths)
   if (expandedPaths.length === 0) return
 
   const sortedPaths = [...expandedPaths].sort((a, b) => a.length - b.length)
@@ -143,8 +151,8 @@ async function expandPersistedDirectories() {
         entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle, entry.path)
       }
 
-      if (!videoEditorStore.isFileTreePathExpanded(currentPath)) {
-        videoEditorStore.setFileTreePathExpanded(currentPath, true)
+      if (!uiStore.isFileTreePathExpanded(currentPath)) {
+        uiStore.setFileTreePathExpanded(projectName, currentPath, true)
       }
 
       currentList = entry.children ?? []
@@ -153,7 +161,7 @@ async function expandPersistedDirectories() {
 }
 
 async function loadProjectDirectory() {
-  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) {
+  if (!workspaceStore.projectsHandle || !projectStore.currentProjectName) {
     rootEntries.value = []
     return
   }
@@ -161,7 +169,7 @@ async function loadProjectDirectory() {
   error.value = null
   isLoading.value = true
   try {
-    const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    const projectDir = await workspaceStore.projectsHandle.getDirectoryHandle(projectStore.currentProjectName)
     rootEntries.value = await readDirectory(projectDir)
 
     await expandPersistedDirectories()
@@ -181,7 +189,7 @@ async function loadProjectDirectory() {
   }
 }
 
-watch(() => videoEditorStore.currentProjectName, loadProjectDirectory, { immediate: true })
+watch(() => projectStore.currentProjectName, loadProjectDirectory, { immediate: true })
 
 async function toggleDirectory(entry: FsEntry) {
   if (entry.kind !== 'directory') return
@@ -189,7 +197,9 @@ async function toggleDirectory(entry: FsEntry) {
   entry.expanded = !entry.expanded
 
   if (entry.path) {
-    videoEditorStore.setFileTreePathExpanded(entry.path, entry.expanded)
+    if (projectStore.currentProjectName) {
+      uiStore.setFileTreePathExpanded(projectStore.currentProjectName, entry.path, entry.expanded)
+    }
   }
 
   if (entry.expanded && entry.children === undefined) {
@@ -200,7 +210,9 @@ async function toggleDirectory(entry: FsEntry) {
       entry.expanded = false
 
       if (entry.path) {
-        videoEditorStore.setFileTreePathExpanded(entry.path, false)
+        if (projectStore.currentProjectName) {
+          uiStore.setFileTreePathExpanded(projectStore.currentProjectName, entry.path, false)
+        }
       }
     }
   }
@@ -217,12 +229,12 @@ function getFileIcon(entry: FsEntry): string {
 }
 
 async function handleFiles(files: FileList | File[]) {
-  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) return
+  if (!workspaceStore.projectsHandle || !projectStore.currentProjectName) return
 
   error.value = null
   isLoading.value = true
   try {
-    const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    const projectDir = await workspaceStore.projectsHandle.getDirectoryHandle(projectStore.currentProjectName)
     const sourcesDir = await projectDir.getDirectoryHandle('sources', { create: true })
 
     for (const file of Array.from(files)) {
@@ -243,7 +255,7 @@ async function handleFiles(files: FileList | File[]) {
 
       if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
         const projectRelativePath = `sources/${targetDirName}/${file.name}`
-        void videoEditorStore.getOrFetchMetadata(fileHandle, projectRelativePath)
+        void mediaStore.getOrFetchMetadata(fileHandle, projectRelativePath)
       }
     }
 
@@ -268,12 +280,14 @@ function openCreateFolderModal(targetEntry: FsEntry | null = null) {
 }
 
 async function handleCreateFolder(name: string) {
-  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) return
+  if (!workspaceStore.projectsHandle || !projectStore.currentProjectName) return
   
   error.value = null
   isLoading.value = true
   try {
-    const baseDir = folderCreationTarget.value || await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    const baseDir =
+      folderCreationTarget.value ||
+      (await workspaceStore.projectsHandle.getDirectoryHandle(projectStore.currentProjectName))
     await baseDir.getDirectoryHandle(name, { create: true })
     await loadProjectDirectory()
   } catch (e: any) {
@@ -304,7 +318,7 @@ async function openFileInfoModal(entry: FsEntry) {
     lastModified,
     path: entry.path,
     metadata: entry.kind === 'file' && entry.path
-      ? await videoEditorStore.getOrFetchMetadata(entry.handle as FileSystemFileHandle, entry.path, { forceRefresh: true })
+      ? await mediaStore.getOrFetchMetadata(entry.handle as FileSystemFileHandle, entry.path, { forceRefresh: true })
       : undefined
   }
   isFileInfoModalOpen.value = true
@@ -402,12 +416,14 @@ function onFileAction(action: 'createFolder' | 'rename' | 'info' | 'delete', ent
 }
 
 async function onEntrySelect(entry: FsEntry) {
-  videoEditorStore.selectedFsEntry = entry
+  uiStore.selectedFsEntry = entry as any
 
   if (entry.kind !== 'file') return
   if (!entry.path?.toLowerCase().endsWith('.otio')) return
 
-  await videoEditorStore.openTimelineFile(entry.path)
+  await projectStore.openTimelineFile(entry.path)
+  await timelineStore.loadTimeline()
+  void timelineStore.loadTimelineMetadata()
 }
 
 function triggerFileUpload() {
@@ -422,12 +438,12 @@ function onFileSelect(e: Event) {
 }
 
 async function createTimeline() {
-  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) return
+  if (!workspaceStore.projectsHandle || !projectStore.currentProjectName) return
 
   error.value = null
   isLoading.value = true
   try {
-    const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    const projectDir = await workspaceStore.projectsHandle.getDirectoryHandle(projectStore.currentProjectName)
     const sourcesDir = await projectDir.getDirectoryHandle('sources', { create: true })
     const timelinesDir = await sourcesDir.getDirectoryHandle('timelines', { create: true })
 
@@ -511,7 +527,7 @@ async function createTimeline() {
 
     <!-- Actions Toolbar (only for Files tab) -->
     <div
-      v-if="activeTab === 'files' && videoEditorStore.currentProjectName"
+      v-if="activeTab === 'files' && projectStore.currentProjectName"
       class="flex items-center gap-1 px-2 py-1 bg-gray-800/30 border-b border-gray-800/50"
     >
       <UButton
@@ -555,7 +571,7 @@ async function createTimeline() {
           <div class="grid grid-cols-2 gap-3">
             <UFormField :label="t('videoEditor.projectSettings.exportWidth', 'Width')">
               <UInput
-                v-model.number="videoEditorStore.projectSettings.export.width"
+                v-model.number="projectStore.projectSettings.export.width"
                 type="number"
                 inputmode="numeric"
                 min="1"
@@ -565,7 +581,7 @@ async function createTimeline() {
             </UFormField>
             <UFormField :label="t('videoEditor.projectSettings.exportHeight', 'Height')">
               <UInput
-                v-model.number="videoEditorStore.projectSettings.export.height"
+                v-model.number="projectStore.projectSettings.export.height"
                 type="number"
                 inputmode="numeric"
                 min="1"
@@ -577,7 +593,7 @@ async function createTimeline() {
 
           <UFormField :label="t('videoEditor.projectSettings.exportFps', 'FPS')">
             <UInput
-              v-model.number="videoEditorStore.projectSettings.export.fps"
+              v-model.number="projectStore.projectSettings.export.fps"
               type="number"
               inputmode="numeric"
               min="1"
@@ -587,11 +603,11 @@ async function createTimeline() {
           </UFormField>
 
           <MediaEncodingSettings
-            v-model:output-format="videoEditorStore.projectSettings.export.encoding.format"
-            v-model:video-codec="videoEditorStore.projectSettings.export.encoding.videoCodec"
-            v-model:bitrate-mbps="videoEditorStore.projectSettings.export.encoding.bitrateMbps"
-            v-model:exclude-audio="videoEditorStore.projectSettings.export.encoding.excludeAudio"
-            v-model:audio-bitrate-kbps="videoEditorStore.projectSettings.export.encoding.audioBitrateKbps"
+            v-model:output-format="projectStore.projectSettings.export.encoding.format"
+            v-model:video-codec="projectStore.projectSettings.export.encoding.videoCodec"
+            v-model:bitrate-mbps="projectStore.projectSettings.export.encoding.bitrateMbps"
+            v-model:exclude-audio="projectStore.projectSettings.export.encoding.excludeAudio"
+            v-model:audio-bitrate-kbps="projectStore.projectSettings.export.encoding.audioBitrateKbps"
             :disabled="false"
             :has-audio="true"
             :is-loading-codec-support="isLoadingCodecSupport"
@@ -608,7 +624,7 @@ async function createTimeline() {
 
           <UFormField :label="t('videoEditor.projectSettings.proxyHeight', 'Height')">
             <UInput
-              v-model.number="videoEditorStore.projectSettings.proxy.height"
+              v-model.number="projectStore.projectSettings.proxy.height"
               type="number"
               inputmode="numeric"
               min="1"

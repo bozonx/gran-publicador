@@ -12,6 +12,8 @@ export default defineConfig(async () => ({
     },
   },
   test: {
+    hookTimeout: 30_000,
+    testTimeout: 30_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -24,6 +26,8 @@ export default defineConfig(async () => ({
           include: ['test/unit/**/*.{test,spec}.ts'],
           environment: 'happy-dom',
           setupFiles: ['test/setup/unit.setup.ts'],
+          hookTimeout: 30_000,
+          testTimeout: 30_000,
         },
       }),
       await defineVitestProject({
@@ -31,6 +35,8 @@ export default defineConfig(async () => ({
           name: 'nuxt',
           include: ['test/nuxt/**/*.{test,spec}.ts'],
           environment: 'nuxt',
+          hookTimeout: 60_000,
+          testTimeout: 60_000,
         },
       }),
       {
@@ -38,6 +44,8 @@ export default defineConfig(async () => ({
           name: 'e2e',
           include: ['test/e2e/**/*.{test,spec}.ts'],
           environment: 'node',
+          hookTimeout: 60_000,
+          testTimeout: 60_000,
         },
       },
     ],

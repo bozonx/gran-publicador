@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useVideoEditorStore } from '~/stores/videoEditor'
 import { ref, watch, onUnmounted, computed } from 'vue'
+import { useGranVideoEditorUiStore } from '~/stores/granVideoEditor/ui.store'
 
 const { t } = useI18n()
-const videoEditorStore = useVideoEditorStore()
+const uiStore = useGranVideoEditorUiStore()
 
 const currentUrl = ref<string | null>(null)
 const mediaType = ref<'image' | 'video' | 'audio' | 'unknown' | null>(null)
 
-watch(() => videoEditorStore.selectedFsEntry, async (entry) => {
+watch(() => uiStore.selectedFsEntry, async (entry) => {
   // Revoke old URL
   if (currentUrl.value) {
     URL.revokeObjectURL(currentUrl.value)
@@ -19,7 +19,7 @@ watch(() => videoEditorStore.selectedFsEntry, async (entry) => {
   if (!entry || entry.kind !== 'file') return
 
   try {
-    const file = await entry.handle.getFile()
+    const file = await (entry.handle as FileSystemFileHandle).getFile()
     
     if (file.type.startsWith('image/')) {
       mediaType.value = 'image'
@@ -54,14 +54,14 @@ const isUnknown = computed(() => mediaType.value === 'unknown')
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
         {{ t('granVideoEditor.preview.title', 'Preview') }}
       </span>
-      <span v-if="videoEditorStore.selectedFsEntry" class="ml-2 text-xs text-gray-500 font-mono truncate">
-        {{ videoEditorStore.selectedFsEntry.name }}
+      <span v-if="uiStore.selectedFsEntry" class="ml-2 text-xs text-gray-500 font-mono truncate">
+        {{ uiStore.selectedFsEntry.name }}
       </span>
     </div>
 
     <!-- Content Area -->
     <div class="flex-1 min-h-0 flex items-center justify-center bg-black relative">
-      <div v-if="!videoEditorStore.selectedFsEntry" class="flex flex-col items-center gap-3 text-gray-700">
+      <div v-if="!uiStore.selectedFsEntry" class="flex flex-col items-center gap-3 text-gray-700">
         <UIcon name="i-heroicons-eye" class="w-16 h-16" />
         <p class="text-sm">
           {{ t('granVideoEditor.preview.noFile', 'No file selected') }}

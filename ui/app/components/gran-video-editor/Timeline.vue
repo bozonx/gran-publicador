@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import { useVideoEditorStore } from '~/stores/videoEditor'
+import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
 import type { TimelineTrack } from '~/timeline/types'
 
 const { t } = useI18n()
 const toast = useToast()
-const videoEditorStore = useVideoEditorStore()
+const timelineStore = useGranVideoEditorTimelineStore()
 
-const tracks = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined) ?? [])
+const tracks = computed(() => (timelineStore.timelineDoc?.tracks as TimelineTrack[] | undefined) ?? [])
 
 const PX_PER_SECOND = 10
 
@@ -43,7 +43,7 @@ function getLocalX(e: MouseEvent): number {
 
 function seekByMouseEvent(e: MouseEvent) {
   const x = getLocalX(e)
-  videoEditorStore.currentTime = pxToTimeUs(x)
+  timelineStore.currentTime = pxToTimeUs(x)
 }
 
 function onTimeRulerMouseDown(e: MouseEvent) {
@@ -99,7 +99,7 @@ function onGlobalMouseMove(e: MouseEvent) {
     if (!scrollerRect) return
     const scrollX = scrollEl.value?.scrollLeft ?? 0
     const x = e.clientX - scrollerRect.left + scrollX
-    videoEditorStore.currentTime = pxToTimeUs(x)
+    timelineStore.currentTime = pxToTimeUs(x)
     return
   }
 
@@ -114,7 +114,7 @@ function onGlobalMouseMove(e: MouseEvent) {
   if (mode === 'move') {
     const startUs = Math.max(0, dragAnchorStartUs.value + deltaUs)
     try {
-      videoEditorStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs }, { saveMode: 'none' })
+      timelineStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs }, { saveMode: 'none' })
       hasPendingTimelinePersist.value = true
     } catch {
     }
@@ -123,7 +123,7 @@ function onGlobalMouseMove(e: MouseEvent) {
 
   if (mode === 'trim_start') {
     try {
-      videoEditorStore.applyTimeline(
+      timelineStore.applyTimeline(
         { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs },
         { saveMode: 'none' },
       )
@@ -135,7 +135,7 @@ function onGlobalMouseMove(e: MouseEvent) {
 
   if (mode === 'trim_end') {
     try {
-      videoEditorStore.applyTimeline(
+      timelineStore.applyTimeline(
         { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs },
         { saveMode: 'none' },
       )
@@ -147,7 +147,7 @@ function onGlobalMouseMove(e: MouseEvent) {
 
 function onGlobalMouseUp() {
   if (hasPendingTimelinePersist.value) {
-    void videoEditorStore.requestTimelineSave({ immediate: true })
+    void timelineStore.requestTimelineSave({ immediate: true })
     hasPendingTimelinePersist.value = false
   }
 
@@ -171,7 +171,7 @@ async function onDrop(e: DragEvent, trackId: string) {
     try {
       const parsed = JSON.parse(data)
       if (parsed.name && parsed.path) {
-        await videoEditorStore.addClipToTimelineFromPath({
+        await timelineStore.addClipToTimelineFromPath({
           trackId,
           name: parsed.name,
           path: parsed.path,
@@ -197,12 +197,12 @@ function formatTime(seconds: number): string {
 }
 
 function togglePlay() {
-  videoEditorStore.isPlaying = !videoEditorStore.isPlaying
+  timelineStore.isPlaying = !timelineStore.isPlaying
 }
 
 function stop() {
-  videoEditorStore.isPlaying = false
-  videoEditorStore.currentTime = 0
+  timelineStore.isPlaying = false
+  timelineStore.currentTime = 0
 }
 </script>
 
@@ -222,8 +222,8 @@ function stop() {
         size="xs"
         variant="ghost"
         color="neutral"
-        :icon="videoEditorStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
-        :aria-label="videoEditorStore.isPlaying ? t('granVideoEditor.timeline.pause', 'Pause') : t('granVideoEditor.timeline.play', 'Play')"
+        :icon="timelineStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
+        :aria-label="timelineStore.isPlaying ? t('granVideoEditor.timeline.pause', 'Pause') : t('granVideoEditor.timeline.play', 'Play')"
         @click="togglePlay"
       />
       <UButton
@@ -236,7 +236,7 @@ function stop() {
       />
 
       <span class="text-xs font-mono text-gray-400 ml-2">
-        {{ formatTime(videoEditorStore.currentTime / 1e6) }} / {{ formatTime(videoEditorStore.duration / 1e6) }}
+        {{ formatTime(timelineStore.currentTime / 1e6) }} / {{ formatTime(timelineStore.duration / 1e6) }}
       </span>
 
       <div class="ml-auto flex items-center gap-1 text-xs text-gray-500">
@@ -320,7 +320,7 @@ function stop() {
         <!-- Playhead -->
         <div
           class="absolute top-0 bottom-0 w-px bg-primary-500 cursor-ew-resize"
-          :style="{ left: `${timeUsToPx(videoEditorStore.currentTime)}px` }"
+          :style="{ left: `${timeUsToPx(timelineStore.currentTime)}px` }"
           @mousedown="startPlayheadDrag"
         >
           <div class="w-2.5 h-2.5 bg-primary-500 rounded-full -translate-x-1/2 mt-0.5" />

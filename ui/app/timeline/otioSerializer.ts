@@ -120,12 +120,6 @@ function coerceName(raw: any, fallback: string): string {
   return v;
 }
 
-function parseTimelineStartUs(raw: any): number | null {
-  const value = Number(raw);
-  if (!Number.isFinite(value) || value < 0) return null;
-  return Math.round(value);
-}
-
 function parseItemSequenceDurationUs(child: any): number {
   if (!child || typeof child !== 'object') return 0;
   if (child.OTIO_SCHEMA === 'Gap.1') {
@@ -375,7 +369,6 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
       gran: {
         docId: doc.id,
         timebase: doc.timebase,
-        tracks: doc.tracks.map(t => ({ id: t.id, kind: t.kind, name: t.name })),
       },
     },
   };
@@ -413,24 +406,19 @@ export function parseTimelineFromOtio(
     ? (parsed.tracks as any).children
     : [];
 
-  const trackMetas = Array.isArray(granMeta?.tracks) ? granMeta.tracks : [];
-
   const tracks: TimelineTrack[] = stackChildren.map((otioTrack: OtioTrack, trackIndex: number) => {
-    const legacyMeta = trackMetas[trackIndex] ?? {};
     const trackGranMeta = safeGranMetadata(otioTrack.metadata);
 
     const id = coerceId(
-      trackGranMeta?.id ?? legacyMeta?.id,
+      trackGranMeta?.id,
       `${otioTrack.kind === 'Audio' ? 'a' : 'v'}${trackIndex + 1}`,
     );
     const kind =
       trackGranMeta?.kind === 'audio' || trackGranMeta?.kind === 'video'
         ? trackGranMeta.kind
-        : legacyMeta?.kind === 'audio' || legacyMeta?.kind === 'video'
-          ? legacyMeta.kind
-          : trackKindFromOtioKind(otioTrack.kind);
+        : trackKindFromOtioKind(otioTrack.kind);
     const name = coerceName(
-      trackGranMeta?.name ?? legacyMeta?.name ?? otioTrack.name,
+      trackGranMeta?.name ?? otioTrack.name,
       kind === 'audio' ? `Audio ${trackIndex + 1}` : `Video ${trackIndex + 1}`,
     );
 

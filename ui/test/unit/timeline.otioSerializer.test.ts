@@ -37,7 +37,6 @@ describe('timeline/otioSerializer', () => {
         gran: {
           docId: 'doc1',
           timebase: { fps: 25 },
-          tracks: [{ id: 'v1', kind: 'video', name: 'Video 1' }],
         },
       },
     };
@@ -107,7 +106,6 @@ describe('timeline/otioSerializer', () => {
         gran: {
           docId: 'doc1',
           timebase: { fps: 25 },
-          tracks: [{ id: 'v1', kind: 'video', name: 'Video 1' }],
         },
       },
     };

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useVideoEditorStore } from '~/stores/videoEditor'
+import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
 
 interface Props {
   open: boolean
@@ -13,7 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const videoEditorStore = useVideoEditorStore()
+const workspaceStore = useGranVideoEditorWorkspaceStore()
 
 const isOpen = computed({
   get: () => props.open,
@@ -21,11 +21,11 @@ const isOpen = computed({
 })
 
 const proxyLimitGb = computed({
-  get: () => Math.round(videoEditorStore.workspaceSettings.proxyStorageLimitBytes / (1024 * 1024 * 1024)),
+  get: () => Math.round(workspaceStore.workspaceSettings.proxyStorageLimitBytes / (1024 * 1024 * 1024)),
   set: (v: number) => {
     const n = Number(v)
     if (!Number.isFinite(n) || n <= 0) return
-    videoEditorStore.workspaceSettings.proxyStorageLimitBytes = Math.round(n * 1024 * 1024 * 1024)
+    workspaceStore.workspaceSettings.proxyStorageLimitBytes = Math.round(n * 1024 * 1024 * 1024)
   },
 })
 </script>
@@ -46,12 +46,12 @@ const proxyLimitGb = computed({
           :help="t('videoEditor.settings.openBehaviorHelp', 'Controls what happens after workspace is opened')"
         >
           <UiAppButtonGroup
-            :model-value="videoEditorStore.userSettings.openBehavior"
+            :model-value="workspaceStore.userSettings.openBehavior"
             :options="[
               { value: 'open_last_project', label: t('videoEditor.settings.openLastProject', 'Open last project') },
               { value: 'show_project_picker', label: t('videoEditor.settings.showProjectPicker', 'Show project picker') }
             ]"
-            @update:model-value="(val: any) => videoEditorStore.userSettings.openBehavior = val"
+            @update:model-value="(val: any) => workspaceStore.userSettings.openBehavior = val"
           />
         </UFormField>
       </div>
@@ -78,7 +78,7 @@ const proxyLimitGb = computed({
         <div class="grid grid-cols-2 gap-3">
           <UFormField :label="t('videoEditor.settings.defaultProjectWidth', 'Default project width')">
             <UInput
-              v-model.number="videoEditorStore.workspaceSettings.defaults.newProject.width"
+              v-model.number="workspaceStore.workspaceSettings.defaults.newProject.width"
               type="number"
               inputmode="numeric"
               min="1"
@@ -89,7 +89,7 @@ const proxyLimitGb = computed({
 
           <UFormField :label="t('videoEditor.settings.defaultProjectHeight', 'Default project height')">
             <UInput
-              v-model.number="videoEditorStore.workspaceSettings.defaults.newProject.height"
+              v-model.number="workspaceStore.workspaceSettings.defaults.newProject.height"
               type="number"
               inputmode="numeric"
               min="1"
@@ -101,7 +101,7 @@ const proxyLimitGb = computed({
 
         <UFormField :label="t('videoEditor.settings.defaultProjectFps', 'Default project FPS')">
           <UInput
-            v-model.number="videoEditorStore.workspaceSettings.defaults.newProject.fps"
+            v-model.number="workspaceStore.workspaceSettings.defaults.newProject.fps"
             type="number"
             inputmode="numeric"
             min="1"

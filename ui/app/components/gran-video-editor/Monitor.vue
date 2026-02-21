@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-import { useVideoEditorStore } from '~/stores/videoEditor'
 import { useMediabunny } from '~/composables/useMediabunny'
+import { useGranVideoEditorMediaStore } from '~/stores/granVideoEditor/media.store'
+import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
+import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
 import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
 const { t } = useI18n()
-const videoEditorStore = useVideoEditorStore()
+const projectStore = useGranVideoEditorProjectStore()
+const timelineStore = useGranVideoEditorTimelineStore()
+const mediaStore = useGranVideoEditorMediaStore()
 const mediaBunny = useMediabunny()
 
-const videoTrack = computed(() => (videoEditorStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
+const videoTrack = computed(() => (timelineStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
 const videoItems = computed(() => (videoTrack.value?.items ?? []).filter((it: TimelineTrackItem) => it.kind === 'clip'))
 
 const containerEl = ref<HTMLDivElement | null>(null)
@@ -20,13 +24,13 @@ const MIN_CANVAS_DIMENSION = 16
 const MAX_CANVAS_DIMENSION = 7680
 
 const exportWidth = computed(() => {
-  const value = Number(videoEditorStore.projectSettings.export.width)
+  const value = Number(projectStore.projectSettings.export.width)
   if (!Number.isFinite(value) || value <= 0) return 1920
   return Math.round(Math.min(MAX_CANVAS_DIMENSION, Math.max(MIN_CANVAS_DIMENSION, value)))
 })
 
 const exportHeight = computed(() => {
-  const value = Number(videoEditorStore.projectSettings.export.height)
+  const value = Number(projectStore.projectSettings.export.height)
   if (!Number.isFinite(value) || value <= 0) return 1080
   return Math.round(Math.min(MAX_CANVAS_DIMENSION, Math.max(MIN_CANVAS_DIMENSION, value)))
 })
@@ -113,10 +117,10 @@ async function buildTimeline() {
     // Load each video clip based on timelineRange.startUs
     for (const clip of clips) {
       if (requestId !== buildRequestId) return
-      const fileHandle = await videoEditorStore.getFileHandleByPath(clip.source.path)
+      const fileHandle = await projectStore.getFileHandleByPath(clip.source.path)
       if (!fileHandle) continue
 
-      const metadata = await videoEditorStore.getOrFetchMetadata(fileHandle, clip.source.path)
+      const metadata = await mediaStore.getOrFetchMetadata(fileHandle, clip.source.path)
       if (!metadata || !metadata.video) continue
 
       const file = await fileHandle.getFile()
@@ -161,7 +165,7 @@ async function buildTimeline() {
     
     maxDuration = Math.max(0, ...mediaBunny.clips.value.map(c => c.endUs))
     mediaBunny.durationUs.value = maxDuration
-    videoEditorStore.duration = maxDuration
+    timelineStore.duration = maxDuration
     console.log('[Monitor] Timeline duration:', maxDuration)
 
     // Show first frame
@@ -169,8 +173,8 @@ async function buildTimeline() {
     await mediaBunny.seek(0)
     console.log('[Monitor] First frame previewed')
 
-    videoEditorStore.currentTime = 0
-    videoEditorStore.isPlaying = false
+    timelineStore.currentTime = 0
+    timelineStore.isPlaying = false
 
   } catch (e: any) {
     console.error('Failed to build timeline components', e)
@@ -185,12 +189,12 @@ async function buildTimeline() {
 }
 
 // Watch global store timelineClips changes and rebuild timeline
-watch(() => videoEditorStore.timelineDoc, () => {
+watch(() => timelineStore.timelineDoc, () => {
   buildTimeline()
 }, { deep: true })
 
 watch(
-  () => [videoEditorStore.projectSettings.export.width, videoEditorStore.projectSettings.export.height],
+  () => [projectStore.projectSettings.export.width, projectStore.projectSettings.export.height],
   () => {
     updateCanvasDisplaySize()
     buildTimeline()
@@ -198,14 +202,14 @@ watch(
 )
 
 // Sync playback controls from store
-watch(() => videoEditorStore.isPlaying, (playing) => {
+watch(() => timelineStore.isPlaying, (playing) => {
   if (isLoading.value || loadError.value) {
-    if (playing) videoEditorStore.isPlaying = false
+    if (playing) timelineStore.isPlaying = false
     return
   }
 
   if (playing) {
-    const start = Math.max(0, videoEditorStore.currentTime)
+    const start = Math.max(0, timelineStore.currentTime)
     mediaBunny.play(start)
   } else {
     mediaBunny.pause()
@@ -215,11 +219,11 @@ watch(() => videoEditorStore.isPlaying, (playing) => {
 // Update playback loop timing
 let playbackLoopId = 0
 function updatePlayback() {
-  if (videoEditorStore.isPlaying && mediaBunny.isPlaying.value) {
-    videoEditorStore.currentTime = mediaBunny.currentTimeUs.value
+  if (timelineStore.isPlaying && mediaBunny.isPlaying.value) {
+    timelineStore.currentTime = mediaBunny.currentTimeUs.value
     playbackLoopId = requestAnimationFrame(updatePlayback)
   } else if (!mediaBunny.isPlaying.value) {
-    videoEditorStore.isPlaying = false
+    timelineStore.isPlaying = false
   }
 }
 
@@ -232,8 +236,8 @@ watch(() => mediaBunny.isPlaying.value, (isPlaying) => {
 })
 
 // Sync time to store (initial seek or external seek)
-watch(() => videoEditorStore.currentTime, (val) => {
-  if (!videoEditorStore.isPlaying && Math.abs(val - mediaBunny.currentTimeUs.value) > 100000) { // 100ms difference threshold
+watch(() => timelineStore.currentTime, (val) => {
+  if (!timelineStore.isPlaying && Math.abs(val - mediaBunny.currentTimeUs.value) > 100000) { // 100ms difference threshold
     mediaBunny.seek(val)
   }
 })
@@ -305,19 +309,19 @@ function formatTime(seconds: number): string {
         icon="i-heroicons-backward"
         :aria-label="t('granVideoEditor.monitor.rewind', 'Rewind')"
         :disabled="videoItems.length === 0 || isLoading"
-        @click="videoEditorStore.currentTime = 0"
+        @click="timelineStore.currentTime = 0"
       />
       <UButton
         size="sm"
         variant="solid"
         color="primary"
-        :icon="videoEditorStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
+        :icon="timelineStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
         :aria-label="t('granVideoEditor.monitor.play', 'Play')"
         :disabled="videoItems.length === 0 || isLoading"
-        @click="videoEditorStore.isPlaying = !videoEditorStore.isPlaying"
+        @click="timelineStore.isPlaying = !timelineStore.isPlaying"
       />
       <span class="text-xs text-gray-600 ml-2 font-mono">
-        {{ formatTime(videoEditorStore.currentTime / 1e6) }} / {{ formatTime(videoEditorStore.duration / 1e6) }}
+        {{ formatTime(timelineStore.currentTime / 1e6) }} / {{ formatTime(timelineStore.duration / 1e6) }}
       </span>
     </div>
   </div>

@@ -1,27 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-import { useVideoEditorStore } from '../../app/stores/videoEditor';
+import { useGranVideoEditorUiStore } from '../../app/stores/granVideoEditor/ui.store';
 
-describe('stores/videoEditor file tree persistence', () => {
+describe('stores/granVideoEditor ui file tree persistence', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     window.localStorage.clear();
     vi.restoreAllMocks();
-    vi.useFakeTimers();
   });
 
-  it('restores file tree expanded paths once on openProject', async () => {
-    const store = useVideoEditorStore();
-
-    store.projects = ['demo'];
-
+  it('restores file tree expanded paths once per project', async () => {
+    const store = useGranVideoEditorUiStore();
     window.localStorage.setItem(
       'gran-video-editor:file-tree:demo',
       JSON.stringify({ expandedPaths: ['sources', 'sources/video'] }),
     );
 
-    await store.openProject('demo');
+    store.restoreFileTreeStateOnce('demo');
 
     expect(Object.keys(store.fileTreeExpandedPaths)).toEqual(['sources', 'sources/video']);
 
@@ -30,21 +26,15 @@ describe('stores/videoEditor file tree persistence', () => {
       JSON.stringify({ expandedPaths: ['different'] }),
     );
 
-    await store.openProject('demo');
+    store.restoreFileTreeStateOnce('demo');
 
     expect(Object.keys(store.fileTreeExpandedPaths)).toEqual(['sources', 'sources/video']);
   });
 
-  it('persists expanded paths lazily (debounced) to localStorage', async () => {
-    const store = useVideoEditorStore();
-
-    store.projects = ['demo'];
-    await store.openProject('demo');
-
-    store.setFileTreePathExpanded('sources', true);
-
-    await vi.runAllTimersAsync();
-    await Promise.resolve();
+  it('persists expanded paths to localStorage', async () => {
+    const store = useGranVideoEditorUiStore();
+    store.restoreFileTreeStateOnce('demo');
+    store.setFileTreePathExpanded('demo', 'sources', true);
 
     const stored = window.localStorage.getItem('gran-video-editor:file-tree:demo');
     expect(stored).toContain('sources');

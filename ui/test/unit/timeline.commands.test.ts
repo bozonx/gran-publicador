@@ -90,7 +90,7 @@ describe('timeline/commands', () => {
       trackId: v1.id,
       itemId: clipId,
       edge: 'end',
-      deltaUs: 1_000_000,
+      deltaUs: -1_000_000,
     });
 
     const v2 = r2.next.tracks.find(t => t.kind === 'video')!;

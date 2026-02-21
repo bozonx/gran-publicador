@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useVideoEditorStore } from '~/stores/videoEditor'
+import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
+import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
+import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
 import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
@@ -34,7 +36,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
-const videoEditorStore = useVideoEditorStore()
+const workspaceStore = useGranVideoEditorWorkspaceStore()
+const projectStore = useGranVideoEditorProjectStore()
+const timelineStore = useGranVideoEditorTimelineStore()
 
 const isOpen = computed({
   get: () => props.open,
@@ -211,7 +215,7 @@ function resolveExportCodecs(format: 'mp4' | 'webm' | 'mkv', selectedVideoCodec:
 }
 
 async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSystemFileHandle, onProgress: (progress: number) => void): Promise<void> {
-  const doc = videoEditorStore.timelineDoc
+  const doc = timelineStore.timelineDoc
   const track = doc?.tracks?.find((t: any) => t.kind === 'video')
   const clips = (track?.items ?? []).filter((it: any) => it.kind === 'clip')
   if (!clips.length) throw new Error('Timeline is empty')
@@ -247,7 +251,7 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
 
   try {
     for (const clip of clips) {
-      const resolvedHandle = await videoEditorStore.getFileHandleByPath(clip.source.path)
+      const resolvedHandle = await projectStore.getFileHandleByPath(clip.source.path)
       if (!resolvedHandle) continue
       const file = await resolvedHandle.getFile()
       const source = new BlobSource(file)
@@ -415,10 +419,10 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
 }
 
 async function ensureExportDir(): Promise<FileSystemDirectoryHandle> {
-  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) {
+  if (!workspaceStore.projectsHandle || !projectStore.currentProjectName) {
     throw new Error('Project is not opened')
   }
-  const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+  const projectDir = await workspaceStore.projectsHandle.getDirectoryHandle(projectStore.currentProjectName)
   return await projectDir.getDirectoryHandle('export', { create: true })
 }
 
@@ -456,20 +460,20 @@ watch(
     isExporting.value = false
 
     outputFormat.value = 'mp4'
-    videoCodec.value = videoEditorStore.projectSettings.export.encoding.videoCodec
-    bitrateMbps.value = videoEditorStore.projectSettings.export.encoding.bitrateMbps
-    excludeAudio.value = videoEditorStore.projectSettings.export.encoding.excludeAudio
-    audioBitrateKbps.value = videoEditorStore.projectSettings.export.encoding.audioBitrateKbps
-    exportWidth.value = videoEditorStore.projectSettings.export.width
-    exportHeight.value = videoEditorStore.projectSettings.export.height
-    exportFps.value = videoEditorStore.projectSettings.export.fps
+    videoCodec.value = projectStore.projectSettings.export.encoding.videoCodec
+    bitrateMbps.value = projectStore.projectSettings.export.encoding.bitrateMbps
+    excludeAudio.value = projectStore.projectSettings.export.encoding.excludeAudio
+    audioBitrateKbps.value = projectStore.projectSettings.export.encoding.audioBitrateKbps
+    exportWidth.value = projectStore.projectSettings.export.width
+    exportHeight.value = projectStore.projectSettings.export.height
+    exportFps.value = projectStore.projectSettings.export.fps
 
     await loadCodecSupport()
 
-    outputFormat.value = videoEditorStore.projectSettings.export.encoding.format
+    outputFormat.value = projectStore.projectSettings.export.encoding.format
 
     const exportDir = await ensureExportDir()
-    const timelineBase = sanitizeBaseName(videoEditorStore.currentFileName || videoEditorStore.currentProjectName || 'timeline')
+    const timelineBase = sanitizeBaseName(projectStore.currentFileName || projectStore.currentProjectName || 'timeline')
     outputFilename.value = await getNextAvailableFilename(exportDir, timelineBase, getExt(outputFormat.value))
     await validateFilename(exportDir)
   },
