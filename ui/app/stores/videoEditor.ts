@@ -146,6 +146,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       await sourcesDir.getDirectoryHandle('video', { create: true })
       await sourcesDir.getDirectoryHandle('audio', { create: true })
       await sourcesDir.getDirectoryHandle('images', { create: true })
+      await sourcesDir.getDirectoryHandle('timelines', { create: true })
 
       const otioFileName = `${name}_001.otio`
       const otioFile = await projectDir.getFileHandle(otioFileName, { create: true })

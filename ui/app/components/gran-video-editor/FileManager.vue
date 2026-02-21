@@ -253,6 +253,51 @@ function onFileSelect(e: Event) {
     handleFiles(target.files)
   }
 }
+
+async function createTimeline() {
+  if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) return
+
+  error.value = null
+  isLoading.value = true
+  try {
+    const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    const sourcesDir = await projectDir.getDirectoryHandle('sources', { create: true })
+    const timelinesDir = await sourcesDir.getDirectoryHandle('timelines', { create: true })
+
+    // Find unique filename
+    let index = 1
+    let fileName = ''
+    let exists = true
+    while (exists) {
+      fileName = `timeline_${String(index).padStart(3, '0')}.otio`
+      try {
+        await timelinesDir.getFileHandle(fileName)
+        index++
+      } catch (e) {
+        exists = false
+      }
+    }
+
+    const fileHandle = await timelinesDir.getFileHandle(fileName, { create: true })
+    const writable = await (fileHandle as any).createWritable()
+    await writable.write(`{
+  "OTIO_SCHEMA": "Timeline.1",
+  "name": "${fileName.replace('.otio', '')}",
+  "tracks": {
+    "OTIO_SCHEMA": "Stack.1",
+    "children": [],
+    "name": "tracks"
+  }
+}`)
+    await writable.close()
+
+    await loadProjectDirectory()
+  } catch (e: any) {
+    error.value = e?.message ?? 'Failed to create timeline'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -310,6 +355,14 @@ function onFileSelect(e: Event) {
         size="xs"
         :title="t('videoEditor.fileManager.actions.uploadFiles')"
         @click="triggerFileUpload"
+      />
+      <UButton
+        icon="i-heroicons-document-plus"
+        variant="ghost"
+        color="neutral"
+        size="xs"
+        :title="t('videoEditor.fileManager.actions.createTimeline', 'Create Timeline')"
+        @click="createTimeline"
       />
     </div>
 

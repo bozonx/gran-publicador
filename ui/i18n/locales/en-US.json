@@ -1510,6 +1510,7 @@
         "actions": {
           "createFolder": "Create folder",
           "uploadFiles": "Upload files",
+          "createTimeline": "Create Timeline",
           "dropFilesHere": "Drop files here"
         }
       }

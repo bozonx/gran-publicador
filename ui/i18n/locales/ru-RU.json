@@ -1510,6 +1510,7 @@
         "actions": {
           "createFolder": "Создать папку",
           "uploadFiles": "Загрузить файлы",
+          "createTimeline": "Создать таймлайн",
           "dropFilesHere": "Отпустите файлы здесь"
         }
       }
