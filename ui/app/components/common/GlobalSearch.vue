@@ -9,6 +9,11 @@ const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 const isSearching = ref(false)
 const hasPerformedSearch = ref(false)
+const hasMoreProjects = ref(false)
+const hasMoreChannels = ref(false)
+const hasMorePublications = ref(false)
+const abortController = ref<AbortController | null>(null)
+const selectedIndex = ref(-1)
 
 interface SearchResult {
   type: 'project' | 'channel' | 'publication'
@@ -26,6 +31,10 @@ watch(debouncedSearch, async (query) => {
   if (!query || query.length < 2) {
     searchResults.value = []
     hasPerformedSearch.value = false
+    hasMoreProjects.value = false
+    hasMoreChannels.value = false
+    hasMorePublications.value = false
+    selectedIndex.value = -1
     return
   }
 
@@ -38,20 +47,38 @@ watch(debouncedSearch, async (query) => {
 })
 
 async function performSearch(query: string) {
+  if (abortController.value) {
+    abortController.value.abort()
+  }
+  abortController.value = new AbortController()
+  const signal = abortController.value.signal
+
   const api = useApi()
   const results: SearchResult[] = []
 
   try {
+    const [projectsResponse, channelsResponse, publicationsResponse] = await Promise.all([
+      api.get<any[]>('/projects', {
+        query: { search: query, limit: 6 },
+        signal
+      }).catch(() => []),
+      api.get<any>('/channels', {
+        query: { search: query, limit: 5 },
+        signal
+      }).catch(() => null),
+      api.get<any>('/publications', {
+        query: { search: query, limit: 5 },
+        signal
+      }).catch(() => null)
+    ])
+
+    if (signal.aborted) return
+
     // Search projects
-    const projectsResponse = await api.get<any[]>('/projects', {
-      query: { 
-        search: query,
-        limit: DEFAULT_PAGE_SIZE
-      }
-    })
     const projects = projectsResponse || []
+    hasMoreProjects.value = projects.length > 5
     projects
-      .slice(0, 10)
+      .slice(0, 5)
       .forEach((p: any) => {
         results.push({
           type: 'project',
@@ -64,15 +91,10 @@ async function performSearch(query: string) {
       })
 
     // Search channels
-    const channelsResponse = await api.get<any>('/channels', {
-      query: { 
-        search: query,
-        limit: DEFAULT_PAGE_SIZE 
-      }
-    })
     const channels = channelsResponse?.items || []
+    hasMoreChannels.value = (channelsResponse?.total || channels.length) > 5
     channels
-      .slice(0, 10)
+      .slice(0, 5)
       .forEach((c: any) => {
         results.push({
           type: 'channel',
@@ -85,15 +107,10 @@ async function performSearch(query: string) {
       })
 
     // Search publications
-    const publicationsResponse = await api.get<any>('/publications', {
-      query: { 
-        search: query,
-        limit: DEFAULT_PAGE_SIZE 
-      }
-    })
     const publications = publicationsResponse?.items || []
+    hasMorePublications.value = (publicationsResponse?.total || publications.length) > 5
     publications
-      .slice(0, 10)
+      .slice(0, 5)
       .forEach((p: any) => {
         results.push({
           type: 'publication',
@@ -107,49 +124,15 @@ async function performSearch(query: string) {
 
     searchResults.value = results
     hasPerformedSearch.value = true
-  } catch (error) {
+    selectedIndex.value = -1
+  } catch (error: any) {
+    if (error.name === 'AbortError') return
     console.error('Search error:', error)
     searchResults.value = []
     hasPerformedSearch.value = true
+    selectedIndex.value = -1
   }
 }
-
-function selectResult(result: SearchResult) {
-  router.push(result.link)
-  closeSearch()
-}
-
-function closeSearch() {
-  isOpen.value = false
-  searchQuery.value = ''
-  searchResults.value = []
-}
-
-const props = withDefaults(defineProps<{
-  disableShortcut?: boolean
-  variant?: 'auto' | 'full' | 'icon'
-}>(), {
-  variant: 'auto'
-})
-
-// Keyboard shortcut: Cmd+K or Ctrl+K
-onMounted(() => {
-  if (props.disableShortcut) return
-
-  const handleKeydown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.code === 'KeyK')) {
-      e.preventDefault()
-      isOpen.value = !isOpen.value
-    }
-    if (e.key === 'Escape' && isOpen.value) {
-      closeSearch()
-    }
-  }
-  window.addEventListener('keydown', handleKeydown)
-  onUnmounted(() => {
-    window.removeEventListener('keydown', handleKeydown)
-  })
-})
 
 const groupedResults = computed(() => {
   const groups: Record<string, SearchResult[]> = {
@@ -167,6 +150,111 @@ const groupedResults = computed(() => {
   
   return groups
 })
+
+interface ViewAllItem {
+  type: 'view-all'
+  category: 'project' | 'channel' | 'publication'
+  link: string
+  label: string
+}
+
+type NavigableItem = SearchResult | ViewAllItem
+
+const navigableItems = computed<NavigableItem[]>(() => {
+  const items: NavigableItem[] = []
+  
+  if (groupedResults.value.project?.length) {
+    items.push(...groupedResults.value.project)
+    if (hasMoreProjects.value) {
+      items.push({ type: 'view-all', category: 'project', link: '/projects', label: t('common.viewAll') })
+    }
+  }
+  
+  if (groupedResults.value.channel?.length) {
+    items.push(...groupedResults.value.channel)
+    if (hasMoreChannels.value) {
+      items.push({ type: 'view-all', category: 'channel', link: `/channels?search=${encodeURIComponent(searchQuery.value)}`, label: t('common.viewAll') })
+    }
+  }
+  
+  if (groupedResults.value.publication?.length) {
+    items.push(...groupedResults.value.publication)
+    if (hasMorePublications.value) {
+      items.push({ type: 'view-all', category: 'publication', link: `/publications?search=${encodeURIComponent(searchQuery.value)}`, label: t('common.viewAll') })
+    }
+  }
+  
+  return items
+})
+
+function selectResult(result: SearchResult) {
+  router.push(result.link)
+  closeSearch()
+}
+
+function isViewAll(item: NavigableItem | undefined, category: string): boolean {
+  return item?.type === 'view-all' && (item as ViewAllItem).category === category
+}
+
+function selectNavigableItem(item: NavigableItem) {
+  router.push(item.link)
+  closeSearch()
+}
+
+function closeSearch() {
+  isOpen.value = false
+  searchQuery.value = ''
+  searchResults.value = []
+  hasMoreProjects.value = false
+  hasMoreChannels.value = false
+  hasMorePublications.value = false
+  selectedIndex.value = -1
+}
+
+const props = withDefaults(defineProps<{
+  disableShortcut?: boolean
+  variant?: 'auto' | 'full' | 'icon'
+}>(), {
+  variant: 'auto'
+})
+
+// Keyboard shortcut: Cmd+K or Ctrl+K
+onMounted(() => {
+  if (props.disableShortcut) return
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.code === 'KeyK')) {
+      e.preventDefault()
+      isOpen.value = !isOpen.value
+    } else if (e.key === 'Escape' && isOpen.value) {
+      closeSearch()
+    } else if (e.key === 'ArrowDown' && isOpen.value) {
+      e.preventDefault()
+      if (navigableItems.value.length > 0) {
+        selectedIndex.value = (selectedIndex.value + 1) % navigableItems.value.length
+      }
+    } else if (e.key === 'ArrowUp' && isOpen.value) {
+      e.preventDefault()
+      if (navigableItems.value.length > 0) {
+        selectedIndex.value = selectedIndex.value <= 0 ? navigableItems.value.length - 1 : selectedIndex.value - 1
+      }
+    } else if (e.key === 'Enter' && isOpen.value) {
+      if (selectedIndex.value >= 0 && selectedIndex.value < navigableItems.value.length) {
+        e.preventDefault()
+        const item = navigableItems.value[selectedIndex.value]
+        if (item) {
+          selectNavigableItem(item)
+        }
+      }
+    }
+  }
+  window.addEventListener('keydown', handleKeydown)
+  onUnmounted(() => {
+    window.removeEventListener('keydown', handleKeydown)
+  })
+})
+
+// Removed groupedResults from here as it was moved up
 </script>
 
 <template>
@@ -236,7 +324,8 @@ const groupedResults = computed(() => {
                     v-for="result in groupedResults.project"
                     :key="result.id"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-left transition-colors"
-                    @click="selectResult(result)"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': navigableItems[selectedIndex] === result }"
+                    @click="selectNavigableItem(result)"
                   >
                     <UIcon :name="result.icon" class="w-5 h-5 text-gray-400 shrink-0" />
                     <div class="flex-1 min-w-0">
@@ -245,6 +334,15 @@ const groupedResults = computed(() => {
                         {{ result.subtitle }}
                       </div>
                     </div>
+                  </button>
+                  <button
+                    v-if="hasMoreProjects"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-500 font-medium text-sm transition-colors mt-1"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': isViewAll(navigableItems[selectedIndex], 'project') }"
+                    @click="selectNavigableItem({ type: 'view-all', category: 'project', link: '/projects', label: t('common.viewAll') })"
+                  >
+                    {{ t('common.viewAll') }}
+                    <UIcon name="i-heroicons-arrow-right" class="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -259,7 +357,8 @@ const groupedResults = computed(() => {
                     v-for="result in groupedResults.channel"
                     :key="result.id"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-left transition-colors"
-                    @click="selectResult(result)"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': navigableItems[selectedIndex] === result }"
+                    @click="selectNavigableItem(result)"
                   >
                     <UIcon :name="result.icon" class="w-5 h-5 text-gray-400 shrink-0" />
                     <div class="flex-1 min-w-0">
@@ -268,6 +367,15 @@ const groupedResults = computed(() => {
                         {{ result.subtitle }}
                       </div>
                     </div>
+                  </button>
+                  <button
+                    v-if="hasMoreChannels"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-500 font-medium text-sm transition-colors mt-1"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': isViewAll(navigableItems[selectedIndex], 'channel') }"
+                    @click="selectNavigableItem({ type: 'view-all', category: 'channel', link: `/channels?search=${encodeURIComponent(searchQuery)}`, label: t('common.viewAll') })"
+                  >
+                    {{ t('common.viewAll') }}
+                    <UIcon name="i-heroicons-arrow-right" class="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -282,7 +390,8 @@ const groupedResults = computed(() => {
                     v-for="result in groupedResults.publication"
                     :key="result.id"
                     class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-left transition-colors"
-                    @click="selectResult(result)"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': navigableItems[selectedIndex] === result }"
+                    @click="selectNavigableItem(result)"
                   >
                     <UIcon :name="result.icon" class="w-5 h-5 text-gray-400 shrink-0" />
                     <div class="flex-1 min-w-0">
@@ -291,6 +400,15 @@ const groupedResults = computed(() => {
                         {{ result.subtitle }}
                       </div>
                     </div>
+                  </button>
+                  <button
+                    v-if="hasMorePublications"
+                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary-500 font-medium text-sm transition-colors mt-1"
+                    :class="{ 'bg-gray-100 dark:bg-gray-800': isViewAll(navigableItems[selectedIndex], 'publication') }"
+                    @click="selectNavigableItem({ type: 'view-all', category: 'publication', link: `/publications?search=${encodeURIComponent(searchQuery)}`, label: t('common.viewAll') })"
+                  >
+                    {{ t('common.viewAll') }}
+                    <UIcon name="i-heroicons-arrow-right" class="w-4 h-4" />
                   </button>
                 </div>
               </div>
