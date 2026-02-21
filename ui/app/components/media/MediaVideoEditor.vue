@@ -196,6 +196,9 @@ interface ExportOptions {
   audioBitrate: number
   audio: boolean
   audioCodec?: string
+  width: number
+  height: number
+  fps: number
 }
 
 async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uint8Array>> {
@@ -217,6 +220,9 @@ async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uin
       bitrate: options.bitrate,
       audioBitrate: options.audioBitrate,
       audio: options.audio,
+      width: options.width,
+      height: options.height,
+      fps: options.fps,
     })
   }
 
@@ -238,11 +244,10 @@ async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uin
   sprite.time.offset = 0
   sprite.time.duration = trimDurationUs
 
-  const { width, height } = exportClip.meta
-
   const combinator = new Combinator({
-    width: width || 1280,
-    height: height || 720,
+    width: options.width,
+    height: options.height,
+    fps: options.fps,
     bgColor: '#000',
     videoCodec: options.videoCodec,
     bitrate: options.bitrate,

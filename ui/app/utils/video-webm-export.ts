@@ -7,6 +7,9 @@ export interface ContainerExportOptions {
   bitrate: number;
   audioBitrate: number;
   audio: boolean;
+  width?: number;
+  height?: number;
+  fps?: number;
   /** Optional separate clip used as the audio source. When provided, audio frames
    * are read from this clip instead of the primary video clip. Useful when the
    * video clip is a Combinator-generated MP4 (audio-only) and the original file
@@ -37,17 +40,42 @@ const FORMAT_CONFIG = {
  */
 export async function exportToContainer(
   clip: any,
-  { format, trimInUs, trimOutUs, bitrate, audioBitrate, audio, audioClip }: ContainerExportOptions,
+  {
+    format,
+    trimInUs,
+    trimOutUs,
+    bitrate,
+    audioBitrate,
+    audio,
+    audioClip,
+    width,
+    height,
+    fps,
+  }: ContainerExportOptions,
 ): Promise<ReadableStream<Uint8Array>> {
   const { muxerType, videoMuxCodec, audioMuxCodec, videoEncCodec } = FORMAT_CONFIG[format];
-  const { width, height } = clip.meta;
+  const targetFps =
+    Number.isFinite(Number(fps)) && Number(fps) > 0
+      ? Math.round(Math.min(240, Math.max(1, Number(fps))))
+      : 30;
+
+  const metaWidth = Number(clip?.meta?.width);
+  const metaHeight = Number(clip?.meta?.height);
+  const inputWidth = Number(width);
+  const inputHeight = Number(height);
+
+  const baseWidth =
+    Number.isFinite(inputWidth) && inputWidth > 0 ? Math.round(inputWidth) : metaWidth;
+  const baseHeight =
+    Number.isFinite(inputHeight) && inputHeight > 0 ? Math.round(inputHeight) : metaHeight;
+
   // Audio metadata comes from audioClip if provided, otherwise from the primary clip.
   const audioSource = audioClip ?? clip;
   const { audioSampleRate, audioChanCount } = audioSource.meta;
   const hasAudio = audio && !!audioSampleRate;
 
-  let videoWidth = Math.ceil((width || 1280) / 2) * 2;
-  let videoHeight = Math.ceil((height || 720) / 2) * 2;
+  let videoWidth = Math.ceil((baseWidth || 1280) / 2) * 2;
+  let videoHeight = Math.ceil((baseHeight || 720) / 2) * 2;
   const sampleRate: number = (audioSource.meta.audioSampleRate as number) || 48000;
   const channelCount: number = (audioSource.meta.audioChanCount as number) || 2;
   const clipDurationUs: number = Number(clip?.meta?.duration) || 0;
@@ -81,9 +109,9 @@ export async function exportToContainer(
         : audioClip
       : exportClip;
 
-  // Decode the first sample to infer the real coded size. The MP4 container meta
-  // width/height may be different due to rotation/crop, which can make the encoder
-  // fail with OperationError on encode().
+  // Decode the first sample to infer the real coded size when target size is not provided.
+  // The MP4 container meta width/height may be different due to rotation/crop, which can make
+  // the encoder fail with OperationError on encode().
   //
   // IMPORTANT: For some generated MP4 streams the decoder may temporarily stall at t=0.
   // We must not hard-fail here; fall back to container metadata.
@@ -95,7 +123,11 @@ export async function exportToContainer(
   try {
     const tick0 = await exportClip.tick(0);
     firstTick = tick0;
-    if (tick0.video) {
+    if (
+      tick0.video &&
+      !(Number.isFinite(inputWidth) && inputWidth > 0) &&
+      !(Number.isFinite(inputHeight) && inputHeight > 0)
+    ) {
       videoWidth = Math.ceil(tick0.video.codedWidth / 2) * 2;
       videoHeight = Math.ceil(tick0.video.codedHeight / 2) * 2;
       console.debug(
@@ -164,7 +196,7 @@ export async function exportToContainer(
     width: videoWidth,
     height: videoHeight,
     bitrate,
-    framerate: 30,
+    framerate: targetFps,
     latencyMode: 'quality' as const,
   };
 
@@ -200,7 +232,7 @@ export async function exportToContainer(
     audioEncoder.configure(opusConfig);
   }
 
-  const frameDurationUs = Math.round(1_000_000 / 30);
+  const frameDurationUs = Math.round(1_000_000 / targetFps);
   let currentTimeUs = 0;
   let frameIndex = 0;
   let audioTimestampUs = 0;

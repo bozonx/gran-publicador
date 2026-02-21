@@ -6,7 +6,7 @@ import { useApi } from '~/composables/useApi'
 import { useProjects } from '~/composables/useProjects'
 import { buildGroupTreeFromRoot } from '~/composables/useContentLibraryGroupsTree'
 import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
-import MediaEncodingSettings from './MediaEncodingSettings.vue'
+import MediaEncodingSettings, { type FormatOption } from './MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
@@ -32,6 +32,9 @@ interface ExportOptions {
   audioBitrate: number
   audio: boolean
   audioCodec?: string
+  width: number
+  height: number
+  fps: number
 }
 
 const props = defineProps<Props>()
@@ -79,7 +82,11 @@ const excludeAudio = ref(false)
 const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
 
-const formatOptions = [
+const exportWidth = ref<number>(1920)
+const exportHeight = ref<number>(1080)
+const exportFps = ref<number>(30)
+
+const formatOptions: readonly FormatOption[] = [
   { value: 'mp4', label: 'MP4' },
   { value: 'webm', label: 'WebM (VP9 + Opus)' },
   { value: 'mkv', label: 'MKV (AV1 + Opus)' },
@@ -87,6 +94,24 @@ const formatOptions = [
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
 const isLoadingCodecSupport = ref(false)
+
+const normalizedExportWidth = computed(() => {
+  const value = Number(exportWidth.value)
+  if (!Number.isFinite(value) || value <= 0) return 1920
+  return Math.round(value)
+})
+
+const normalizedExportHeight = computed(() => {
+  const value = Number(exportHeight.value)
+  if (!Number.isFinite(value) || value <= 0) return 1080
+  return Math.round(value)
+})
+
+const normalizedExportFps = computed(() => {
+  const value = Number(exportFps.value)
+  if (!Number.isFinite(value) || value <= 0) return 30
+  return Math.round(Math.min(240, Math.max(1, value)))
+})
 
 // Collections data
 const collections = ref<ContentCollection[]>([])
@@ -290,6 +315,9 @@ async function handleConfirm() {
       audioBitrate: audioBitrateKbps.value * 1000,
       audio: !excludeAudio.value,
       audioCodec: audioCodec.value,
+      width: normalizedExportWidth.value,
+      height: normalizedExportHeight.value,
+      fps: normalizedExportFps.value,
     })
     exportProgress.value = 30
 
@@ -415,6 +443,43 @@ function handleCancel() {
           :placeholder="t('contentLibrary.bulk.selectProject')"
           :disabled="isExporting || isLoadingProjects"
           :loading="isLoadingProjects"
+          class="w-full"
+        />
+      </UFormField>
+
+      <div class="grid grid-cols-2 gap-3">
+        <UFormField :label="t('videoEditor.projectSettings.exportWidth', 'Width')">
+          <UInput
+            v-model.number="exportWidth"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField :label="t('videoEditor.projectSettings.exportHeight', 'Height')">
+          <UInput
+            v-model.number="exportHeight"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
+
+      <UFormField :label="t('videoEditor.projectSettings.exportFps', 'FPS')">
+        <UInput
+          v-model.number="exportFps"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          :disabled="isExporting"
           class="w-full"
         />
       </UFormField>

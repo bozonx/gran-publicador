@@ -12,8 +12,20 @@ const viewportEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
 const isLoading = ref(false)
 
-const exportWidth = computed(() => videoEditorStore.projectSettings.export.width)
-const exportHeight = computed(() => videoEditorStore.projectSettings.export.height)
+const MIN_CANVAS_DIMENSION = 16
+const MAX_CANVAS_DIMENSION = 7680
+
+const exportWidth = computed(() => {
+  const value = Number(videoEditorStore.projectSettings.export.width)
+  if (!Number.isFinite(value) || value <= 0) return 1920
+  return Math.round(Math.min(MAX_CANVAS_DIMENSION, Math.max(MIN_CANVAS_DIMENSION, value)))
+})
+
+const exportHeight = computed(() => {
+  const value = Number(videoEditorStore.projectSettings.export.height)
+  if (!Number.isFinite(value) || value <= 0) return 1080
+  return Math.round(Math.min(MAX_CANVAS_DIMENSION, Math.max(MIN_CANVAS_DIMENSION, value)))
+})
 
 const aspectRatio = computed(() => {
   const width = exportWidth.value
@@ -69,21 +81,6 @@ function updateCanvasDisplaySize() {
   canvasDisplaySize.value = { width, height }
 }
 
-let opfsTmpFiles: Array<{ remove: (options?: any) => Promise<void> }> = []
-
-async function cleanupTmpFiles() {
-  const files = opfsTmpFiles
-  opfsTmpFiles = []
-  await Promise.all(
-    files.map(async f => {
-      try {
-        await f.remove({ force: true })
-      } catch (err) {
-        console.warn('[GranVideoEditorMonitor] Failed to remove OPFS tmp file', err)
-      }
-    }),
-  )
-}
 
 async function buildTimeline() {
   if (!containerEl.value) return
@@ -92,13 +89,14 @@ async function buildTimeline() {
 
   try {
     const { MP4Clip, VisibleSprite } = await import('@webav/av-cliper')
-    const { tmpfile, write } = await import('opfs-tools')
 
     // Always re-init canvas to clear previous sprites
-    await cleanupTmpFiles()
     await webAV.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
 
+    console.log('[Monitor] WebAV initialized canvas', exportWidth.value, exportHeight.value)
+
     const clips = videoEditorStore.timelineClips
+    console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
       isLoading.value = false
       return
@@ -109,24 +107,25 @@ async function buildTimeline() {
     // Load each video clip (audio later if needed/supported)
     for (const clip of clips) {
       if (clip.track === 'video' && clip.fileHandle) {
+        console.log('[Monitor] Processing clip:', clip.name)
         const file = await clip.fileHandle.getFile()
-        const opfsFile = markRaw(tmpfile())
-        opfsTmpFiles.push(opfsFile)
+        console.log('[Monitor] Got file:', file.name, 'size:', file.size)
 
-        await write(opfsFile, file.stream() as any)
-
-        const rawClipObj = new MP4Clip(opfsFile as any)
-        const clipObj = markRaw(rawClipObj)
+        const clipObj = new MP4Clip(file.stream() as any)
+        console.log('[Monitor] Created MP4Clip, waiting for ready...')
         await clipObj.ready
+        console.log('[Monitor] MP4Clip ready!', clipObj.meta)
 
-        const rawSprite = new VisibleSprite(clipObj)
-        const sprite = markRaw(rawSprite)
-        // Set basic positioning. Later we can read trimIn, trimOut and timeline offset.
-        // For now: stack them at t=0
+        const sprite = new VisibleSprite(clipObj)
+        sprite.rect.x = 0
+        sprite.rect.y = 0
+        sprite.rect.w = exportWidth.value
+        sprite.rect.h = exportHeight.value
         sprite.time.offset = 0
-        sprite.time.duration = clipObj.meta.duration
-        
+
+        console.log('[Monitor] Adding sprite to canvas...')
         await webAV.avCanvas.value.addSprite(sprite)
+        console.log('[Monitor] Sprite added successfully')
         
         if (clipObj.meta.duration > maxDuration) {
           maxDuration = clipObj.meta.duration
@@ -135,9 +134,12 @@ async function buildTimeline() {
     }
 
     videoEditorStore.duration = maxDuration
+    console.log('[Monitor] Timeline duration:', maxDuration)
 
     // Show first frame
+    console.log('[Monitor] Previewing first frame...')
     await webAV.avCanvas.value.previewFrame(0)
+    console.log('[Monitor] First frame previewed')
 
     videoEditorStore.currentTime = 0
     videoEditorStore.isPlaying = false
@@ -206,7 +208,6 @@ onBeforeUnmount(() => {
   viewportResizeObserver?.disconnect()
   viewportResizeObserver = null
   webAV.destroyCanvas()
-  void cleanupTmpFiles()
 })
 
 function formatTime(seconds: number): string {
@@ -244,7 +245,7 @@ function formatTime(seconds: number): string {
       <div
         class="shrink-0"
         :style="canvasWrapperStyle"
-        :class="{ invisible: isLoading || loadError || videoEditorStore.timelineClips.length === 0 }"
+        :class="{ invisible: loadError || videoEditorStore.timelineClips.length === 0 }"
       >
         <div ref="containerEl" :style="canvasInnerStyle" />
       </div>

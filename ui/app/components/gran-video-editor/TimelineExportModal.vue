@@ -22,6 +22,7 @@ interface ExportOptions {
   audioCodec?: string
   width: number
   height: number
+  fps: number
 }
 
 const props = defineProps<Props>()
@@ -51,6 +52,7 @@ const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
 const exportWidth = ref<number>(1920)
 const exportHeight = ref<number>(1080)
+const exportFps = ref<number>(30)
 
 const isExporting = ref(false)
 const exportProgress = ref(0)
@@ -92,6 +94,12 @@ const normalizedExportHeight = computed(() => {
   const value = Number(exportHeight.value)
   if (!Number.isFinite(value) || value <= 0) return 1080
   return Math.round(value)
+})
+
+const normalizedExportFps = computed(() => {
+  const value = Number(exportFps.value)
+  if (!Number.isFinite(value) || value <= 0) return 30
+  return Math.round(Math.min(240, Math.max(1, value)))
 })
 
 const phaseLabel = computed(() => {
@@ -244,6 +252,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       const comb = new Combinator({
         width: options.width,
         height: options.height,
+        fps: options.fps,
         bgColor: '#000',
         videoCodec: options.videoCodec,
         bitrate: options.bitrate,
@@ -295,6 +304,9 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       bitrate: options.bitrate,
       audioBitrate: options.audioBitrate,
       audio: useAudio,
+      width: options.width,
+      height: options.height,
+      fps: options.fps,
       audioClip,
     })
 
@@ -355,6 +367,7 @@ watch(
     audioBitrateKbps.value = videoEditorStore.projectSettings.export.encoding.audioBitrateKbps
     exportWidth.value = videoEditorStore.projectSettings.export.width
     exportHeight.value = videoEditorStore.projectSettings.export.height
+    exportFps.value = videoEditorStore.projectSettings.export.fps
 
     await loadCodecSupport()
 
@@ -421,6 +434,7 @@ async function handleConfirm() {
       audioCodec: audioCodec.value,
       width: normalizedExportWidth.value,
       height: normalizedExportHeight.value,
+      fps: normalizedExportFps.value,
     })
     exportProgress.value = 60
 
@@ -520,6 +534,18 @@ function handleCancel() {
           />
         </UFormField>
       </div>
+
+      <UFormField :label="t('videoEditor.projectSettings.exportFps', 'FPS')">
+        <UInput
+          v-model.number="exportFps"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          step="1"
+          :disabled="isExporting"
+          class="w-full"
+        />
+      </UFormField>
 
       <MediaEncodingSettings
         v-model:output-format="outputFormat"

@@ -79,7 +79,7 @@ const DEFAULT_WORKSPACE_SETTINGS: VideoEditorWorkspaceSettings = {
     newProject: {
       width: 1920,
       height: 1080,
-      fps: 30,
+      fps: 25,
     },
   },
 };
@@ -230,7 +230,91 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const isLoadingWorkspaceSettings = ref(false);
   let isPersistingWorkspaceSettings = false;
 
+  const fileTreeExpandedPaths = ref<Record<string, true>>({});
+  let restoredFileTreeProjectName: string | null = null;
+  let persistFileTreeTimeout: ReturnType<typeof setTimeout> | null = null;
+
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+
+  function getFileTreeStorageKey(projectName: string): string {
+    return `gran-video-editor:file-tree:${projectName}`;
+  }
+
+  function restoreFileTreeStateOnce(projectName: string) {
+    if (typeof window === 'undefined') return;
+    if (restoredFileTreeProjectName === projectName) return;
+
+    restoredFileTreeProjectName = projectName;
+    fileTreeExpandedPaths.value = {};
+
+    try {
+      const raw = window.localStorage.getItem(getFileTreeStorageKey(projectName));
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const expanded = Array.isArray(parsed?.expandedPaths) ? parsed.expandedPaths : [];
+      const next: Record<string, true> = {};
+      for (const p of expanded) {
+        if (typeof p === 'string' && p.trim().length > 0) next[p] = true;
+      }
+      fileTreeExpandedPaths.value = next;
+    } catch (e) {
+      console.warn('Failed to restore file tree state', e);
+    }
+  }
+
+  function schedulePersistFileTreeState() {
+    if (typeof window === 'undefined') return;
+    const projectName = currentProjectName.value;
+    if (!projectName) return;
+
+    if (persistFileTreeTimeout) window.clearTimeout(persistFileTreeTimeout);
+    persistFileTreeTimeout = window.setTimeout(() => {
+      persistFileTreeTimeout = null;
+      try {
+        const expandedPaths = Object.keys(fileTreeExpandedPaths.value);
+        window.localStorage.setItem(
+          getFileTreeStorageKey(projectName),
+          JSON.stringify({ expandedPaths }),
+        );
+      } catch (e) {
+        console.warn('Failed to persist file tree state', e);
+      }
+    }, 500);
+  }
+
+  function isFileTreePathExpanded(path: string): boolean {
+    return Boolean(fileTreeExpandedPaths.value[path]);
+  }
+
+  function setFileTreePathExpanded(path: string, expanded: boolean) {
+    if (!path) return;
+    if (expanded) {
+      if (fileTreeExpandedPaths.value[path]) return;
+      fileTreeExpandedPaths.value = { ...fileTreeExpandedPaths.value, [path]: true };
+      schedulePersistFileTreeState();
+      return;
+    }
+
+    if (!fileTreeExpandedPaths.value[path]) return;
+    const next = { ...fileTreeExpandedPaths.value };
+    delete next[path];
+    fileTreeExpandedPaths.value = next;
+    schedulePersistFileTreeState();
+  }
+
+  function applyWorkspaceDefaultsToProjectSettings(
+    input: VideoEditorProjectSettings,
+  ): VideoEditorProjectSettings {
+    return {
+      ...input,
+      export: {
+        ...input.export,
+        width: workspaceSettings.value.defaults.newProject.width,
+        height: workspaceSettings.value.defaults.newProject.height,
+        fps: workspaceSettings.value.defaults.newProject.fps,
+      },
+    };
+  }
 
   async function getFileHandleByPath(path: string): Promise<FileSystemFileHandle | null> {
     if (!projectsHandle.value || !currentProjectName.value) return null;
@@ -266,14 +350,18 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     try {
       const settingsFileHandle = await ensureProjectSettingsFile({ create: false });
       if (!settingsFileHandle) {
-        projectSettings.value = createDefaultProjectSettings();
+        projectSettings.value = applyWorkspaceDefaultsToProjectSettings(
+          createDefaultProjectSettings(),
+        );
         return;
       }
 
       const settingsFile = await settingsFileHandle.getFile();
       const text = await settingsFile.text();
       if (!text.trim()) {
-        projectSettings.value = createDefaultProjectSettings();
+        projectSettings.value = applyWorkspaceDefaultsToProjectSettings(
+          createDefaultProjectSettings(),
+        );
         return;
       }
 
@@ -281,11 +369,15 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       projectSettings.value = normalizeProjectSettings(parsed);
     } catch (e: any) {
       if (e?.name === 'NotFoundError') {
-        projectSettings.value = createDefaultProjectSettings();
+        projectSettings.value = applyWorkspaceDefaultsToProjectSettings(
+          createDefaultProjectSettings(),
+        );
         return;
       }
       console.warn('Failed to load project settings, fallback to defaults', e);
-      projectSettings.value = createDefaultProjectSettings();
+      projectSettings.value = applyWorkspaceDefaultsToProjectSettings(
+        createDefaultProjectSettings(),
+      );
     } finally {
       isLoadingProjectSettings.value = false;
     }
@@ -582,6 +674,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       error.value = 'Project not found';
       return;
     }
+
+    restoreFileTreeStateOnce(name);
     currentProjectName.value = name;
     currentFileName.value = `${name}_001.otio`;
     lastProjectName.value = name;
@@ -607,6 +701,12 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     workspaceSettings.value = normalizeWorkspaceSettings(null);
     isLoadingWorkspaceSettings.value = false;
     isPersistingWorkspaceSettings = false;
+    fileTreeExpandedPaths.value = {};
+    restoredFileTreeProjectName = null;
+    if (persistFileTreeTimeout) {
+      window.clearTimeout(persistFileTreeTimeout);
+      persistFileTreeTimeout = null;
+    }
     // Clear IndexedDB
     const request = indexedDB.open('GranVideoEditor', 1);
     request.onsuccess = (e: any) => {
@@ -652,6 +752,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     projectSettings,
     userSettings,
     workspaceSettings,
+    fileTreeExpandedPaths,
+    isFileTreePathExpanded,
+    setFileTreePathExpanded,
     loadProjectSettings,
     saveProjectSettings,
     loadWorkspaceSettings,

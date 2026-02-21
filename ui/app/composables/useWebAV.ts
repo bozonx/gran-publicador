@@ -52,6 +52,10 @@ export function useWebAV() {
     bgColor: string = '#000',
   ) {
     destroyCanvas();
+    if (containerEl) {
+      containerEl.innerHTML = ''; // Force clear any old canvas elements to avoid WebGL stack issues
+    }
+
     const { AVCanvas } = await import('@webav/av-canvas');
     avCanvas.value = markRaw(
       new AVCanvas(containerEl, {
