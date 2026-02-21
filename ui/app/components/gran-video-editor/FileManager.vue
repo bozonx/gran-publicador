@@ -434,55 +434,61 @@ async function createTimeline() {
     </div>
 
     <!-- Content -->
-    <UContextMenu
+    <div
       v-if="activeTab === 'files'"
-      :items="rootContextMenuItems"
-      class="flex-1 overflow-auto relative flex flex-col"
+      class="flex-1 min-h-0 overflow-auto relative"
     >
-      <!-- Dropzone Overlay -->
-      <div
-        v-if="isDragging"
-        class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
+      <UContextMenu
+        :items="rootContextMenuItems"
+        :ui="{ wrapper: 'min-h-full' }"
       >
-        <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
-        <p class="text-sm font-medium text-primary-400">
-          {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
-        </p>
-      </div>
+        <div class="min-w-full w-max min-h-full flex flex-col">
+          <!-- Dropzone Overlay -->
+          <div
+            v-if="isDragging"
+            class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
+          >
+            <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
+            <p class="text-sm font-medium text-primary-400">
+              {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
+            </p>
+          </div>
 
-      <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
-        {{ t('common.loading', 'Loading...') }}
-      </div>
+          <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
+            {{ t('common.loading', 'Loading...') }}
+          </div>
 
-      <!-- Empty state -->
-      <div
-        v-else-if="rootEntries.length === 0 && !error"
-        class="flex flex-col items-center justify-center flex-1 w-full h-full gap-3 text-gray-600 px-4 text-center min-h-[200px]"
-      >
-        <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
-        <p class="text-sm">
-          {{ isApiSupported
-            ? t('videoEditor.fileManager.empty', 'No files in this project')
-            : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
-        </p>
-      </div>
+          <!-- Empty state -->
+          <div
+            v-else-if="rootEntries.length === 0 && !error"
+            class="flex flex-col items-center justify-center flex-1 w-full gap-3 text-gray-600 px-4 text-center min-h-[200px]"
+          >
+            <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
+            <p class="text-sm">
+              {{ isApiSupported
+                ? t('videoEditor.fileManager.empty', 'No files in this project')
+                : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
+            </p>
+          </div>
 
-      <!-- Error -->
-      <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
-        {{ error }}
-      </div>
+          <!-- Error -->
+          <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
+            {{ error }}
+          </div>
 
-      <!-- File tree -->
-      <GranVideoEditorFileManagerTree
-        v-else
-        :entries="rootEntries"
-        :depth="0"
-        :get-file-icon="getFileIcon"
-        @toggle="toggleDirectory"
-        @select="onEntrySelect"
-        @action="onFileAction"
-      />
-    </UContextMenu>
+          <!-- File tree -->
+          <GranVideoEditorFileManagerTree
+            v-else
+            :entries="rootEntries"
+            :depth="0"
+            :get-file-icon="getFileIcon"
+            @toggle="toggleDirectory"
+            @select="onEntrySelect"
+            @action="onFileAction"
+          />
+        </div>
+      </UContextMenu>
+    </div>
 
     <div v-else-if="activeTab === 'effects'" class="flex-1 overflow-y-auto relative">
       <div class="flex flex-col items-center justify-center h-full text-gray-600 px-4 text-center">

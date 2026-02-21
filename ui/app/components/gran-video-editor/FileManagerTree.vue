@@ -77,7 +77,7 @@ function getContextMenuItems(entry: FsEntry) {
 </script>
 
 <template>
-  <ul class="select-none h-full w-fit min-w-full">
+  <ul class="select-none min-w-full w-max">
     <li
       v-for="entry in entries"
       :key="entry.name"
