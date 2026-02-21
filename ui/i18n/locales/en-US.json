@@ -1498,7 +1498,21 @@
       "phaseUploading": "Uploading...",
       "phaseSaving": "Saving to library...",
       "successMessage": "Video exported and saved to content library",
-      "errorMessage": "Export failed"
+      "errorMessage": "Export failed",
+      "fileManager": {
+        "title": "Files",
+        "empty": "No files in this project",
+        "unsupported": "File System Access API is not supported in this browser",
+        "tabs": {
+          "files": "Files",
+          "effects": "Effects"
+        },
+        "actions": {
+          "createFolder": "Create folder",
+          "uploadFiles": "Upload files",
+          "dropFilesHere": "Drop files here"
+        }
+      }
     },
     "support": {
       "title": "Browser Support",
