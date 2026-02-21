@@ -76,19 +76,21 @@ const iconColor = computed(() => {
   }
 });
 
-async function handleClick() {
+async function handleClick(isLinkClick = false) {
   if (!props.notification.readAt) {
     await notificationsStore.markAsRead(props.notification.id);
   }
   
-  // Navigation logic
-  const meta = props.notification.meta || {};
-  if (props.notification.type === NotificationType.PUBLICATION_FAILED && meta.publicationId) {
-    router.push(`/publications/${meta.publicationId}`);
-  } else if (props.notification.type === NotificationType.PROJECT_INVITE && meta.projectId) {
-    router.push(`/projects/${meta.projectId}`);
-  } else if (props.notification.type === NotificationType.NEW_NEWS && meta.projectId) {
-    router.push(`/projects/${meta.projectId}/news`);
+  if (isLinkClick) {
+    // Navigation logic
+    const meta = props.notification.meta || {};
+    if (props.notification.type === NotificationType.PUBLICATION_FAILED && meta.publicationId) {
+      router.push(`/publications/${meta.publicationId}`);
+    } else if (props.notification.type === NotificationType.PROJECT_INVITE && meta.projectId) {
+      router.push(`/projects/${meta.projectId}`);
+    } else if (props.notification.type === NotificationType.NEW_NEWS && meta.projectId) {
+      router.push(`/projects/${meta.projectId}/news`);
+    }
   }
   
   emit('click', props.notification);
@@ -103,7 +105,7 @@ async function handleClick() {
       'bg-blue-50/50 dark:bg-blue-900/10': !notification.readAt,
       'hover:bg-blue-100/30 dark:hover:bg-blue-800/20': !notification.readAt 
     }"
-    @click="handleClick"
+    @click="handleClick()"
   >
     <div class="flex items-start gap-3">
       <div class="mt-1">
@@ -121,7 +123,11 @@ async function handleClick() {
           <p class="text-[10px] text-gray-400 uppercase tracking-wider">
             {{ relativeTime }}
           </p>
-          <p v-if="notification.meta?.publicationId || notification.meta?.projectId" class="text-[10px] text-blue-500 font-medium hover:underline">
+          <p
+            v-if="notification.meta?.publicationId || notification.meta?.projectId"
+            class="text-[10px] text-blue-500 font-medium hover:underline"
+            @click.stop="handleClick(true)"
+          >
             {{ 
               notification.type === NotificationType.PUBLICATION_FAILED ? t('notifications.view_publication') : 
               notification.type === NotificationType.NEW_NEWS ? t('notifications.view_news') :

@@ -101,9 +101,13 @@ function getFileIcon(entry: FsEntry): string {
 
     <!-- Content -->
     <div class="flex-1 overflow-y-auto">
+      <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
+        {{ t('common.loading', 'Loading...') }}
+      </div>
+
       <!-- Empty state -->
       <div
-        v-if="!isLoading && rootEntries.length === 0 && !error"
+        v-else-if="rootEntries.length === 0 && !error"
         class="flex flex-col items-center justify-center h-full gap-3 text-gray-600 px-4 text-center"
       >
         <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
