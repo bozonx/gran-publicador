@@ -63,11 +63,11 @@ async function performSearch(query: string) {
         signal
       }).catch(() => []),
       api.get<any>('/channels', {
-        query: { search: query, limit: 5 },
+        query: { search: query, limit: 6 },
         signal
       }).catch(() => null),
       api.get<any>('/publications', {
-        query: { search: query, limit: 5 },
+        query: { search: query, limit: 6 },
         signal
       }).catch(() => null)
     ])
