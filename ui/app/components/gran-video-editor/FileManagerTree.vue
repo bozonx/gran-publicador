@@ -20,7 +20,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'toggle', entry: FsEntry): void
   (e: 'select', entry: FsEntry): void
-  (e: 'action', action: 'createFolder' | 'info' | 'delete', entry: FsEntry): void
+  (e: 'action', action: 'createFolder' | 'rename' | 'info' | 'delete', entry: FsEntry): void
 }>()
 
 const { t } = useI18n()
@@ -45,6 +45,10 @@ function getContextMenuItems(entry: FsEntry) {
   }
   
   items.push([{
+    label: t('common.rename', 'Rename'),
+    icon: 'i-heroicons-pencil',
+    onSelect: () => emit('action', 'rename', entry)
+  }, {
     label: t('videoEditor.fileManager.info.title', 'Information'),
     icon: 'i-heroicons-information-circle',
     onSelect: () => emit('action', 'info', entry)

@@ -3,6 +3,7 @@ import { useVideoEditorStore } from '~/stores/videoEditor'
 import CreateFolderModal from '~/components/common/CreateFolderModal.vue'
 import FileInfoModal from '~/components/common/FileInfoModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import RenameModal from '~/components/common/RenameModal.vue'
 import type { FileInfo } from '~/components/common/FileInfoModal.vue'
 
 const { t } = useI18n()
@@ -29,6 +30,9 @@ const isApiSupported = videoEditorStore.isApiSupported
 
 const isCreateFolderModalOpen = ref(false)
 const folderCreationTarget = ref<FileSystemDirectoryHandle | null>(null)
+
+const isRenameModalOpen = ref(false)
+const renameTarget = ref<FsEntry | null>(null)
 
 const isFileInfoModalOpen = ref(false)
 const currentFileInfo = ref<FileInfo | null>(null)
@@ -233,9 +237,66 @@ async function handleDeleteConfirm() {
   }
 }
 
-function onFileAction(action: 'createFolder' | 'info' | 'delete', entry: FsEntry) {
+async function handleRename(newName: string) {
+  if (!renameTarget.value || !renameTarget.value.parentHandle) return
+
+  error.value = null
+  isLoading.value = true
+  try {
+    const parent = renameTarget.value.parentHandle
+    if (renameTarget.value.kind === 'file') {
+      const handle = renameTarget.value.handle as any
+      if (typeof handle.move === 'function') {
+        await handle.move(newName)
+      } else {
+        const file = await (handle as FileSystemFileHandle).getFile()
+        const newHandle = await parent.getFileHandle(newName, { create: true })
+        const writable = await (newHandle as any).createWritable()
+        await writable.write(file)
+        await writable.close()
+        await parent.removeEntry(renameTarget.value.name)
+      }
+    } else {
+      const oldHandle = renameTarget.value.handle as FileSystemDirectoryHandle
+      const newHandle = await parent.getDirectoryHandle(newName, { create: true })
+      
+      async function copyDirectory(srcDir: FileSystemDirectoryHandle, destDir: FileSystemDirectoryHandle) {
+        const iterator = (srcDir as any).values?.() ?? (srcDir as any).entries?.()
+        if (!iterator) return
+        for await (const value of iterator) {
+          const handle = Array.isArray(value) ? value[1] : value
+          if (handle.kind === 'file') {
+            const file = await handle.getFile()
+            const newFileHandle = await destDir.getFileHandle(handle.name, { create: true })
+            const writable = await (newFileHandle as any).createWritable()
+            await writable.write(file)
+            await writable.close()
+          } else if (handle.kind === 'directory') {
+            const newSubDir = await destDir.getDirectoryHandle(handle.name, { create: true })
+            await copyDirectory(handle, newSubDir)
+          }
+        }
+      }
+      
+      await copyDirectory(oldHandle, newHandle)
+      await parent.removeEntry(renameTarget.value.name, { recursive: true })
+    }
+    
+    await loadProjectDirectory()
+  } catch (e: any) {
+    error.value = e?.message ?? 'Failed to rename'
+  } finally {
+    isLoading.value = false
+    renameTarget.value = null
+  }
+}
+
+function onFileAction(action: 'createFolder' | 'rename' | 'info' | 'delete', entry: FsEntry) {
   if (action === 'createFolder') {
     openCreateFolderModal(entry)
+  } else if (action === 'rename') {
+    renameTarget.value = entry
+    isRenameModalOpen.value = true
   } else if (action === 'info') {
     openFileInfoModal(entry)
   } else if (action === 'delete') {
@@ -434,6 +495,12 @@ async function createTimeline() {
     <CreateFolderModal
       v-model:open="isCreateFolderModalOpen"
       @create="handleCreateFolder"
+    />
+
+    <RenameModal
+      v-model:open="isRenameModalOpen"
+      :initial-name="renameTarget?.name"
+      @rename="handleRename"
     />
 
     <FileInfoModal
