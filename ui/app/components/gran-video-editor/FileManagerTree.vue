@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 interface FsEntry {
   name: string
   kind: 'file' | 'directory'
@@ -17,48 +19,78 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'toggle', entry: FsEntry): void
+  (e: 'action', action: 'createFolder' | 'info' | 'delete', entry: FsEntry): void
 }>()
+
+const { t } = useI18n()
 
 function onEntryClick(entry: FsEntry) {
   if (entry.kind === 'directory') {
     emit('toggle', entry)
   }
 }
+
+function getContextMenuItems(entry: FsEntry) {
+  const items = []
+  
+  if (entry.kind === 'directory') {
+    items.push([{
+      label: t('videoEditor.fileManager.actions.createFolder', 'Create Folder'),
+      icon: 'i-heroicons-folder-plus',
+      onSelect: () => emit('action', 'createFolder', entry)
+    }])
+  }
+  
+  items.push([{
+    label: t('videoEditor.fileManager.info.title', 'Information'),
+    icon: 'i-heroicons-information-circle',
+    onSelect: () => emit('action', 'info', entry)
+  }, {
+    label: t('common.delete', 'Delete'),
+    icon: 'i-heroicons-trash',
+    color: 'error',
+    onSelect: () => emit('action', 'delete', entry)
+  }])
+  
+  return items
+}
 </script>
 
 <template>
-  <ul class="select-none">
+  <ul class="select-none h-full">
     <li
       v-for="entry in entries"
       :key="entry.name"
     >
       <!-- Row -->
-      <div
-        class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group"
-        :style="{ paddingLeft: `${8 + depth * 14}px` }"
-        @click="onEntryClick(entry)"
-      >
-        <!-- Chevron for directories -->
-        <UIcon
-          v-if="entry.kind === 'directory'"
-          name="i-heroicons-chevron-right"
-          class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-150"
-          :class="{ 'rotate-90': entry.expanded }"
-        />
-        <span v-else class="w-3.5 shrink-0" />
+      <UContextMenu :items="getContextMenuItems(entry)">
+        <div
+          class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group"
+          :style="{ paddingLeft: `${8 + depth * 14}px` }"
+          @click="onEntryClick(entry)"
+        >
+          <!-- Chevron for directories -->
+          <UIcon
+            v-if="entry.kind === 'directory'"
+            name="i-heroicons-chevron-right"
+            class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform duration-150"
+            :class="{ 'rotate-90': entry.expanded }"
+          />
+          <span v-else class="w-3.5 shrink-0" />
 
-        <!-- File / folder icon -->
-        <UIcon
-          :name="getFileIcon(entry)"
-          class="w-4 h-4 shrink-0"
-          :class="entry.kind === 'directory' ? 'text-yellow-500' : 'text-gray-400'"
-        />
+          <!-- File / folder icon -->
+          <UIcon
+            :name="getFileIcon(entry)"
+            class="w-4 h-4 shrink-0"
+            :class="entry.kind === 'directory' ? 'text-yellow-500' : 'text-gray-400'"
+          />
 
-        <!-- Name -->
-        <span class="text-sm text-gray-300 truncate flex-1 group-hover:text-white">
-          {{ entry.name }}
-        </span>
-      </div>
+          <!-- Name -->
+          <span class="text-sm text-gray-300 truncate flex-1 group-hover:text-white">
+            {{ entry.name }}
+          </span>
+        </div>
+      </UContextMenu>
 
       <!-- Children (recursive) -->
       <GranVideoEditorFileManagerTree
@@ -67,6 +99,7 @@ function onEntryClick(entry: FsEntry) {
         :depth="depth + 1"
         :get-file-icon="getFileIcon"
         @toggle="$emit('toggle', $event)"
+        @action="(action, e) => $emit('action', action, e)"
       />
     </li>
   </ul>

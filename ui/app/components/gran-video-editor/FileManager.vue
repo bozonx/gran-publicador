@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { useVideoEditorStore } from '~/stores/videoEditor'
+import CreateFolderModal from '~/components/common/CreateFolderModal.vue'
+import FileInfoModal from '~/components/common/FileInfoModal.vue'
+import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import type { FileInfo } from '~/components/common/FileInfoModal.vue'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
@@ -8,6 +12,7 @@ interface FsEntry {
   name: string
   kind: 'file' | 'directory'
   handle: FileSystemFileHandle | FileSystemDirectoryHandle
+  parentHandle?: FileSystemDirectoryHandle
   children?: FsEntry[]
   expanded?: boolean
 }
@@ -22,6 +27,24 @@ const error = ref<string | null>(null)
 
 const isApiSupported = videoEditorStore.isApiSupported
 
+const isCreateFolderModalOpen = ref(false)
+const folderCreationTarget = ref<FileSystemDirectoryHandle | null>(null)
+
+const isFileInfoModalOpen = ref(false)
+const currentFileInfo = ref<FileInfo | null>(null)
+
+const isDeleteConfirmModalOpen = ref(false)
+const deleteTarget = ref<FsEntry | null>(null)
+
+const rootContextMenuItems = computed(() => {
+  if (!videoEditorStore.currentProjectName) return []
+  return [[{
+    label: t('videoEditor.fileManager.actions.createFolder', 'Create Folder'),
+    icon: 'i-heroicons-folder-plus',
+    onSelect: () => openCreateFolderModal(null)
+  }]]
+})
+
 async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEntry[]> {
   const entries: FsEntry[] = []
   try {
@@ -34,6 +57,7 @@ async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEn
         name: handle.name,
         kind: handle.kind,
         handle,
+        parentHandle: dirHandle,
         children: undefined,
         expanded: false,
       })
@@ -141,18 +165,81 @@ function onDrop(e: DragEvent) {
   }
 }
 
-async function createFolder() {
+function openCreateFolderModal(targetEntry: FsEntry | null = null) {
+  folderCreationTarget.value = targetEntry?.kind === 'directory' ? targetEntry.handle as FileSystemDirectoryHandle : null
+  isCreateFolderModalOpen.value = true
+}
+
+async function handleCreateFolder(name: string) {
   if (!videoEditorStore.projectsHandle || !videoEditorStore.currentProjectName) return
   
-  const name = prompt(t('common.rename', 'Enter folder name'))
-  if (!name) return
-
+  error.value = null
+  isLoading.value = true
   try {
-    const projectDir = await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
-    await projectDir.getDirectoryHandle(name, { create: true })
+    const baseDir = folderCreationTarget.value || await videoEditorStore.projectsHandle.getDirectoryHandle(videoEditorStore.currentProjectName)
+    await baseDir.getDirectoryHandle(name, { create: true })
     await loadProjectDirectory()
   } catch (e: any) {
     error.value = e?.message ?? 'Failed to create folder'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function openFileInfoModal(entry: FsEntry) {
+  let size: number | undefined
+  let lastModified: number | undefined
+
+  if (entry.kind === 'file') {
+    try {
+      const file = await (entry.handle as FileSystemFileHandle).getFile()
+      size = file.size
+      lastModified = file.lastModified
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  currentFileInfo.value = {
+    name: entry.name,
+    kind: entry.kind,
+    size,
+    lastModified
+  }
+  isFileInfoModalOpen.value = true
+}
+
+function openDeleteConfirmModal(entry: FsEntry) {
+  deleteTarget.value = entry
+  isDeleteConfirmModalOpen.value = true
+}
+
+async function handleDeleteConfirm() {
+  if (!deleteTarget.value) return
+  
+  error.value = null
+  isLoading.value = true
+  try {
+    const parent = deleteTarget.value.parentHandle
+    if (parent) {
+      await parent.removeEntry(deleteTarget.value.name, { recursive: true })
+    }
+    await loadProjectDirectory()
+  } catch (e: any) {
+    error.value = e?.message ?? 'Failed to delete'
+  } finally {
+    isLoading.value = false
+    deleteTarget.value = null
+  }
+}
+
+function onFileAction(action: 'createFolder' | 'info' | 'delete', entry: FsEntry) {
+  if (action === 'createFolder') {
+    openCreateFolderModal(entry)
+  } else if (action === 'info') {
+    openFileInfoModal(entry)
+  } else if (action === 'delete') {
+    openDeleteConfirmModal(entry)
   }
 }
 
@@ -214,7 +301,7 @@ function onFileSelect(e: Event) {
         color="neutral"
         size="xs"
         :title="t('videoEditor.fileManager.actions.createFolder')"
-        @click="createFolder"
+        @click="openCreateFolderModal(null)"
       />
       <UButton
         icon="i-heroicons-arrow-up-tray"
@@ -227,60 +314,86 @@ function onFileSelect(e: Event) {
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto relative">
-      <template v-if="activeTab === 'files'">
-        <!-- Dropzone Overlay -->
-        <div
-          v-if="isDragging"
-          class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
-        >
-          <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
-          <p class="text-sm font-medium text-primary-400">
-            {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
-          </p>
-        </div>
+    <UContextMenu
+      v-if="activeTab === 'files'"
+      :items="rootContextMenuItems"
+      class="flex-1 overflow-y-auto relative flex flex-col"
+    >
+      <!-- Dropzone Overlay -->
+      <div
+        v-if="isDragging"
+        class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
+      >
+        <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
+        <p class="text-sm font-medium text-primary-400">
+          {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
+        </p>
+      </div>
 
-        <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
-          {{ t('common.loading', 'Loading...') }}
-        </div>
+      <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
+        {{ t('common.loading', 'Loading...') }}
+      </div>
 
-        <!-- Empty state -->
-        <div
-          v-else-if="rootEntries.length === 0 && !error"
-          class="flex flex-col items-center justify-center h-full gap-3 text-gray-600 px-4 text-center"
-        >
-          <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
-          <p class="text-sm">
-            {{ isApiSupported
-              ? t('videoEditor.fileManager.empty', 'No files in this project')
-              : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
-          </p>
-        </div>
+      <!-- Empty state -->
+      <div
+        v-else-if="rootEntries.length === 0 && !error"
+        class="flex flex-col items-center justify-center flex-1 w-full h-full gap-3 text-gray-600 px-4 text-center min-h-[200px]"
+      >
+        <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
+        <p class="text-sm">
+          {{ isApiSupported
+            ? t('videoEditor.fileManager.empty', 'No files in this project')
+            : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
+        </p>
+      </div>
 
-        <!-- Error -->
-        <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
-          {{ error }}
-        </div>
+      <!-- Error -->
+      <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
+        {{ error }}
+      </div>
 
-        <!-- File tree -->
-        <GranVideoEditorFileManagerTree
-          v-else
-          :entries="rootEntries"
-          :depth="0"
-          :get-file-icon="getFileIcon"
-          @toggle="toggleDirectory"
-        />
-      </template>
+      <!-- File tree -->
+      <GranVideoEditorFileManagerTree
+        v-else
+        :entries="rootEntries"
+        :depth="0"
+        :get-file-icon="getFileIcon"
+        @toggle="toggleDirectory"
+        @action="onFileAction"
+      />
+    </UContextMenu>
 
-      <template v-else-if="activeTab === 'effects'">
-        <div class="flex flex-col items-center justify-center h-full text-gray-600 px-4 text-center">
-          <UIcon name="i-heroicons-sparkles" class="w-10 h-10 mb-3" />
-          <p class="text-sm italic">
-            {{ t('videoEditor.fileManager.tabs.effects', 'Effects') }}
-            {{ t('common.noData', '(coming soon)') }}
-          </p>
-        </div>
-      </template>
+    <div v-else-if="activeTab === 'effects'" class="flex-1 overflow-y-auto relative">
+      <div class="flex flex-col items-center justify-center h-full text-gray-600 px-4 text-center">
+        <UIcon name="i-heroicons-sparkles" class="w-10 h-10 mb-3" />
+        <p class="text-sm italic">
+          {{ t('videoEditor.fileManager.tabs.effects', 'Effects') }}
+          {{ t('common.noData', '(coming soon)') }}
+        </p>
+      </div>
     </div>
+
+    <CreateFolderModal
+      v-model:open="isCreateFolderModalOpen"
+      @create="handleCreateFolder"
+    />
+
+    <FileInfoModal
+      v-model:open="isFileInfoModalOpen"
+      :info="currentFileInfo"
+    />
+
+    <UiConfirmModal
+      v-model:open="isDeleteConfirmModalOpen"
+      :title="t('common.delete', 'Delete')"
+      :description="t('common.confirmDelete', 'Are you sure you want to delete this? This action cannot be undone.')"
+      color="error"
+      icon="i-heroicons-exclamation-triangle"
+      @confirm="handleDeleteConfirm"
+    >
+      <div v-if="deleteTarget" class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+        {{ deleteTarget.name }}
+      </div>
+    </UiConfirmModal>
   </div>
 </template>
