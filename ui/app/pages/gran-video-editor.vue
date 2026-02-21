@@ -203,7 +203,7 @@ async function createNewProject() {
       </div>
 
       <!-- Top half: File Manager + Preview + Monitor -->
-      <div class="grid grid-cols-1 md:grid-cols-[1fr_1fr_2fr] flex-1 min-h-[50%] border-b border-gray-800">
+      <div class="grid grid-cols-1 md:grid-cols-[minmax(0,3fr)_minmax(0,3fr)_minmax(0,4fr)] flex-1 min-h-[50%] border-b border-gray-800">
         <GranVideoEditorFileManager />
         <GranVideoEditorPreview />
         <GranVideoEditorMonitor />

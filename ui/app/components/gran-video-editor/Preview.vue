@@ -48,7 +48,7 @@ const isUnknown = computed(() => mediaType.value === 'unknown')
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-gray-950 border-r border-gray-800">
+  <div class="flex flex-col h-full bg-gray-950 border-r border-gray-800 min-w-0">
     <!-- Header -->
     <div class="flex items-center px-3 py-2 border-b border-gray-700 shrink-0 h-10">
       <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">

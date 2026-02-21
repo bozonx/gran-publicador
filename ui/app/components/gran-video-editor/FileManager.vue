@@ -369,7 +369,7 @@ async function createTimeline() {
 
 <template>
   <div
-    class="flex flex-col h-full bg-gray-900 border-r border-gray-800 transition-colors duration-200"
+    class="flex flex-col h-full bg-gray-900 border-r border-gray-800 transition-colors duration-200 min-w-0"
     :class="{ 'bg-gray-800/50 ring-2 ring-inset ring-primary-500/50': isDragging }"
     @dragover.prevent="isDragging = true"
     @dragleave.prevent="isDragging = false"
@@ -437,7 +437,7 @@ async function createTimeline() {
     <UContextMenu
       v-if="activeTab === 'files'"
       :items="rootContextMenuItems"
-      class="flex-1 overflow-y-auto relative flex flex-col"
+      class="flex-1 overflow-auto relative flex flex-col"
     >
       <!-- Dropzone Overlay -->
       <div

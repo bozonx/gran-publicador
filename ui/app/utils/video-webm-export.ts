@@ -42,25 +42,54 @@ export async function exportToContainer(
   let videoHeight = Math.ceil((height || 720) / 2) * 2;
   const sampleRate: number = audioSampleRate || 48000;
   const channelCount: number = audioChanCount || 2;
-  const trimDurationUs = trimOutUs - trimInUs;
+  const clipDurationUs: number = Number(clip?.meta?.duration) || 0;
+
+  const safeTrimInUs = Math.max(
+    0,
+    Math.min(Number(trimInUs) || 0, clipDurationUs || Number.POSITIVE_INFINITY),
+  );
+  const safeTrimOutUs = Math.max(
+    safeTrimInUs,
+    Math.min(Number(trimOutUs) || 0, clipDurationUs || Number.POSITIVE_INFINITY),
+  );
+
+  const trimDurationUs = safeTrimOutUs - safeTrimInUs;
+  if (!Number.isFinite(trimDurationUs) || trimDurationUs <= 0) {
+    throw new Error('Invalid trim range');
+  }
 
   // Split at trim-in so tick() starts from time=0 of the trimmed segment,
   // matching the same approach used in the MP4 export branch.
-  const [, clipFromIn] = await clip.split(trimInUs);
-  const exportClip = trimInUs > 0 ? clipFromIn : clip;
+  const exportClip =
+    safeTrimInUs > 0 && typeof clip?.split === 'function'
+      ? (await clip.split(safeTrimInUs))[1]
+      : clip;
 
   // Decode the first sample to infer the real coded size. The MP4 container meta
   // width/height may be different due to rotation/crop, which can make the encoder
   // fail with OperationError on encode().
-  const firstTick = await exportClip.tick(0);
-  if (firstTick.video) {
-    videoWidth = Math.ceil(firstTick.video.codedWidth / 2) * 2;
-    videoHeight = Math.ceil(firstTick.video.codedHeight / 2) * 2;
-    console.debug(
-      `[${format} export] First frame coded size:`,
-      firstTick.video.codedWidth,
-      firstTick.video.codedHeight,
-    );
+  //
+  // IMPORTANT: For some generated MP4 streams the decoder may temporarily stall at t=0.
+  // We must not hard-fail here; fall back to container metadata.
+  let firstTick: {
+    video?: VideoFrame;
+    audio: Float32Array[];
+    state: 'success' | 'done';
+  } | null = null;
+  try {
+    const tick0 = await exportClip.tick(0);
+    firstTick = tick0;
+    if (tick0.video) {
+      videoWidth = Math.ceil(tick0.video.codedWidth / 2) * 2;
+      videoHeight = Math.ceil(tick0.video.codedHeight / 2) * 2;
+      console.debug(
+        `[${format} export] First frame coded size:`,
+        tick0.video.codedWidth,
+        tick0.video.codedHeight,
+      );
+    }
+  } catch (e) {
+    console.error(`[${format} export] Failed to decode first frame at t=0, using meta size`, e);
   }
 
   // StreamTarget delivers chunks to the ReadableStream as they are produced,
@@ -161,15 +190,15 @@ export async function exportToContainer(
   let audioTimestampUs = 0;
 
   // Process first tick (already decoded for size detection)
-  let pendingVideo: VideoFrame | undefined = firstTick.video;
-  let pendingAudio: Float32Array[] | undefined = firstTick.audio;
-  let pendingState: 'success' | 'done' = firstTick.state;
+  let pendingVideo: VideoFrame | undefined = firstTick?.video;
+  let pendingAudio: Float32Array[] | undefined = firstTick?.audio;
+  let pendingState: 'success' | 'done' = firstTick?.state ?? 'success';
 
   while (currentTimeUs < trimDurationUs) {
     if (encoderError !== null) throw encoderError;
 
     const tickRet =
-      frameIndex === 0
+      frameIndex === 0 && firstTick !== null
         ? { video: pendingVideo, audio: pendingAudio, state: pendingState }
         : await exportClip.tick(currentTimeUs);
 
@@ -204,6 +233,17 @@ export async function exportToContainer(
       audioEncoder.encode(audioBuffer);
       audioBuffer.close();
       audioTimestampUs += Math.round((numFrames / sampleRate) * 1_000_000);
+    }
+
+    // Backpressure: avoid runaway encode queues that can stall decoders in some browsers.
+    if (videoEncoder.encodeQueueSize > 2) {
+      await videoEncoder.flush();
+    }
+    if (audioEncoder && audioEncoder.encodeQueueSize > 4) {
+      await audioEncoder.flush();
+    }
+    if (frameIndex % 30 === 0) {
+      await new Promise<void>(r => setTimeout(r, 0));
     }
 
     currentTimeUs += frameDurationUs;

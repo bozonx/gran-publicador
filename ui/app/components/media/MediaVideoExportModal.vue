@@ -332,6 +332,7 @@ async function handleConfirm() {
     emit('exported')
     isOpen.value = false
   } catch (err: any) {
+    console.error('[MediaVideoExportModal] Export failed', err)
     exportError.value = err?.message || t('videoEditor.export.errorMessage')
   } finally {
     isExporting.value = false

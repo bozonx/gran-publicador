@@ -77,7 +77,7 @@ function getContextMenuItems(entry: FsEntry) {
 </script>
 
 <template>
-  <ul class="select-none h-full">
+  <ul class="select-none h-full w-fit min-w-full">
     <li
       v-for="entry in entries"
       :key="entry.name"
@@ -85,7 +85,7 @@ function getContextMenuItems(entry: FsEntry) {
       <!-- Row -->
       <UContextMenu :items="getContextMenuItems(entry)">
         <div
-          class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group"
+          class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group min-w-fit"
           :style="{ paddingLeft: `${8 + depth * 14}px` }"
           :draggable="entry.kind === 'file'"
           @dragstart="onDragStart($event, entry)"
@@ -108,7 +108,7 @@ function getContextMenuItems(entry: FsEntry) {
           />
 
           <!-- Name -->
-          <span class="text-sm text-gray-300 truncate flex-1 group-hover:text-white">
+          <span class="text-sm text-gray-300 whitespace-nowrap flex-1 group-hover:text-white">
             {{ entry.name }}
           </span>
         </div>

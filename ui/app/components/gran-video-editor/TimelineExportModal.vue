@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
-import MediaEncodingSettings from '~/components/media/MediaEncodingSettings.vue'
+import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkAudioCodecSupport,
@@ -53,7 +53,7 @@ const exportProgress = ref(0)
 const exportError = ref<string | null>(null)
 const exportPhase = ref<'encoding' | 'saving' | null>(null)
 
-const formatOptions = [
+const formatOptions: readonly FormatOption[] = [
   { value: 'mp4', label: 'MP4' },
   { value: 'webm', label: 'WebM (VP9 + Opus)' },
   { value: 'mkv', label: 'MKV (AV1 + Opus)' },
@@ -247,7 +247,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ReadableS
     return exportToContainer(exportClip, {
       format: options.format,
       trimInUs: 0,
-      trimOutUs: exportClip.meta.duration,
+      trimOutUs: Math.max(1, Number(exportClip?.meta?.duration) || maxDurationUs),
       bitrate: options.bitrate,
       audioBitrate: options.audioBitrate,
       audio: options.audio,
@@ -369,11 +369,26 @@ async function handleConfirm() {
     exportProgress.value = 60
 
     exportPhase.value = 'saving'
-    const fileHandle = await exportDir.getFileHandle(outputFilename.value, { create: true })
-    // Disallow overwriting an existing file (race condition protection)
-    const names = await listExportFilenames(exportDir)
-    if (names.has(outputFilename.value)) {
+    // Disallow overwriting an existing file
+    try {
+      await exportDir.getFileHandle(outputFilename.value)
       throw new Error('A file with this name already exists')
+    } catch (e: any) {
+      // Expected when file does not exist.
+      if (e?.name !== 'NotFoundError') {
+        throw e
+      }
+    }
+
+    let fileHandle: FileSystemFileHandle
+    try {
+      fileHandle = await exportDir.getFileHandle(outputFilename.value, { create: true })
+    } catch (e: any) {
+      // Race condition protection (another write created the file between checks)
+      if (e?.name === 'NotAllowedError' || e?.name === 'InvalidModificationError') {
+        throw new Error('A file with this name already exists')
+      }
+      throw e
     }
     await writeStreamToFile(stream, fileHandle)
 
@@ -388,6 +403,7 @@ async function handleConfirm() {
     emit('exported')
     isOpen.value = false
   } catch (err: any) {
+    console.error('[TimelineExportModal] Export failed', err)
     exportError.value = err?.message || t('videoEditor.export.errorMessage', 'Export failed')
   } finally {
     exportPhase.value = null
