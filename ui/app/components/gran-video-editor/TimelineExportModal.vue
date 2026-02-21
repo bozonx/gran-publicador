@@ -361,7 +361,7 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
         if (sample) {
           activeClip.baseCtx.clearRect(0, 0, options.width, options.height)
           
-          const img = sample.toCanvasImageSource()
+          const img = typeof sample.toCanvasImageSource === 'function' ? sample.toCanvasImageSource() : sample
           const frameW = (img as VideoFrame).displayWidth || (img as any).width || options.width
           const frameH = (img as VideoFrame).displayHeight || (img as any).height || options.height
           const scale = Math.min(options.width / frameW, options.height / frameH)
@@ -371,7 +371,14 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
           const targetX = (options.width - targetW) / 2
           const targetY = (options.height - targetH) / 2
           
-          activeClip.baseCtx.drawImage(img, targetX, targetY, targetW, targetH)
+          try {
+            activeClip.baseCtx.drawImage(img, targetX, targetY, targetW, targetH)
+          } catch (err) {
+            console.warn('[TimelineExportModal] drawImage error directly, trying createImageBitmap fallback', err)
+            const bmp = await createImageBitmap(img)
+            activeClip.baseCtx.drawImage(bmp, targetX, targetY, targetW, targetH)
+            bmp.close()
+          }
           activeClip.texture.source.update()
           activeClip.sprite.alpha = 1
           

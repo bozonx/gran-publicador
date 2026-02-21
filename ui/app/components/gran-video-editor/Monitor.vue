@@ -94,16 +94,15 @@ async function buildTimeline() {
   loadError.value = null
 
   try {
-    await mediaBunny.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
-
-    console.log('[Monitor] PixiJS+Mediabunny initialized canvas', exportWidth.value, exportHeight.value)
-
     const clips = videoEditorStore.timelineClips
     console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
       isLoading.value = false
       return
     }
+
+    await mediaBunny.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
+    console.log('[Monitor] PixiJS+Mediabunny initialized canvas', exportWidth.value, exportHeight.value)
 
     let sequentialTimeUs = 0
     let maxDuration = 0

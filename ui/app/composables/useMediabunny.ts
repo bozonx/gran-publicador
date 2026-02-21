@@ -40,11 +40,12 @@ export function useMediabunny() {
     }
   }
 
-  function drawSampleToCanvas(sample: any, clip: MonitorClipData) {
+  async function drawSampleToCanvas(sample: any, clip: MonitorClipData) {
     clip.ctx.clearRect(0, 0, clip.canvas.width, clip.canvas.height);
 
+    let imageSource: any;
     try {
-      const imageSource = sample.toCanvasImageSource();
+      imageSource = typeof sample.toCanvasImageSource === 'function' ? sample.toCanvasImageSource() : sample;
       const frameW = imageSource?.displayWidth ?? imageSource?.width ?? clip.canvas.width;
       const frameH = imageSource?.displayHeight ?? imageSource?.height ?? clip.canvas.height;
       const scale = Math.min(clip.canvas.width / frameW, clip.canvas.height / frameH);
@@ -54,9 +55,18 @@ export function useMediabunny() {
       const targetX = (clip.canvas.width - targetW) / 2;
       const targetY = (clip.canvas.height - targetH) / 2;
 
-      clip.ctx.drawImage(imageSource, targetX, targetY, targetW, targetH);
-      return;
-    } catch {
+      try {
+        clip.ctx.drawImage(imageSource, targetX, targetY, targetW, targetH);
+        return;
+      } catch (err) {
+        console.warn('[Monitor] drawImage error directly, trying createImageBitmap fallback', err);
+        const bmp = await createImageBitmap(imageSource);
+        clip.ctx.drawImage(bmp, targetX, targetY, targetW, targetH);
+        bmp.close();
+        return;
+      }
+    } catch (err) {
+      console.warn('[Monitor] drawImage total failure:', err, 'sample:', sample);
       // Fallback for browsers/codecs where toCanvasImageSource() cannot be drawn
       // on an OffscreenCanvas 2D context.
     }
@@ -116,7 +126,7 @@ export function useMediabunny() {
           const sample = await clip.sink.getSample(fetchTimeS);
 
           if (sample) {
-            drawSampleToCanvas(sample, clip);
+            await drawSampleToCanvas(sample, clip);
             clip.sprite.texture.source.update();
             clip.sprite.visible = true;
 
