@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useLocalStorage } from '@vueuse/core';
 
 export interface TimelineClip {
@@ -8,6 +8,95 @@ export interface TimelineClip {
   name: string;
   path: string;
   fileHandle?: FileSystemFileHandle;
+}
+
+const DEFAULT_PROJECT_SETTINGS: VideoEditorProjectSettings = {
+  export: {
+    width: 1920,
+    height: 1080,
+    encoding: {
+      format: 'mp4',
+      videoCodec: 'avc1.42E032',
+      bitrateMbps: 5,
+      excludeAudio: false,
+      audioBitrateKbps: 128,
+    },
+  },
+  proxy: {
+    height: 720,
+  },
+};
+
+function createDefaultProjectSettings(): VideoEditorProjectSettings {
+  return {
+    export: {
+      width: DEFAULT_PROJECT_SETTINGS.export.width,
+      height: DEFAULT_PROJECT_SETTINGS.export.height,
+      encoding: {
+        format: DEFAULT_PROJECT_SETTINGS.export.encoding.format,
+        videoCodec: DEFAULT_PROJECT_SETTINGS.export.encoding.videoCodec,
+        bitrateMbps: DEFAULT_PROJECT_SETTINGS.export.encoding.bitrateMbps,
+        excludeAudio: DEFAULT_PROJECT_SETTINGS.export.encoding.excludeAudio,
+        audioBitrateKbps: DEFAULT_PROJECT_SETTINGS.export.encoding.audioBitrateKbps,
+      },
+    },
+    proxy: {
+      height: DEFAULT_PROJECT_SETTINGS.proxy.height,
+    },
+  };
+}
+
+function normalizeProjectSettings(raw: unknown): VideoEditorProjectSettings {
+  if (!raw || typeof raw !== 'object') {
+    return createDefaultProjectSettings();
+  }
+
+  const input = raw as Record<string, any>;
+  const exportInput = input.export ?? {};
+  const encodingInput = exportInput.encoding ?? {};
+  const proxyInput = input.proxy ?? {};
+
+  const width = Number(exportInput.width);
+  const height = Number(exportInput.height);
+  const bitrateMbps = Number(encodingInput.bitrateMbps);
+  const audioBitrateKbps = Number(encodingInput.audioBitrateKbps);
+  const proxyHeight = Number(proxyInput.height);
+  const format = encodingInput.format;
+
+  return {
+    export: {
+      width:
+        Number.isFinite(width) && width > 0
+          ? Math.round(width)
+          : DEFAULT_PROJECT_SETTINGS.export.width,
+      height:
+        Number.isFinite(height) && height > 0
+          ? Math.round(height)
+          : DEFAULT_PROJECT_SETTINGS.export.height,
+      encoding: {
+        format: format === 'webm' || format === 'mkv' ? format : 'mp4',
+        videoCodec:
+          typeof encodingInput.videoCodec === 'string' && encodingInput.videoCodec.trim().length > 0
+            ? encodingInput.videoCodec
+            : DEFAULT_PROJECT_SETTINGS.export.encoding.videoCodec,
+        bitrateMbps:
+          Number.isFinite(bitrateMbps) && bitrateMbps > 0
+            ? Math.min(200, Math.max(0.2, bitrateMbps))
+            : DEFAULT_PROJECT_SETTINGS.export.encoding.bitrateMbps,
+        excludeAudio: Boolean(encodingInput.excludeAudio),
+        audioBitrateKbps:
+          Number.isFinite(audioBitrateKbps) && audioBitrateKbps > 0
+            ? Math.round(Math.min(1024, Math.max(32, audioBitrateKbps)))
+            : DEFAULT_PROJECT_SETTINGS.export.encoding.audioBitrateKbps,
+      },
+    },
+    proxy: {
+      height:
+        Number.isFinite(proxyHeight) && proxyHeight > 0
+          ? Math.round(proxyHeight)
+          : DEFAULT_PROJECT_SETTINGS.proxy.height,
+    },
+  };
 }
 
 export interface VideoEditorProjectSettings {
@@ -46,22 +135,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const currentTime = ref(0);
   const duration = ref(0);
 
-  const projectSettings = ref<VideoEditorProjectSettings>({
-    export: {
-      width: 1920,
-      height: 1080,
-      encoding: {
-        format: 'mp4',
-        videoCodec: 'avc1.42E032',
-        bitrateMbps: 5,
-        excludeAudio: false,
-        audioBitrateKbps: 128,
-      },
-    },
-    proxy: {
-      height: 720,
-    },
-  });
+  const projectSettings = ref<VideoEditorProjectSettings>(createDefaultProjectSettings());
+  const isLoadingProjectSettings = ref(false);
+  let isPersistingProjectSettings = false;
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -78,6 +154,68 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     } catch (e) {
       console.error('Failed to get file handle for path:', path, e);
       return null;
+    }
+  }
+
+  async function ensureProjectSettingsFile(options?: {
+    create?: boolean;
+  }): Promise<FileSystemFileHandle | null> {
+    if (!projectsHandle.value || !currentProjectName.value) return null;
+    const projectDir = await projectsHandle.value.getDirectoryHandle(currentProjectName.value);
+    const granDir = await projectDir.getDirectoryHandle('.gran', {
+      create: options?.create ?? false,
+    });
+    return await granDir.getFileHandle('project.settings.json', {
+      create: options?.create ?? false,
+    });
+  }
+
+  async function loadProjectSettings() {
+    isLoadingProjectSettings.value = true;
+    try {
+      const settingsFileHandle = await ensureProjectSettingsFile({ create: false });
+      if (!settingsFileHandle) {
+        projectSettings.value = createDefaultProjectSettings();
+        return;
+      }
+
+      const settingsFile = await settingsFileHandle.getFile();
+      const text = await settingsFile.text();
+      if (!text.trim()) {
+        projectSettings.value = createDefaultProjectSettings();
+        return;
+      }
+
+      const parsed = JSON.parse(text);
+      projectSettings.value = normalizeProjectSettings(parsed);
+    } catch (e: any) {
+      if (e?.name === 'NotFoundError') {
+        projectSettings.value = createDefaultProjectSettings();
+        return;
+      }
+      console.warn('Failed to load project settings, fallback to defaults', e);
+      projectSettings.value = createDefaultProjectSettings();
+    } finally {
+      isLoadingProjectSettings.value = false;
+    }
+  }
+
+  async function saveProjectSettings() {
+    if (!projectsHandle.value || !currentProjectName.value || isLoadingProjectSettings.value) {
+      return;
+    }
+
+    isPersistingProjectSettings = true;
+    try {
+      const settingsFileHandle = await ensureProjectSettingsFile({ create: true });
+      if (!settingsFileHandle) return;
+      const writable = await (settingsFileHandle as any).createWritable();
+      await writable.write(`${JSON.stringify(projectSettings.value, null, 2)}\n`);
+      await writable.close();
+    } catch (e) {
+      console.warn('Failed to save project settings', e);
+    } finally {
+      isPersistingProjectSettings = false;
     }
   }
 
@@ -259,6 +397,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     currentProjectName.value = name;
     currentFileName.value = `${name}_001.otio`;
     lastProjectName.value = name;
+    await loadProjectSettings();
+    await saveProjectSettings();
   }
 
   function resetWorkspace() {
@@ -273,6 +413,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     isPlaying.value = false;
     currentTime.value = 0;
     duration.value = 0;
+    projectSettings.value = createDefaultProjectSettings();
+    isLoadingProjectSettings.value = false;
+    isPersistingProjectSettings = false;
     // Clear IndexedDB
     const request = indexedDB.open('GranVideoEditor', 1);
     request.onsuccess = (e: any) => {
@@ -281,6 +424,15 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       tx.objectStore('handles').delete('workspace');
     };
   }
+
+  watch(
+    projectSettings,
+    async () => {
+      if (isLoadingProjectSettings.value || isPersistingProjectSettings) return;
+      await saveProjectSettings();
+    },
+    { deep: true },
+  );
 
   return {
     workspaceHandle,
@@ -298,6 +450,8 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     currentTime,
     duration,
     projectSettings,
+    loadProjectSettings,
+    saveProjectSettings,
     getFileHandleByPath,
     init,
     openWorkspace,

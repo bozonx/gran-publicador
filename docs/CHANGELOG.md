@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
   - New endpoint `POST /media/upload-stream` accepts raw body stream with metadata headers (`x-filename`, `x-mime-type`, `x-file-size`, `x-project-id`, `x-optimize`).
   - `useMedia.uploadMediaStream()` composable function for streaming uploads via `fetch`.
   - Fastify content-type parsers added for `video/*` and `application/octet-stream` to pass streams through without buffering.
+- **Gran Video Editor: project settings persistence**
+  - Added Project tab in the left panel with project-level Export and Proxy settings.
+  - Added persistent settings file `.gran/project.settings.json` per project; settings are loaded on project open and auto-saved on change.
+  - Timeline export modal now uses project settings as defaults for resolution and encoding and allows overriding export resolution per export run.
 
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.

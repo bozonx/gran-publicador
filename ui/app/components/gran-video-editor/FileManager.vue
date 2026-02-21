@@ -484,7 +484,7 @@ async function createTimeline() {
     <div v-if="activeTab === 'project'" class="flex-1 overflow-y-auto min-h-0 min-w-0">
       <div class="flex flex-col gap-6 px-3 py-3">
         <div class="text-xs text-gray-500">
-          {{ t('videoEditor.projectSettings.note', 'Settings are not saved yet') }}
+          {{ t('videoEditor.projectSettings.note', 'Settings are saved to .gran/project.settings.json') }}
         </div>
 
         <div class="flex flex-col gap-3">

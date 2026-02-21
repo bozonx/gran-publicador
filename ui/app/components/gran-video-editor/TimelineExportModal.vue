@@ -20,6 +20,8 @@ interface ExportOptions {
   audioBitrate: number
   audio: boolean
   audioCodec?: string
+  width: number
+  height: number
 }
 
 const props = defineProps<Props>()
@@ -47,6 +49,8 @@ const bitrateMbps = ref<number>(5)
 const excludeAudio = ref(false)
 const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
+const exportWidth = ref<number>(1920)
+const exportHeight = ref<number>(1080)
 
 const isExporting = ref(false)
 const exportProgress = ref(0)
@@ -76,6 +80,18 @@ const bitrateBps = computed(() => {
   if (!Number.isFinite(value)) return 5_000_000
   const clamped = Math.min(200, Math.max(0.2, value))
   return Math.round(clamped * 1_000_000)
+})
+
+const normalizedExportWidth = computed(() => {
+  const value = Number(exportWidth.value)
+  if (!Number.isFinite(value) || value <= 0) return 1920
+  return Math.round(value)
+})
+
+const normalizedExportHeight = computed(() => {
+  const value = Number(exportHeight.value)
+  if (!Number.isFinite(value) || value <= 0) return 1080
+  return Math.round(value)
 })
 
 const phaseLabel = computed(() => {
@@ -226,8 +242,8 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
     // Helper: build a Combinator from fresh MP4Clip instances (each clip can only be used once)
     async function buildCombinator(withAudio: boolean) {
       const comb = new Combinator({
-        width: 1280,
-        height: 720,
+        width: options.width,
+        height: options.height,
         bgColor: '#000',
         videoCodec: options.videoCodec,
         bitrate: options.bitrate,
@@ -333,12 +349,16 @@ watch(
     isExporting.value = false
 
     outputFormat.value = 'mp4'
-    videoCodec.value = 'avc1.42E032'
-    bitrateMbps.value = 5
-    excludeAudio.value = false
-    audioBitrateKbps.value = 128
+    videoCodec.value = videoEditorStore.projectSettings.export.encoding.videoCodec
+    bitrateMbps.value = videoEditorStore.projectSettings.export.encoding.bitrateMbps
+    excludeAudio.value = videoEditorStore.projectSettings.export.encoding.excludeAudio
+    audioBitrateKbps.value = videoEditorStore.projectSettings.export.encoding.audioBitrateKbps
+    exportWidth.value = videoEditorStore.projectSettings.export.width
+    exportHeight.value = videoEditorStore.projectSettings.export.height
 
     await loadCodecSupport()
+
+    outputFormat.value = videoEditorStore.projectSettings.export.encoding.format
 
     const exportDir = await ensureExportDir()
     const timelineBase = sanitizeBaseName(videoEditorStore.currentFileName || videoEditorStore.currentProjectName || 'timeline')
@@ -399,6 +419,8 @@ async function handleConfirm() {
       audioBitrate: audioBitrateKbps.value * 1000,
       audio: !excludeAudio.value,
       audioCodec: audioCodec.value,
+      width: normalizedExportWidth.value,
+      height: normalizedExportHeight.value,
     })
     exportProgress.value = 60
 
@@ -473,6 +495,31 @@ function handleCancel() {
       >
         <UInput v-model="outputFilename" class="w-full" :disabled="isExporting" />
       </UFormField>
+
+      <div class="grid grid-cols-2 gap-3">
+        <UFormField :label="t('videoEditor.projectSettings.exportWidth', 'Width')">
+          <UInput
+            v-model.number="exportWidth"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField :label="t('videoEditor.projectSettings.exportHeight', 'Height')">
+          <UInput
+            v-model.number="exportHeight"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            step="1"
+            :disabled="isExporting"
+            class="w-full"
+          />
+        </UFormField>
+      </div>
 
       <MediaEncodingSettings
         v-model:output-format="outputFormat"
