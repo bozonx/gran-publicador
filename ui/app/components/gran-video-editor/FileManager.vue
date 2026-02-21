@@ -5,6 +5,12 @@ import FileInfoModal from '~/components/common/FileInfoModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import RenameModal from '~/components/common/RenameModal.vue'
 import type { FileInfo } from '~/components/common/FileInfoModal.vue'
+import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
+import {
+  BASE_VIDEO_CODEC_OPTIONS,
+  checkVideoCodecSupport,
+  resolveVideoCodecOptions,
+} from '~/utils/webcodecs'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
@@ -22,6 +28,40 @@ interface FsEntry {
 const activeTab = ref('files')
 const isDragging = ref(false)
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const formatOptions: readonly FormatOption[] = [
+  { value: 'mp4', label: 'MP4' },
+  { value: 'webm', label: 'WebM (VP9 + Opus)' },
+  { value: 'mkv', label: 'MKV (AV1 + Opus)' },
+]
+
+const videoCodecSupport = ref<Record<string, boolean>>({})
+const isLoadingCodecSupport = ref(false)
+
+const videoCodecOptions = computed(() =>
+  resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
+)
+
+async function loadCodecSupport() {
+  if (isLoadingCodecSupport.value) return
+  isLoadingCodecSupport.value = true
+  try {
+    videoCodecSupport.value = await checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS)
+    const selected = videoEditorStore.projectSettings.export.encoding.videoCodec
+    if (videoCodecSupport.value[selected] === false) {
+      const firstSupported = BASE_VIDEO_CODEC_OPTIONS.find((opt) => videoCodecSupport.value[opt.value])
+      if (firstSupported) videoEditorStore.projectSettings.export.encoding.videoCodec = firstSupported.value
+    }
+  } finally {
+    isLoadingCodecSupport.value = false
+  }
+}
+
+watch(activeTab, (tab) => {
+  if (tab === 'project') {
+    loadCodecSupport()
+  }
+})
 
 const rootEntries = ref<FsEntry[]>([])
 const isLoading = ref(false)
@@ -388,6 +428,13 @@ async function createTimeline() {
     <div class="flex items-center gap-4 px-3 py-2 border-b border-gray-800 shrink-0 select-none">
       <button 
         class="text-xs font-semibold uppercase tracking-wider transition-colors outline-none"
+        :class="activeTab === 'project' ? 'text-primary-400' : 'text-gray-500 hover:text-gray-300'"
+        @click="activeTab = 'project'"
+      >
+        {{ t('videoEditor.fileManager.tabs.project', 'Project') }}
+      </button>
+      <button 
+        class="text-xs font-semibold uppercase tracking-wider transition-colors outline-none"
         :class="activeTab === 'files' ? 'text-primary-400' : 'text-gray-500 hover:text-gray-300'"
         @click="activeTab = 'files'"
       >
@@ -434,8 +481,76 @@ async function createTimeline() {
     </div>
 
     <!-- Content -->
+    <div v-if="activeTab === 'project'" class="flex-1 overflow-y-auto min-h-0 min-w-0">
+      <div class="flex flex-col gap-6 px-3 py-3">
+        <div class="text-xs text-gray-500">
+          {{ t('videoEditor.projectSettings.note', 'Settings are not saved yet') }}
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="text-sm font-medium text-gray-200">
+            {{ t('videoEditor.projectSettings.export', 'Export') }}
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField :label="t('videoEditor.projectSettings.exportWidth', 'Width')">
+              <UInput
+                v-model.number="videoEditorStore.projectSettings.export.width"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                step="1"
+                class="w-full"
+              />
+            </UFormField>
+            <UFormField :label="t('videoEditor.projectSettings.exportHeight', 'Height')">
+              <UInput
+                v-model.number="videoEditorStore.projectSettings.export.height"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                step="1"
+                class="w-full"
+              />
+            </UFormField>
+          </div>
+
+          <MediaEncodingSettings
+            v-model:output-format="videoEditorStore.projectSettings.export.encoding.format"
+            v-model:video-codec="videoEditorStore.projectSettings.export.encoding.videoCodec"
+            v-model:bitrate-mbps="videoEditorStore.projectSettings.export.encoding.bitrateMbps"
+            v-model:exclude-audio="videoEditorStore.projectSettings.export.encoding.excludeAudio"
+            v-model:audio-bitrate-kbps="videoEditorStore.projectSettings.export.encoding.audioBitrateKbps"
+            :disabled="false"
+            :has-audio="true"
+            :is-loading-codec-support="isLoadingCodecSupport"
+            :format-options="formatOptions"
+            :video-codec-options="videoCodecOptions"
+            audio-codec-label="AAC"
+          />
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <div class="text-sm font-medium text-gray-200">
+            {{ t('videoEditor.projectSettings.proxy', 'Proxy') }}
+          </div>
+
+          <UFormField :label="t('videoEditor.projectSettings.proxyHeight', 'Height')">
+            <UInput
+              v-model.number="videoEditorStore.projectSettings.proxy.height"
+              type="number"
+              inputmode="numeric"
+              min="1"
+              step="1"
+              class="w-full"
+            />
+          </UFormField>
+        </div>
+      </div>
+    </div>
+
     <div
-      v-if="activeTab === 'files'"
+      v-else-if="activeTab === 'files'"
       class="flex-1 overflow-auto min-h-0 min-w-0 relative"
     >
       <UContextMenu

@@ -10,6 +10,23 @@ export interface TimelineClip {
   fileHandle?: FileSystemFileHandle;
 }
 
+export interface VideoEditorProjectSettings {
+  export: {
+    width: number;
+    height: number;
+    encoding: {
+      format: 'mp4' | 'webm' | 'mkv';
+      videoCodec: string;
+      bitrateMbps: number;
+      excludeAudio: boolean;
+      audioBitrateKbps: number;
+    };
+  };
+  proxy: {
+    height: number;
+  };
+}
+
 export const useVideoEditorStore = defineStore('videoEditor', () => {
   const workspaceHandle = ref<FileSystemDirectoryHandle | null>(null);
   const projectsHandle = ref<FileSystemDirectoryHandle | null>(null);
@@ -28,6 +45,23 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const isPlaying = ref(false);
   const currentTime = ref(0);
   const duration = ref(0);
+
+  const projectSettings = ref<VideoEditorProjectSettings>({
+    export: {
+      width: 1920,
+      height: 1080,
+      encoding: {
+        format: 'mp4',
+        videoCodec: 'avc1.42E032',
+        bitrateMbps: 5,
+        excludeAudio: false,
+        audioBitrateKbps: 128,
+      },
+    },
+    proxy: {
+      height: 720,
+    },
+  });
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -263,6 +297,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     isPlaying,
     currentTime,
     duration,
+    projectSettings,
     getFileHandleByPath,
     init,
     openWorkspace,
