@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, markRaw } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, markRaw, computed } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
 import { useWebAV } from '~/composables/useWebAV'
 
@@ -8,8 +8,66 @@ const videoEditorStore = useVideoEditorStore()
 const webAV = useWebAV()
 
 const containerEl = ref<HTMLDivElement | null>(null)
+const viewportEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
 const isLoading = ref(false)
+
+const exportWidth = computed(() => videoEditorStore.projectSettings.export.width)
+const exportHeight = computed(() => videoEditorStore.projectSettings.export.height)
+
+const aspectRatio = computed(() => {
+  const width = exportWidth.value
+  const height = exportHeight.value
+  if (width <= 0 || height <= 0) return 16 / 9
+  return width / height
+})
+
+const canvasDisplaySize = ref({ width: 0, height: 0 })
+
+const canvasScale = computed(() => {
+  const dw = canvasDisplaySize.value.width
+  const dh = canvasDisplaySize.value.height
+  if (!dw || !dh || !exportWidth.value || !exportHeight.value) return 1
+  return Math.min(dw / exportWidth.value, dh / exportHeight.value)
+})
+
+const canvasWrapperStyle = computed(() => ({
+  width: `${canvasDisplaySize.value.width}px`,
+  height: `${canvasDisplaySize.value.height}px`,
+  overflow: 'hidden',
+}))
+
+const canvasInnerStyle = computed(() => ({
+  width: `${exportWidth.value}px`,
+  height: `${exportHeight.value}px`,
+  transform: `scale(${canvasScale.value})`,
+  transformOrigin: 'top left',
+}))
+
+let viewportResizeObserver: ResizeObserver | null = null
+
+function updateCanvasDisplaySize() {
+  const viewport = viewportEl.value
+  if (!viewport) return
+
+  const availableWidth = viewport.clientWidth
+  const availableHeight = viewport.clientHeight
+
+  if (availableWidth <= 0 || availableHeight <= 0) {
+    canvasDisplaySize.value = { width: 0, height: 0 }
+    return
+  }
+
+  let width = availableWidth
+  let height = Math.round(width / aspectRatio.value)
+
+  if (height > availableHeight) {
+    height = availableHeight
+    width = Math.round(height * aspectRatio.value)
+  }
+
+  canvasDisplaySize.value = { width, height }
+}
 
 let opfsTmpFiles: Array<{ remove: (options?: any) => Promise<void> }> = []
 
@@ -38,7 +96,7 @@ async function buildTimeline() {
 
     // Always re-init canvas to clear previous sprites
     await cleanupTmpFiles()
-    await webAV.initCanvas(containerEl.value, 1280, 720, '#000')
+    await webAV.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
 
     const clips = videoEditorStore.timelineClips
     if (clips.length === 0) {
@@ -97,6 +155,14 @@ watch(() => videoEditorStore.timelineClips, () => {
   buildTimeline()
 }, { deep: true })
 
+watch(
+  () => [videoEditorStore.projectSettings.export.width, videoEditorStore.projectSettings.export.height],
+  () => {
+    updateCanvasDisplaySize()
+    buildTimeline()
+  },
+)
+
 // Sync playback controls from store
 watch(() => videoEditorStore.isPlaying, (playing) => {
   if (isLoading.value || loadError.value) {
@@ -126,10 +192,19 @@ watch(() => videoEditorStore.currentTime, (val) => {
 })
 
 onMounted(() => {
+  updateCanvasDisplaySize()
+  if (typeof ResizeObserver !== 'undefined' && viewportEl.value) {
+    viewportResizeObserver = new ResizeObserver(() => {
+      updateCanvasDisplaySize()
+    })
+    viewportResizeObserver.observe(viewportEl.value)
+  }
   buildTimeline()
 })
 
 onBeforeUnmount(() => {
+  viewportResizeObserver?.disconnect()
+  viewportResizeObserver = null
   webAV.destroyCanvas()
   void cleanupTmpFiles()
 })
@@ -152,7 +227,7 @@ function formatTime(seconds: number): string {
     </div>
 
     <!-- Video area -->
-    <div class="flex-1 flex items-center justify-center overflow-hidden relative">
+    <div ref="viewportEl" class="flex-1 flex items-center justify-center overflow-hidden relative">
       <div v-if="videoEditorStore.timelineClips.length === 0" class="flex flex-col items-center gap-3 text-gray-700">
         <UIcon name="i-heroicons-play-circle" class="w-16 h-16" />
         <p class="text-sm">
@@ -167,10 +242,12 @@ function formatTime(seconds: number): string {
       </div>
       
       <div
-        ref="containerEl"
-        class="w-full h-full"
+        class="shrink-0"
+        :style="canvasWrapperStyle"
         :class="{ invisible: isLoading || loadError || videoEditorStore.timelineClips.length === 0 }"
-      />
+      >
+        <div ref="containerEl" :style="canvasInnerStyle" />
+      </div>
     </div>
 
     <!-- Playback controls -->
