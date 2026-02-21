@@ -33,6 +33,17 @@ function onEntryClick(entry: FsEntry) {
   }
 }
 
+function onDragStart(e: DragEvent, entry: FsEntry) {
+  if (entry.kind !== 'file') return
+  if (e.dataTransfer) {
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      name: entry.name,
+      kind: 'file'
+    }))
+    e.dataTransfer.effectAllowed = 'copy'
+  }
+}
+
 function getContextMenuItems(entry: FsEntry) {
   const items = []
   
@@ -74,6 +85,8 @@ function getContextMenuItems(entry: FsEntry) {
         <div
           class="flex items-center gap-1.5 py-1 pr-2 rounded cursor-pointer hover:bg-gray-800 transition-colors group"
           :style="{ paddingLeft: `${8 + depth * 14}px` }"
+          :draggable="entry.kind === 'file'"
+          @dragstart="onDragStart($event, entry)"
           @click="onEntryClick(entry)"
         >
           <!-- Chevron for directories -->

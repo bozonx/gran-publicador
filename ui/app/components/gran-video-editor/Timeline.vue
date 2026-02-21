@@ -1,9 +1,35 @@
 <script setup lang="ts">
 const { t } = useI18n()
+const toast = useToast()
 
 const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
+
+const clips = ref<{ track: string, name: string }[]>([])
+
+function onDrop(e: DragEvent, track: string) {
+  const data = e.dataTransfer?.getData('application/json')
+  if (data) {
+    try {
+      const parsed = JSON.parse(data)
+      if (parsed.name) {
+        clips.value.push({
+          track,
+          name: parsed.name
+        })
+        toast.add({
+          title: t('granVideoEditor.timeline.clipAdded', 'Clip Added'),
+          description: `${parsed.name} added to track`,
+          icon: 'i-heroicons-check-circle',
+          color: 'success'
+        })
+      }
+    } catch (err) {
+      console.error('Failed to parse dropped data', err)
+    }
+  }
+}
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60)
@@ -93,19 +119,45 @@ function stop() {
         <!-- Tracks -->
         <div class="flex flex-col divide-y divide-gray-700">
           <!-- Video track -->
-          <div class="h-10 flex items-center px-2 relative">
+          <div 
+            class="h-10 flex items-center px-2 relative"
+            @dragover.prevent
+            @drop.prevent="onDrop($event, 'video')"
+          >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700">
+              <span class="text-xs text-gray-700" v-if="!clips.find(c => c.track === 'video')">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
+            <!-- Render nested clips -->
+            <div 
+              v-for="(clip, index) in clips.filter(c => c.track === 'video')" 
+              :key="index"
+              class="absolute inset-y-1 bg-indigo-600 border border-indigo-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-indigo-500"
+              :style="{ left: `${2 + index * 100}px`, width: '90px' }"
+            >
+              <span class="truncate" :title="clip.name">{{ clip.name }}</span>
+            </div>
           </div>
           <!-- Audio track -->
-          <div class="h-10 flex items-center px-2 relative">
+          <div 
+            class="h-10 flex items-center px-2 relative"
+            @dragover.prevent
+            @drop.prevent="onDrop($event, 'audio')"
+          >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700">
+              <span class="text-xs text-gray-700" v-if="!clips.find(c => c.track === 'audio')">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
+            </div>
+            <!-- Render nested clips -->
+            <div 
+              v-for="(clip, index) in clips.filter(c => c.track === 'audio')" 
+              :key="index"
+              class="absolute inset-y-1 bg-teal-600 border border-teal-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-teal-500"
+              :style="{ left: `${2 + index * 100}px`, width: '90px' }"
+            >
+              <span class="truncate" :title="clip.name">{{ clip.name }}</span>
             </div>
           </div>
         </div>
