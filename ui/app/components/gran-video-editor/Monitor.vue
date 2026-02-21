@@ -114,48 +114,48 @@ async function buildTimeline() {
     for (const clip of clips) {
       if (requestId !== buildRequestId) return
       const fileHandle = await videoEditorStore.getFileHandleByPath(clip.source.path)
-      if (fileHandle) {
-        console.log('[Monitor] Processing clip:', clip.name)
-        const file = await fileHandle.getFile()
-        console.log('[Monitor] Got file:', file.name, 'size:', file.size)
+      if (!fileHandle) continue
 
-        const startUs = clip.timelineRange.startUs
-        
-        const { Input, BlobSource, VideoSampleSink, ALL_FORMATS } = await import('mediabunny')
-        
-        const source = new BlobSource(file)
-        const input = new Input({ source, formats: ALL_FORMATS } as any)
-        const track = await input.getPrimaryVideoTrack()
-        if (track && await track.canDecode()) {
-          const sink = new VideoSampleSink(track)
-          const durS = await track.computeDuration()
-          const clipDurationUs = Math.floor(durS * 1_000_000)
-          
-          const canvas = new OffscreenCanvas(exportWidth.value, exportHeight.value)
-          const ctx = canvas.getContext('2d')!
-          const { Texture, Sprite, CanvasSource } = await import('pixi.js')
-          const canvasSource = new CanvasSource({ resource: canvas as any })
-          const texture = new Texture({ source: canvasSource })
-          const sprite = new Sprite(texture)
-          
-          sprite.width = exportWidth.value
-          sprite.height = exportHeight.value
-          sprite.visible = false
-          
-          mediaBunny.app.value!.stage.addChild(sprite)
-          
-          mediaBunny.clips.value.push({
-            fileHandle,
-            input,
-            sink,
-            startUs,
-            endUs: startUs + clipDurationUs,
-            durationUs: clipDurationUs,
-            sprite,
-            canvas,
-            ctx
-          })
-        }
+      const metadata = await videoEditorStore.getOrFetchMetadata(fileHandle, clip.source.path)
+      if (!metadata || !metadata.video) continue
+
+      const file = await fileHandle.getFile()
+      const startUs = clip.timelineRange.startUs
+
+      const { Input, BlobSource, VideoSampleSink, ALL_FORMATS } = await import('mediabunny')
+
+      const source = new BlobSource(file)
+      const input = new Input({ source, formats: ALL_FORMATS } as any)
+      const track = await input.getPrimaryVideoTrack()
+
+      if (track && (await track.canDecode())) {
+        const sink = new VideoSampleSink(track)
+        const clipDurationUs = Math.floor(metadata.duration * 1_000_000)
+
+        const canvas = new OffscreenCanvas(exportWidth.value, exportHeight.value)
+        const ctx = canvas.getContext('2d')!
+        const { Texture, Sprite, CanvasSource } = await import('pixi.js')
+        const canvasSource = new CanvasSource({ resource: canvas as any })
+        const texture = new Texture({ source: canvasSource })
+        const sprite = new Sprite(texture)
+
+        sprite.width = exportWidth.value
+        sprite.height = exportHeight.value
+        sprite.visible = false
+
+        mediaBunny.app.value!.stage.addChild(sprite)
+
+        mediaBunny.clips.value.push({
+          fileHandle,
+          input,
+          sink,
+          startUs,
+          endUs: startUs + clipDurationUs,
+          durationUs: clipDurationUs,
+          sprite,
+          canvas,
+          ctx,
+        })
       }
     }
     

@@ -240,6 +240,11 @@ async function handleFiles(files: FileList | File[]) {
       const writable = await (fileHandle as any).createWritable()
       await writable.write(file)
       await writable.close()
+
+      if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+        const projectRelativePath = `sources/${targetDirName}/${file.name}`
+        void videoEditorStore.getOrFetchMetadata(fileHandle, projectRelativePath)
+      }
     }
 
     await loadProjectDirectory()
@@ -296,7 +301,11 @@ async function openFileInfoModal(entry: FsEntry) {
     name: entry.name,
     kind: entry.kind,
     size,
-    lastModified
+    lastModified,
+    path: entry.path,
+    metadata: entry.kind === 'file' && entry.path
+      ? await videoEditorStore.getOrFetchMetadata(entry.handle as FileSystemFileHandle, entry.path, { forceRefresh: true })
+      : undefined
   }
   isFileInfoModalOpen.value = true
 }

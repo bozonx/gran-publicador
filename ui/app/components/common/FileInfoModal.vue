@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import yaml from 'js-yaml'
 import AppModal from '~/components/ui/AppModal.vue'
 
 const isOpen = defineModel<boolean>('open', { required: true })
@@ -8,6 +9,8 @@ export interface FileInfo {
   kind: 'file' | 'directory'
   size?: number
   lastModified?: number
+  path?: string
+  metadata?: any
 }
 
 const props = defineProps<{
@@ -15,6 +18,15 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const metadataYaml = computed(() => {
+  if (!props.info?.metadata) return null
+  try {
+    return yaml.dump(props.info.metadata, { indent: 2 })
+  } catch (e) {
+    return String(props.info.metadata)
+  }
+})
 
 function formatBytes(bytes: number, decimals = 2) {
   if (!+bytes) return '0 Bytes'
@@ -51,6 +63,10 @@ function formatBytes(bytes: number, decimals = 2) {
         <div v-if="info.lastModified" class="flex flex-col gap-1 pb-2">
           <span class="text-sm text-gray-500">{{ t('common.modified', 'Modified') }}</span>
           <span class="font-medium text-gray-900 dark:text-gray-100">{{ new Date(info.lastModified).toLocaleString() }}</span>
+        </div>
+        <div v-if="metadataYaml" class="flex flex-col gap-1 border-t border-gray-100 dark:border-gray-800 pt-2 pb-2">
+          <span class="text-sm text-gray-500">{{ t('videoEditor.fileManager.info.metadata', 'Metadata') }}</span>
+          <pre class="bg-gray-50 dark:bg-gray-900 p-2 rounded text-[10px] font-mono overflow-auto max-h-64 whitespace-pre text-gray-700 dark:text-gray-300">{{ metadataYaml }}</pre>
         </div>
       </div>
     </div>
