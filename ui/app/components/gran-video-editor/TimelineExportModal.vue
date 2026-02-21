@@ -59,23 +59,25 @@ const exportProgress = ref(0)
 const exportError = ref<string | null>(null)
 const exportPhase = ref<'encoding' | 'saving' | null>(null)
 
-const formatOptions: readonly FormatOption[] = [
-  { value: 'mp4', label: 'MP4' },
-  { value: 'webm', label: 'WebM (VP9 + Opus)' },
-  { value: 'mkv', label: 'MKV (AV1 + Opus)' },
-]
+function getFormatOptions(): readonly FormatOption[] {
+  return [
+    { value: 'mp4', label: 'MP4' },
+    { value: 'webm', label: 'WebM (VP9 + Opus)' },
+    { value: 'mkv', label: 'MKV (AV1 + Opus)' },
+  ]
+}
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
 const isLoadingCodecSupport = ref(false)
 
-const videoCodecOptions = computed(() =>
-  resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
-)
+function getVideoCodecOptions() {
+  return resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value)
+}
 
-const audioCodecLabel = computed(() => {
+function getAudioCodecLabel() {
   if (outputFormat.value === 'webm' || outputFormat.value === 'mkv') return 'Opus'
   return audioCodec.value === 'opus' ? 'Opus' : 'AAC'
-})
+}
 
 const bitrateBps = computed(() => {
   const value = Number(bitrateMbps.value)
@@ -102,11 +104,11 @@ const normalizedExportFps = computed(() => {
   return Math.round(Math.min(240, Math.max(1, value)))
 })
 
-const phaseLabel = computed(() => {
+function getPhaseLabel() {
   if (exportPhase.value === 'encoding') return t('videoEditor.export.phaseEncoding', 'Encoding')
   if (exportPhase.value === 'saving') return t('videoEditor.export.phaseSaving', 'Saving')
   return ''
-})
+}
 
 const ext = computed(() => getExt(outputFormat.value))
 
@@ -178,144 +180,227 @@ async function loadCodecSupport() {
   }
 }
 
-async function writeStreamToFile(stream: ReadableStream<Uint8Array>, fileHandle: FileSystemFileHandle) {
-  const writable = await (fileHandle as any).createWritable()
-  try {
-    const reader = stream.getReader()
-    while (true) {
-      const { value, done } = await reader.read()
-      if (done) break
-      if (value) await writable.write(value)
+function getBunnyVideoCodec(codec: string): any {
+  if (codec.startsWith('avc1')) return 'avc'
+  if (codec.startsWith('hvc1') || codec.startsWith('hev1')) return 'hevc'
+  if (codec.startsWith('vp8')) return 'vp8'
+  if (codec.startsWith('vp09')) return 'vp9'
+  if (codec.startsWith('av01')) return 'av1'
+  return 'avc'
+}
+
+function resolveExportCodecs(format: 'mp4' | 'webm' | 'mkv', selectedVideoCodec: string, selectedAudioCodec: string) {
+  if (format === 'webm') {
+    return {
+      videoCodec: 'vp09.00.10.08',
+      audioCodec: 'opus',
     }
-  } finally {
-    await writable.close()
+  }
+
+  if (format === 'mkv') {
+    return {
+      videoCodec: 'av01.0.05M.08',
+      audioCodec: 'opus',
+    }
+  }
+
+  return {
+    videoCodec: selectedVideoCodec,
+    audioCodec: selectedAudioCodec,
   }
 }
 
-interface ExportStreamResult {
-  stream: ReadableStream<Uint8Array>
-  cleanup: () => Promise<void>
-}
-
-async function exportTimelineToStream(options: ExportOptions): Promise<ExportStreamResult> {
+async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSystemFileHandle, onProgress: (progress: number) => void): Promise<void> {
   const clips = videoEditorStore.timelineClips
   if (!clips.length) throw new Error('Timeline is empty')
 
-  const [{ MP4Clip, OffscreenSprite, Combinator }, { tmpfile, write }] = await Promise.all([
-    import('@webav/av-cliper'),
-    import('opfs-tools'),
-  ])
+  const { Application, Sprite, Texture, CanvasSource: PixiCanvasSource } = await import('pixi.js')
+  const { Input, BlobSource, VideoSampleSink, Output, Mp4OutputFormat, WebMOutputFormat, MkvOutputFormat, CanvasSource: MediaBunnyCanvasSource, AudioBufferSource, StreamTarget, ALL_FORMATS } = await import('mediabunny')
 
-  const tmpFiles: Array<{ remove: (options?: any) => Promise<void> }> = []
+  let hasAnyAudio = false
+  let sequentialTimeUs = 0
 
-  async function cleanup() {
-    await Promise.all(
-      tmpFiles.map(async (f) => {
-        try {
-          await f.remove({ force: true })
-        } catch (err) {
-          console.warn('[TimelineExportModal] Failed to remove OPFS tmp file', err)
-        }
-      }),
-    )
-  }
+  const trackSinks: Array<{
+    startUs: number
+    endUs: number
+    durationUs: number
+    input: any
+    track: any
+    sink: any
+    sprite: any
+    texture: any
+    baseCanvas: OffscreenCanvas
+    baseCtx: OffscreenCanvasRenderingContext2D
+    file: File
+  }> = []
+
+  const app = new Application()
+  await app.init({
+    width: options.width,
+    height: options.height,
+    backgroundColor: '#000',
+    clearBeforeRender: true,
+  })
+  const mainCanvas = app.canvas as unknown as OffscreenCanvas
 
   try {
-    let maxDurationUs = 0
-    let hasAnyAudio = false
-
-    const clipDefs: Array<{ opfsFile: any; duration: number; hasAudio: boolean }> = []
-
     for (const clip of clips) {
       if (clip.track !== 'video' || !clip.fileHandle) continue
       const file = await clip.fileHandle.getFile()
-      const opfsFile = tmpfile()
-      tmpFiles.push(opfsFile)
-      await write(opfsFile, file.stream() as any)
+      const source = new BlobSource(file)
+      const input = new Input({ source, formats: ALL_FORMATS } as any)
+      const track = await input.getPrimaryVideoTrack()
+      if (!track || !(await track.canDecode())) {
+        input.dispose()
+        continue
+      }
 
-      const mp4Clip = new MP4Clip(opfsFile)
-      await mp4Clip.ready
+      const audioTrack = await input.getPrimaryAudioTrack()
+      if (audioTrack) hasAnyAudio = true
 
-      const clipHasAudio = !!mp4Clip.meta?.audioSampleRate
-      if (mp4Clip.meta?.duration > maxDurationUs) maxDurationUs = mp4Clip.meta.duration
-      if (clipHasAudio) hasAnyAudio = true
+      const sink = new VideoSampleSink(track)
+      const durUs = Math.floor((await track.computeDuration()) * 1_000_000)
+      
+      const startUs = sequentialTimeUs
+      sequentialTimeUs += durUs
 
-      clipDefs.push({ opfsFile, duration: mp4Clip.meta.duration, hasAudio: clipHasAudio })
+      const baseCanvas = new OffscreenCanvas(options.width, options.height)
+      const baseCtx = baseCanvas.getContext('2d')!
+      const canvasSource = new PixiCanvasSource({ resource: baseCanvas as any })
+      const texture = new Texture({ source: canvasSource })
+      const sprite = new Sprite(texture)
+      
+      sprite.width = options.width
+      sprite.height = options.height
+      sprite.alpha = 0
+      app.stage.addChild(sprite)
+
+      trackSinks.push({ startUs, endUs: startUs + durUs, durationUs: durUs, input, track, sink, sprite, texture, baseCanvas, baseCtx, file })
     }
 
+    const maxDurationUs = sequentialTimeUs
     if (maxDurationUs <= 0) throw new Error('No video clips to export')
 
-    const useAudio = options.audio && hasAnyAudio
+    const durationS = maxDurationUs / 1_000_000
 
-    // Helper: build a Combinator from fresh MP4Clip instances (each clip can only be used once)
-    async function buildCombinator(withAudio: boolean) {
-      const comb = new Combinator({
-        width: options.width,
-        height: options.height,
-        fps: options.fps,
-        bgColor: '#000',
-        videoCodec: options.videoCodec,
-        bitrate: options.bitrate,
-        audio: withAudio ? { codec: options.audioCodec || 'aac', bitrate: options.audioBitrate } : false,
-      } as any)
-      for (const { opfsFile, duration } of clipDefs) {
-        const clip = new MP4Clip(opfsFile)
-        await clip.ready
-        const sprite = new OffscreenSprite(clip)
-        sprite.time.offset = 0
-        sprite.time.duration = duration
-        await comb.addSprite(sprite)
+    // Audio Processing using Web Audio API OfflineAudioContext
+    let offlineCtx: OfflineAudioContext | null = null
+    let audioData: AudioBuffer | null = null
+
+    if (options.audio && hasAnyAudio) {
+      offlineCtx = new OfflineAudioContext({
+        numberOfChannels: 2,
+        sampleRate: 48000,
+        length: Math.ceil(48000 * durationS)
+      })
+
+      for (const clipData of trackSinks) {
+        const arrayBuffer = await clipData.file.arrayBuffer()
+        try {
+          const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer)
+          const sourceNode = offlineCtx.createBufferSource()
+          sourceNode.buffer = audioBuffer
+          sourceNode.connect(offlineCtx.destination)
+          sourceNode.start(clipData.startUs / 1_000_000)
+        } catch (err) {
+          console.warn('[TimelineExportModal] Failed to decode audio for clip', err)
+        }
       }
-      return comb
+
+      audioData = await offlineCtx.startRendering()
     }
 
-    if (options.format === 'mp4') {
-      const combinator = await buildCombinator(useAudio)
-      const mp4Stream = combinator.output({ maxTime: maxDurationUs })
-      // Cleanup is deferred to the caller — OPFS files must stay alive until stream is consumed
-      return { stream: mp4Stream as unknown as ReadableStream<Uint8Array>, cleanup }
-    }
+    let format;
+    if (options.format === 'webm') format = new WebMOutputFormat()
+    else if (options.format === 'mkv') format = new MkvOutputFormat()
+    else format = new Mp4OutputFormat()
 
-    // For WebM/MKV: render a video-only intermediate MP4 via Combinator (audio-free),
-    // then re-encode to WebM/MKV. Audio is taken directly from the first original clip
-    // that has an audio track — this avoids "AudioDecoder err" caused by AAC in
-    // Combinator-generated MP4 being incompatible with WebCodecs AudioDecoder.
-    const videoOnlyCombinator = await buildCombinator(false)
-    const videoOnlyStream = videoOnlyCombinator.output({ maxTime: maxDurationUs })
-
-    const opfsMp4 = tmpfile()
-    tmpFiles.push(opfsMp4)
-    await write(opfsMp4, videoOnlyStream as any)
-
-    const exportClip = new MP4Clip(opfsMp4)
-    await exportClip.ready
-
-    // Build a fresh MP4Clip from the first original clip that has audio.
-    const firstAudioDef = useAudio ? clipDefs.find((d) => d.hasAudio) : undefined
-    const audioClip = firstAudioDef ? new MP4Clip(firstAudioDef.opfsFile) : undefined
-    if (audioClip) await audioClip.ready
-
-    const { exportToContainer } = await import('~/utils/video-webm-export')
-
-    const stream = await exportToContainer(exportClip, {
-      format: options.format,
-      trimInUs: 0,
-      trimOutUs: Math.max(1, Number(exportClip?.meta?.duration) || maxDurationUs),
+    // Pass writable directly to StreamTarget
+    const writable = await (fileHandle as any).createWritable()
+    const target = new StreamTarget(writable)
+    const output = new Output({ target, format })
+    
+    const videoSource = new MediaBunnyCanvasSource(mainCanvas, {
+      codec: getBunnyVideoCodec(options.videoCodec),
       bitrate: options.bitrate,
-      audioBitrate: options.audioBitrate,
-      audio: useAudio,
-      width: options.width,
-      height: options.height,
-      fps: options.fps,
-      audioClip,
+      hardwareAcceleration: 'prefer-software'
     })
+    
+    output.addVideoTrack(videoSource)
 
-    // For WebM/MKV exportToContainer returns a fully-buffered stream, cleanup is safe immediately
-    await cleanup()
-    return { stream, cleanup: async () => {} }
-  } catch (err) {
-    await cleanup()
-    throw err
+    let audioSource: any = null
+    if (audioData) {
+      audioSource = new AudioBufferSource(audioData, {
+        codec: options.audioCodec || 'aac',
+        bitrate: options.audioBitrate,
+        numberOfChannels: audioData.numberOfChannels,
+        sampleRate: audioData.sampleRate
+      })
+      output.addAudioTrack(audioSource)
+    }
+
+    // Generate frames
+    const totalFrames = Math.ceil(durationS * options.fps)
+    const dtUs = Math.floor(1_000_000 / options.fps)
+    let currentTimeUs = 0
+
+    // Force output start before generating
+    await output.start()
+
+    for (let frameNum = 0; frameNum < totalFrames; frameNum++) {
+      for (const c of trackSinks) {
+        c.sprite.alpha = 0
+      }
+
+      const activeClip = trackSinks.find(c => currentTimeUs >= c.startUs && currentTimeUs < c.endUs)
+      
+      if (activeClip) {
+        const localTimeUs = currentTimeUs - activeClip.startUs
+        const sample = await activeClip.sink.getSample(localTimeUs / 1_000_000)
+        
+        if (sample) {
+          activeClip.baseCtx.clearRect(0, 0, options.width, options.height)
+          
+          const img = sample.toCanvasImageSource()
+          const frameW = (img as VideoFrame).displayWidth || (img as any).width || options.width
+          const frameH = (img as VideoFrame).displayHeight || (img as any).height || options.height
+          const scale = Math.min(options.width / frameW, options.height / frameH)
+          
+          const targetW = frameW * scale
+          const targetH = frameH * scale
+          const targetX = (options.width - targetW) / 2
+          const targetY = (options.height - targetH) / 2
+          
+          activeClip.baseCtx.drawImage(img, targetX, targetY, targetW, targetH)
+          activeClip.texture.source.update()
+          activeClip.sprite.alpha = 1
+          
+          if ('close' in sample) (sample as any).close()
+        }
+      }
+
+      app.render()
+      // Send frame from main canvas
+      await (videoSource as any).add(currentTimeUs / 1_000_000, dtUs / 1_000_000)
+      
+      currentTimeUs += dtUs
+      onProgress(Math.min(100, Math.round(((frameNum + 1) / totalFrames) * 100)))
+    }
+
+    if ('close' in videoSource) (videoSource as any).close()
+    if (audioSource && 'close' in audioSource) (audioSource as any).close()
+
+    await output.finalize()
+
+  } finally {
+    app.destroy(true, { children: true, texture: true })
+    for (const c of trackSinks) {
+      if ('dispose' in c.sink) (c.sink as any).dispose()
+      else if ('close' in c.sink) (c.sink as any).close()
+
+      if ('dispose' in c.input) (c.input as any).dispose()
+      else if ('close' in c.input) (c.input as any).close()
+    }
   }
 }
 
@@ -381,6 +466,10 @@ watch(
 )
 
 watch(outputFormat, async (fmt) => {
+  const codecConfig = resolveExportCodecs(fmt, videoCodec.value, audioCodec.value)
+  videoCodec.value = codecConfig.videoCodec
+  audioCodec.value = codecConfig.audioCodec
+
   if (!props.open) return
 
   try {
@@ -397,7 +486,7 @@ watch(outputFormat, async (fmt) => {
 
     outputFilename.value = `${base}.${nextExt}`
     await validateFilename(exportDir)
-  } catch (e) {
+  } catch {
     // ignore
   }
 })
@@ -424,21 +513,6 @@ async function handleConfirm() {
     const ok = await validateFilename(exportDir)
     if (!ok) return
 
-    exportPhase.value = 'encoding'
-    const { stream, cleanup: cleanupTmp } = await exportTimelineToStream({
-      format: outputFormat.value,
-      videoCodec: videoCodec.value,
-      bitrate: bitrateBps.value,
-      audioBitrate: audioBitrateKbps.value * 1000,
-      audio: !excludeAudio.value,
-      audioCodec: audioCodec.value,
-      width: normalizedExportWidth.value,
-      height: normalizedExportHeight.value,
-      fps: normalizedExportFps.value,
-    })
-    exportProgress.value = 60
-
-    exportPhase.value = 'saving'
     // Disallow overwriting an existing file
     try {
       await exportDir.getFileHandle(outputFilename.value)
@@ -454,17 +528,28 @@ async function handleConfirm() {
     try {
       fileHandle = await exportDir.getFileHandle(outputFilename.value, { create: true })
     } catch (e: any) {
-      // Race condition protection (another write created the file between checks)
       if (e?.name === 'NotAllowedError' || e?.name === 'InvalidModificationError') {
-        throw new Error('A file with this name already exists')
+        throw new Error('A file with this name already exists', { cause: e })
       }
       throw e
     }
-    try {
-      await writeStreamToFile(stream, fileHandle)
-    } finally {
-      await cleanupTmp()
-    }
+
+    const resolvedCodecs = resolveExportCodecs(outputFormat.value, videoCodec.value, audioCodec.value)
+
+    exportPhase.value = 'encoding'
+    await exportTimelineToFile({
+      format: outputFormat.value,
+      videoCodec: resolvedCodecs.videoCodec,
+      bitrate: bitrateBps.value,
+      audioBitrate: audioBitrateKbps.value * 1000,
+      audio: !excludeAudio.value,
+      audioCodec: resolvedCodecs.audioCodec,
+      width: normalizedExportWidth.value,
+      height: normalizedExportHeight.value,
+      fps: normalizedExportFps.value,
+    }, fileHandle, (progress) => {
+      exportProgress.value = progress
+    })
 
     exportProgress.value = 100
 
@@ -556,14 +641,14 @@ function handleCancel() {
         :disabled="isExporting"
         :has-audio="true"
         :is-loading-codec-support="isLoadingCodecSupport"
-        :format-options="formatOptions"
-        :video-codec-options="videoCodecOptions"
-        :audio-codec-label="audioCodecLabel"
+        :format-options="getFormatOptions()"
+        :video-codec-options="getVideoCodecOptions()"
+        :audio-codec-label="getAudioCodecLabel()"
       />
 
       <div v-if="isExporting" class="flex flex-col gap-2">
         <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-          <span>{{ phaseLabel }}</span>
+          <span>{{ getPhaseLabel() }}</span>
           <span>{{ exportProgress }}%</span>
         </div>
         <div class="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">

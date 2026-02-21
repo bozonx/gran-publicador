@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount, markRaw, computed } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
-import { useWebAV } from '~/composables/useWebAV'
+import { useMediabunny } from '~/composables/useMediabunny'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
-const webAV = useWebAV()
+const mediaBunny = useMediabunny()
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const viewportEl = ref<HTMLDivElement | null>(null)
@@ -43,20 +43,25 @@ const canvasScale = computed(() => {
   return Math.min(dw / exportWidth.value, dh / exportHeight.value)
 })
 
-const canvasWrapperStyle = computed(() => ({
-  width: `${canvasDisplaySize.value.width}px`,
-  height: `${canvasDisplaySize.value.height}px`,
-  overflow: 'hidden',
-}))
+function getCanvasWrapperStyle() {
+  return {
+    width: `${canvasDisplaySize.value.width}px`,
+    height: `${canvasDisplaySize.value.height}px`,
+    overflow: 'hidden',
+  }
+}
 
-const canvasInnerStyle = computed(() => ({
-  width: `${exportWidth.value}px`,
-  height: `${exportHeight.value}px`,
-  transform: `scale(${canvasScale.value})`,
-  transformOrigin: 'top left',
-}))
+function getCanvasInnerStyle() {
+  return {
+    width: `${exportWidth.value}px`,
+    height: `${exportHeight.value}px`,
+    transform: `scale(${canvasScale.value})`,
+    transformOrigin: 'top left',
+  }
+}
 
 let viewportResizeObserver: ResizeObserver | null = null
+let buildRequestId = 0
 
 function updateCanvasDisplaySize() {
   const viewport = viewportEl.value
@@ -84,16 +89,14 @@ function updateCanvasDisplaySize() {
 
 async function buildTimeline() {
   if (!containerEl.value) return
+  const requestId = ++buildRequestId
   isLoading.value = true
   loadError.value = null
 
   try {
-    const { MP4Clip, VisibleSprite } = await import('@webav/av-cliper')
+    await mediaBunny.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
 
-    // Always re-init canvas to clear previous sprites
-    await webAV.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
-
-    console.log('[Monitor] WebAV initialized canvas', exportWidth.value, exportHeight.value)
+    console.log('[Monitor] PixiJS+Mediabunny initialized canvas', exportWidth.value, exportHeight.value)
 
     const clips = videoEditorStore.timelineClips
     console.log('[Monitor] Timeline clips count:', clips.length)
@@ -102,43 +105,67 @@ async function buildTimeline() {
       return
     }
 
+    let sequentialTimeUs = 0
     let maxDuration = 0
 
-    // Load each video clip (audio later if needed/supported)
+    // Load each video clip sequentially
     for (const clip of clips) {
+      if (requestId !== buildRequestId) return
       if (clip.track === 'video' && clip.fileHandle) {
         console.log('[Monitor] Processing clip:', clip.name)
         const file = await clip.fileHandle.getFile()
         console.log('[Monitor] Got file:', file.name, 'size:', file.size)
 
-        const clipObj = new MP4Clip(file.stream() as any)
-        console.log('[Monitor] Created MP4Clip, waiting for ready...')
-        await clipObj.ready
-        console.log('[Monitor] MP4Clip ready!', clipObj.meta)
-
-        const sprite = new VisibleSprite(clipObj)
-        sprite.rect.x = 0
-        sprite.rect.y = 0
-        sprite.rect.w = exportWidth.value
-        sprite.rect.h = exportHeight.value
-        sprite.time.offset = 0
-
-        console.log('[Monitor] Adding sprite to canvas...')
-        await webAV.avCanvas.value.addSprite(sprite)
-        console.log('[Monitor] Sprite added successfully')
+        const startUs = sequentialTimeUs
         
-        if (clipObj.meta.duration > maxDuration) {
-          maxDuration = clipObj.meta.duration
+        const { Input, BlobSource, VideoSampleSink, ALL_FORMATS } = await import('mediabunny')
+        
+        const source = new BlobSource(file)
+        const input = new Input({ source, formats: ALL_FORMATS } as any)
+        const track = await input.getPrimaryVideoTrack()
+        if (track && await track.canDecode()) {
+          const sink = new VideoSampleSink(track)
+          const durS = await track.computeDuration()
+          const clipDurationUs = Math.floor(durS * 1_000_000)
+          
+          const canvas = new OffscreenCanvas(exportWidth.value, exportHeight.value)
+          const ctx = canvas.getContext('2d')!
+          const { Texture, Sprite, CanvasSource } = await import('pixi.js')
+          const canvasSource = new CanvasSource({ resource: canvas as any })
+          const texture = new Texture({ source: canvasSource })
+          const sprite = new Sprite(texture)
+          
+          sprite.width = exportWidth.value
+          sprite.height = exportHeight.value
+          sprite.visible = false
+          
+          mediaBunny.app.value!.stage.addChild(sprite)
+          
+          mediaBunny.clips.value.push({
+            fileHandle: clip.fileHandle,
+            input,
+            sink,
+            startUs,
+            endUs: startUs + clipDurationUs,
+            durationUs: clipDurationUs,
+            sprite,
+            canvas,
+            ctx
+          })
+          
+          sequentialTimeUs += clipDurationUs
         }
       }
     }
-
+    
+    maxDuration = sequentialTimeUs
+    mediaBunny.durationUs.value = maxDuration
     videoEditorStore.duration = maxDuration
     console.log('[Monitor] Timeline duration:', maxDuration)
 
     // Show first frame
     console.log('[Monitor] Previewing first frame...')
-    await webAV.avCanvas.value.previewFrame(0)
+    await mediaBunny.seek(0)
     console.log('[Monitor] First frame previewed')
 
     videoEditorStore.currentTime = 0
@@ -146,9 +173,13 @@ async function buildTimeline() {
 
   } catch (e: any) {
     console.error('Failed to build timeline components', e)
-    loadError.value = e.message || 'Error loading timeline'
+    if (requestId === buildRequestId) {
+      loadError.value = e.message || t('granVideoEditor.monitor.loadError', 'Error loading timeline')
+    }
   } finally {
-    isLoading.value = false
+    if (requestId === buildRequestId) {
+      isLoading.value = false
+    }
   }
 }
 
@@ -174,22 +205,35 @@ watch(() => videoEditorStore.isPlaying, (playing) => {
 
   if (playing) {
     const start = Math.max(0, videoEditorStore.currentTime)
-    const end = videoEditorStore.duration > 0 ? videoEditorStore.duration : undefined
-    webAV.play(start, end)
+    mediaBunny.play(start)
   } else {
-    webAV.pause()
+    mediaBunny.pause()
   }
 })
 
-// Sync time to store
-watch(() => webAV.currentTimeUs.value, (val) => {
-  videoEditorStore.currentTime = val
+// Update playback loop timing
+let playbackLoopId = 0
+function updatePlayback() {
+  if (videoEditorStore.isPlaying && mediaBunny.isPlaying.value) {
+    videoEditorStore.currentTime = mediaBunny.currentTimeUs.value
+    playbackLoopId = requestAnimationFrame(updatePlayback)
+  } else if (!mediaBunny.isPlaying.value) {
+    videoEditorStore.isPlaying = false
+  }
+}
+
+watch(() => mediaBunny.isPlaying.value, (isPlaying) => {
+  if (isPlaying) {
+    playbackLoopId = requestAnimationFrame(updatePlayback)
+  } else {
+    cancelAnimationFrame(playbackLoopId)
+  }
 })
 
-// Monitor seeks when the user scrubs the timeline (placeholder if timeline emitted seek)
+// Sync time to store (initial seek or external seek)
 watch(() => videoEditorStore.currentTime, (val) => {
-  if (Math.abs(val - webAV.currentTimeUs.value) > 100000) { // 100ms
-    webAV.seek(val)
+  if (!videoEditorStore.isPlaying && Math.abs(val - mediaBunny.currentTimeUs.value) > 100000) { // 100ms difference threshold
+    mediaBunny.seek(val)
   }
 })
 
@@ -207,7 +251,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewportResizeObserver?.disconnect()
   viewportResizeObserver = null
-  webAV.destroyCanvas()
+  mediaBunny.destroyCanvas()
 })
 
 function formatTime(seconds: number): string {
@@ -244,10 +288,10 @@ function formatTime(seconds: number): string {
       
       <div
         class="shrink-0"
-        :style="canvasWrapperStyle"
+        :style="getCanvasWrapperStyle()"
         :class="{ invisible: loadError || videoEditorStore.timelineClips.length === 0 }"
       >
-        <div ref="containerEl" :style="canvasInnerStyle" />
+        <div ref="containerEl" :style="getCanvasInnerStyle()" />
       </div>
     </div>
 
