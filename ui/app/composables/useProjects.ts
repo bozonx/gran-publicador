@@ -5,6 +5,7 @@ import type { Project, ProjectWithRole, ProjectMemberWithUser } from '~/stores/p
 import { ArchiveEntityType } from '~/types/archive.types';
 import { logger } from '~/utils/logger';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
+import { PROJECTS_FETCH_LIMIT } from '~/constants';
 
 export function useProjects() {
   const api = useApi();
@@ -25,7 +26,7 @@ export function useProjects() {
 
     try {
       const options = typeof arg === 'object' ? arg : { includeArchived: arg };
-      const params: any = { limit: 100 };
+      const params: any = { limit: PROJECTS_FETCH_LIMIT };
       applyArchiveQueryFlags(params, { includeArchived: options.includeArchived });
       if (options.hasContentCollections) {
         params.hasContentCollections = true;
