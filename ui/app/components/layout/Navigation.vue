@@ -62,6 +62,11 @@ const bottomNavItems = computed<NavItem[]>(() => [
     adminOnly: true,
   },
   {
+    label: t('navigation.granVideoEditor'),
+    to: '/gran-video-editor',
+    icon: 'i-heroicons-film',
+  },
+  {
     label: t('navigation.settings'),
     to: '/settings',
     icon: 'i-heroicons-cog-6-tooth',
