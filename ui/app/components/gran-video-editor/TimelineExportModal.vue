@@ -200,7 +200,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
     let maxDurationUs = 0
     let hasAnyAudio = false
 
-    const clipDefs: Array<{ opfsFile: any; duration: number }> = []
+    const clipDefs: Array<{ opfsFile: any; duration: number; hasAudio: boolean }> = []
 
     for (const clip of clips) {
       if (clip.track !== 'video' || !clip.fileHandle) continue
@@ -212,10 +212,11 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       const mp4Clip = new MP4Clip(opfsFile)
       await mp4Clip.ready
 
+      const clipHasAudio = !!mp4Clip.meta?.audioSampleRate
       if (mp4Clip.meta?.duration > maxDurationUs) maxDurationUs = mp4Clip.meta.duration
-      if (mp4Clip.meta?.audioSampleRate) hasAnyAudio = true
+      if (clipHasAudio) hasAnyAudio = true
 
-      clipDefs.push({ opfsFile, duration: mp4Clip.meta.duration })
+      clipDefs.push({ opfsFile, duration: mp4Clip.meta.duration, hasAudio: clipHasAudio })
     }
 
     if (maxDurationUs <= 0) throw new Error('No video clips to export')
@@ -250,9 +251,10 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       return { stream: mp4Stream as unknown as ReadableStream<Uint8Array>, cleanup }
     }
 
-    // For WebM/MKV: the intermediate MP4 must be video-only.
-    // Combinator with audio produces AAC that MP4Clip cannot re-decode via WebCodecs,
-    // causing "AudioDecoder err: Decoding error".
+    // For WebM/MKV: render a video-only intermediate MP4 via Combinator (audio-free),
+    // then re-encode to WebM/MKV. Audio is taken directly from the first original clip
+    // that has an audio track — this avoids "AudioDecoder err" caused by AAC in
+    // Combinator-generated MP4 being incompatible with WebCodecs AudioDecoder.
     const videoOnlyCombinator = await buildCombinator(false)
     const videoOnlyStream = videoOnlyCombinator.output({ maxTime: maxDurationUs })
 
@@ -263,6 +265,11 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
     const exportClip = new MP4Clip(opfsMp4)
     await exportClip.ready
 
+    // Build a fresh MP4Clip from the first original clip that has audio.
+    const firstAudioDef = useAudio ? clipDefs.find((d) => d.hasAudio) : undefined
+    const audioClip = firstAudioDef ? new MP4Clip(firstAudioDef.opfsFile) : undefined
+    if (audioClip) await audioClip.ready
+
     const { exportToContainer } = await import('~/utils/video-webm-export')
 
     const stream = await exportToContainer(exportClip, {
@@ -271,7 +278,8 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       trimOutUs: Math.max(1, Number(exportClip?.meta?.duration) || maxDurationUs),
       bitrate: options.bitrate,
       audioBitrate: options.audioBitrate,
-      audio: false,
+      audio: useAudio,
+      audioClip,
     })
 
     // For WebM/MKV exportToContainer returns a fully-buffered stream, cleanup is safe immediately

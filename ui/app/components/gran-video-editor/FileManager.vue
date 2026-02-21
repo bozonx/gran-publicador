@@ -436,57 +436,55 @@ async function createTimeline() {
     <!-- Content -->
     <div
       v-if="activeTab === 'files'"
-      class="flex-1 min-h-0 overflow-auto relative"
+      class="flex-1 overflow-auto min-h-0 relative"
     >
       <UContextMenu
         :items="rootContextMenuItems"
-        :ui="{ wrapper: 'min-h-full' }"
+        class="min-w-full w-max min-h-full flex flex-col"
       >
-        <div class="min-w-full w-max min-h-full flex flex-col">
-          <!-- Dropzone Overlay -->
-          <div
-            v-if="isDragging"
-            class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
-          >
-            <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
-            <p class="text-sm font-medium text-primary-400">
-              {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
-            </p>
-          </div>
-
-          <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
-            {{ t('common.loading', 'Loading...') }}
-          </div>
-
-          <!-- Empty state -->
-          <div
-            v-else-if="rootEntries.length === 0 && !error"
-            class="flex flex-col items-center justify-center flex-1 w-full gap-3 text-gray-600 px-4 text-center min-h-[200px]"
-          >
-            <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
-            <p class="text-sm">
-              {{ isApiSupported
-                ? t('videoEditor.fileManager.empty', 'No files in this project')
-                : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
-            </p>
-          </div>
-
-          <!-- Error -->
-          <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
-            {{ error }}
-          </div>
-
-          <!-- File tree -->
-          <GranVideoEditorFileManagerTree
-            v-else
-            :entries="rootEntries"
-            :depth="0"
-            :get-file-icon="getFileIcon"
-            @toggle="toggleDirectory"
-            @select="onEntrySelect"
-            @action="onFileAction"
-          />
+        <!-- Dropzone Overlay -->
+        <div
+          v-if="isDragging"
+          class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gray-900/80 backdrop-blur-sm border-2 border-dashed border-primary-500 m-2 rounded-lg pointer-events-none"
+        >
+          <UIcon name="i-heroicons-arrow-down-tray" class="w-12 h-12 text-primary-500 mb-2 animate-bounce" />
+          <p class="text-sm font-medium text-primary-400">
+            {{ t('videoEditor.fileManager.actions.dropFilesHere', 'Drop files here') }}
+          </p>
         </div>
+
+        <div v-if="isLoading" class="px-3 py-4 text-sm text-gray-400">
+          {{ t('common.loading', 'Loading...') }}
+        </div>
+
+        <!-- Empty state -->
+        <div
+          v-else-if="rootEntries.length === 0 && !error"
+          class="flex flex-col items-center justify-center flex-1 w-full gap-3 text-gray-600 px-4 text-center min-h-[200px]"
+        >
+          <UIcon name="i-heroicons-folder-open" class="w-10 h-10" />
+          <p class="text-sm">
+            {{ isApiSupported
+              ? t('videoEditor.fileManager.empty', 'No files in this project')
+              : t('videoEditor.fileManager.unsupported', 'File System Access API is not supported in this browser') }}
+          </p>
+        </div>
+
+        <!-- Error -->
+        <div v-else-if="error" class="px-3 py-4 text-sm text-red-500 bg-red-500/10 m-2 rounded">
+          {{ error }}
+        </div>
+
+        <!-- File tree -->
+        <GranVideoEditorFileManagerTree
+          v-else
+          :entries="rootEntries"
+          :depth="0"
+          :get-file-icon="getFileIcon"
+          @toggle="toggleDirectory"
+          @select="onEntrySelect"
+          @action="onFileAction"
+        />
       </UContextMenu>
     </div>
 

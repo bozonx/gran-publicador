@@ -7,6 +7,11 @@ export interface ContainerExportOptions {
   bitrate: number;
   audioBitrate: number;
   audio: boolean;
+  /** Optional separate clip used as the audio source. When provided, audio frames
+   * are read from this clip instead of the primary video clip. Useful when the
+   * video clip is a Combinator-generated MP4 (audio-only) and the original file
+   * contains the real audio track. */
+  audioClip?: any;
 }
 
 const FORMAT_CONFIG = {
@@ -32,16 +37,19 @@ const FORMAT_CONFIG = {
  */
 export async function exportToContainer(
   clip: any,
-  { format, trimInUs, trimOutUs, bitrate, audioBitrate, audio }: ContainerExportOptions,
+  { format, trimInUs, trimOutUs, bitrate, audioBitrate, audio, audioClip }: ContainerExportOptions,
 ): Promise<ReadableStream<Uint8Array>> {
   const { muxerType, videoMuxCodec, audioMuxCodec, videoEncCodec } = FORMAT_CONFIG[format];
-  const { width, height, audioSampleRate, audioChanCount } = clip.meta;
+  const { width, height } = clip.meta;
+  // Audio metadata comes from audioClip if provided, otherwise from the primary clip.
+  const audioSource = audioClip ?? clip;
+  const { audioSampleRate, audioChanCount } = audioSource.meta;
   const hasAudio = audio && !!audioSampleRate;
 
   let videoWidth = Math.ceil((width || 1280) / 2) * 2;
   let videoHeight = Math.ceil((height || 720) / 2) * 2;
-  const sampleRate: number = audioSampleRate || 48000;
-  const channelCount: number = audioChanCount || 2;
+  const sampleRate: number = (audioSource.meta.audioSampleRate as number) || 48000;
+  const channelCount: number = (audioSource.meta.audioChanCount as number) || 2;
   const clipDurationUs: number = Number(clip?.meta?.duration) || 0;
 
   const safeTrimInUs = Math.max(
@@ -64,6 +72,14 @@ export async function exportToContainer(
     safeTrimInUs > 0 && typeof clip?.split === 'function'
       ? (await clip.split(safeTrimInUs))[1]
       : clip;
+
+  // Prepare the audio source clip (split at trim-in if needed).
+  const exportAudioClip: any =
+    audioClip != null
+      ? safeTrimInUs > 0 && typeof audioClip?.split === 'function'
+        ? (await audioClip.split(safeTrimInUs))[1]
+        : audioClip
+      : exportClip;
 
   // Decode the first sample to infer the real coded size. The MP4 container meta
   // width/height may be different due to rotation/crop, which can make the encoder
@@ -197,14 +213,18 @@ export async function exportToContainer(
   while (currentTimeUs < trimDurationUs) {
     if (encoderError !== null) throw encoderError;
 
-    const tickRet =
+    const videoTickRet =
       frameIndex === 0 && firstTick !== null
         ? { video: pendingVideo, audio: pendingAudio, state: pendingState }
         : await exportClip.tick(currentTimeUs);
 
-    const video = tickRet.video;
-    const audioData = tickRet.audio;
-    const state = tickRet.state;
+    // When a separate audioClip is used, fetch audio from it independently.
+    const audioTickRet =
+      audioClip != null ? await exportAudioClip.tick(currentTimeUs) : videoTickRet;
+
+    const video = videoTickRet.video;
+    const audioData = audioTickRet.audio;
+    const state = videoTickRet.state;
 
     if (state === 'done') break;
 
