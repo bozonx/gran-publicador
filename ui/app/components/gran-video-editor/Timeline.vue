@@ -1,23 +1,30 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useVideoEditorStore } from '~/stores/videoEditor'
+
 const { t } = useI18n()
 const toast = useToast()
+const videoEditorStore = useVideoEditorStore()
 
-const isPlaying = ref(false)
-const currentTime = ref(0)
-const duration = ref(0)
+const videoClips = computed(() => videoEditorStore.timelineClips.filter(c => c.track === 'video'))
+const audioClips = computed(() => videoEditorStore.timelineClips.filter(c => c.track === 'audio'))
 
-const clips = ref<{ track: string, name: string }[]>([])
-
-function onDrop(e: DragEvent, track: string) {
+async function onDrop(e: DragEvent, track: 'video' | 'audio') {
   const data = e.dataTransfer?.getData('application/json')
   if (data) {
     try {
       const parsed = JSON.parse(data)
-      if (parsed.name) {
-        clips.value.push({
+      if (parsed.name && parsed.path) {
+        const fileHandle = await videoEditorStore.getFileHandleByPath(parsed.path)
+        
+        videoEditorStore.timelineClips.push({
+          id: Math.random().toString(36).substring(2, 9),
           track,
-          name: parsed.name
+          name: parsed.name,
+          path: parsed.path,
+          fileHandle: fileHandle || undefined
         })
+        
         toast.add({
           title: t('granVideoEditor.timeline.clipAdded', 'Clip Added'),
           description: `${parsed.name} added to track`,
@@ -38,12 +45,12 @@ function formatTime(seconds: number): string {
 }
 
 function togglePlay() {
-  isPlaying.value = !isPlaying.value
+  videoEditorStore.isPlaying = !videoEditorStore.isPlaying
 }
 
 function stop() {
-  isPlaying.value = false
-  currentTime.value = 0
+  videoEditorStore.isPlaying = false
+  videoEditorStore.currentTime = 0
 }
 </script>
 
@@ -63,8 +70,8 @@ function stop() {
         size="xs"
         variant="ghost"
         color="neutral"
-        :icon="isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
-        :aria-label="isPlaying ? t('granVideoEditor.timeline.pause', 'Pause') : t('granVideoEditor.timeline.play', 'Play')"
+        :icon="videoEditorStore.isPlaying ? 'i-heroicons-pause' : 'i-heroicons-play'"
+        :aria-label="videoEditorStore.isPlaying ? t('granVideoEditor.timeline.pause', 'Pause') : t('granVideoEditor.timeline.play', 'Play')"
         @click="togglePlay"
       />
       <UButton
@@ -77,7 +84,7 @@ function stop() {
       />
 
       <span class="text-xs font-mono text-gray-400 ml-2">
-        {{ formatTime(currentTime) }} / {{ formatTime(duration) }}
+        {{ formatTime(videoEditorStore.currentTime / 1e6) }} / {{ formatTime(videoEditorStore.duration / 1e6) }}
       </span>
 
       <div class="ml-auto flex items-center gap-1 text-xs text-gray-500">
@@ -125,14 +132,14 @@ function stop() {
             @drop.prevent="onDrop($event, 'video')"
           >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="!clips.find(c => c.track === 'video')">
+              <span class="text-xs text-gray-700" v-if="videoClips.length === 0">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
             <!-- Render nested clips -->
             <div 
-              v-for="(clip, index) in clips.filter(c => c.track === 'video')" 
-              :key="index"
+              v-for="(clip, index) in videoClips" 
+              :key="clip.id"
               class="absolute inset-y-1 bg-indigo-600 border border-indigo-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-indigo-500"
               :style="{ left: `${2 + index * 100}px`, width: '90px' }"
             >
@@ -146,14 +153,14 @@ function stop() {
             @drop.prevent="onDrop($event, 'audio')"
           >
             <div class="absolute inset-y-1 left-2 right-2 rounded bg-gray-800 border border-dashed border-gray-700 flex items-center justify-center">
-              <span class="text-xs text-gray-700" v-if="!clips.find(c => c.track === 'audio')">
+              <span class="text-xs text-gray-700" v-if="audioClips.length === 0">
                 {{ t('granVideoEditor.timeline.dropClip', 'Drop clip here') }}
               </span>
             </div>
             <!-- Render nested clips -->
             <div 
-              v-for="(clip, index) in clips.filter(c => c.track === 'audio')" 
-              :key="index"
+              v-for="(clip, index) in audioClips" 
+              :key="clip.id"
               class="absolute inset-y-1 bg-teal-600 border border-teal-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-teal-500"
               :style="{ left: `${2 + index * 100}px`, width: '90px' }"
             >
@@ -165,7 +172,7 @@ function stop() {
         <!-- Playhead -->
         <div
           class="absolute top-0 bottom-0 w-px bg-primary-500 pointer-events-none"
-          :style="{ left: `${currentTime * 10}px` }"
+          :style="{ left: `${(videoEditorStore.currentTime / 1e6) * 10}px` }"
         >
           <div class="w-2.5 h-2.5 bg-primary-500 rounded-full -translate-x-1/2 mt-0.5" />
         </div>

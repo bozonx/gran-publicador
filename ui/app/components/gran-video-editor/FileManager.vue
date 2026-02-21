@@ -16,6 +16,7 @@ interface FsEntry {
   parentHandle?: FileSystemDirectoryHandle
   children?: FsEntry[]
   expanded?: boolean
+  path?: string
 }
 
 const activeTab = ref('files')
@@ -49,7 +50,7 @@ const rootContextMenuItems = computed(() => {
   }]]
 })
 
-async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEntry[]> {
+async function readDirectory(dirHandle: FileSystemDirectoryHandle, basePath = ''): Promise<FsEntry[]> {
   const entries: FsEntry[] = []
   try {
     const iterator = (dirHandle as any).values?.() ?? (dirHandle as any).entries?.()
@@ -64,6 +65,7 @@ async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEn
         parentHandle: dirHandle,
         children: undefined,
         expanded: false,
+        path: basePath ? `${basePath}/${handle.name}` : handle.name,
       })
     }
   } catch (e: any) {
@@ -110,7 +112,7 @@ async function toggleDirectory(entry: FsEntry) {
   entry.expanded = !entry.expanded
   if (entry.expanded && entry.children === undefined) {
     try {
-      entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle)
+      entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle, entry.path)
     } catch (e: any) {
       error.value = e?.message ?? 'Failed to read folder'
       entry.expanded = false

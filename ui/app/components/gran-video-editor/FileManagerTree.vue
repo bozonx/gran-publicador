@@ -7,6 +7,7 @@ interface FsEntry {
   handle: FileSystemFileHandle | FileSystemDirectoryHandle
   children?: FsEntry[]
   expanded?: boolean
+  path?: string
 }
 
 interface Props {
@@ -38,7 +39,8 @@ function onDragStart(e: DragEvent, entry: FsEntry) {
   if (e.dataTransfer) {
     e.dataTransfer.setData('application/json', JSON.stringify({
       name: entry.name,
-      kind: 'file'
+      kind: 'file',
+      path: entry.path
     }))
     e.dataTransfer.effectAllowed = 'copy'
   }

@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import {
-  BASE_VIDEO_CODEC_OPTIONS,
-  checkVideoCodecSupport,
-  checkAudioCodecSupport
-} from '~/utils/webcodecs'
+import { ref, computed, onMounted, onBeforeUnmount, markRaw } from 'vue'
+import { useWebAV } from '~/composables/useWebAV'
 import type { OTFile } from 'opfs-tools'
 
 interface Props {
@@ -26,16 +22,13 @@ const showExportModal = ref(false)
 const containerEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
 const isLoading = ref(true)
-const isPlaying = ref(false)
 const hasAudioTrack = ref(false)
+// Composable setup
+const webAV = useWebAV()
+const { supportStatus, isPlaying, currentTimeUs, durationUs, avCanvas } = webAV
 
 const { t } = useI18n()
-const supportStatus = ref<'full' | 'partial' | 'none' | null>(null)
 const showSupportBanner = ref(false)
-
-// Time in microseconds (WebAV uses µs internally)
-const currentTimeUs = ref(0)
-const durationUs = ref(0)
 
 // Trim points in microseconds
 const trimInUs = ref(0)
@@ -56,11 +49,9 @@ function formatTime(sec: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-let avCanvas: any = null
 let videoSprite: any = null
 let mp4Clip: any = null
 let opfsVideoFile: OTFile | null = null
-let unsubscribers: Array<() => void> = []
 
 async function cleanupOpfsVideoFile() {
   const fileToRemove = opfsVideoFile
@@ -80,29 +71,15 @@ async function initEditor() {
   loadError.value = null
 
   try {
-    const [{ AVCanvas }, { MP4Clip, VisibleSprite }, { tmpfile, write }] = await Promise.all([
-      import('@webav/av-canvas'),
+    const [{ MP4Clip, VisibleSprite }, { tmpfile, write }] = await Promise.all([
       import('@webav/av-cliper'),
       import('opfs-tools'),
     ])
 
     // Initial check for WebCodecs and Codec support
-    const [videoSupport, audioSupport] = await Promise.all([
-      checkVideoCodecSupport(BASE_VIDEO_CODEC_OPTIONS),
-      checkAudioCodecSupport([{ value: 'mp4a.40.2', label: 'AAC' }, { value: 'opus', label: 'Opus' }])
-    ])
-
-    const hasH264 = BASE_VIDEO_CODEC_OPTIONS.some(opt => videoSupport[opt.value])
-    const hasAAC = audioSupport['mp4a.40.2']
-    const hasOpus = audioSupport['opus']
-
-    if (!(globalThis as any).VideoEncoder) {
-      supportStatus.value = 'none'
-    } else if (hasH264 && (hasAAC || hasOpus)) {
-      supportStatus.value = 'full'
+    const { supportStatus: status } = await webAV.checkSupport()
+    if (status === 'full') {
       showSupportBanner.value = true
-    } else {
-      supportStatus.value = 'partial'
     }
 
     const response = await fetch(props.src, {
@@ -123,10 +100,11 @@ async function initEditor() {
 
     // Write stream to OPFS tmp file — avoids holding the entire file in RAM.
     // MP4Clip reads samples on-demand from OPFS instead of from an ArrayBuffer.
-    opfsVideoFile = tmpfile()
+    opfsVideoFile = markRaw(tmpfile())
     await write(opfsVideoFile, response.body!)
 
-    mp4Clip = new MP4Clip(opfsVideoFile)
+    const rawClip = new MP4Clip(opfsVideoFile)
+    mp4Clip = markRaw(rawClip)
     await mp4Clip.ready
 
     const { width, height, duration, audioSampleRate } = mp4Clip.meta
@@ -135,38 +113,17 @@ async function initEditor() {
     trimInUs.value = 0
     trimOutUs.value = duration
 
-    avCanvas = new AVCanvas(containerEl.value, {
-      bgColor: '#000',
-      width: width || 1280,
-      height: height || 720,
-    })
+    await webAV.initCanvas(containerEl.value, width || 1280, height || 720, '#000')
 
-    videoSprite = new VisibleSprite(mp4Clip)
+    const rawSprite = new VisibleSprite(mp4Clip)
+    videoSprite = markRaw(rawSprite)
     videoSprite.time.offset = 0
     videoSprite.time.duration = duration
 
-    await avCanvas.addSprite(videoSprite)
+    await avCanvas.value.addSprite(videoSprite)
 
     // Show first frame
-    await avCanvas.previewFrame(0)
-
-    const offTime = avCanvas.on('timeupdate', (time: number) => {
-      currentTimeUs.value = time
-    })
-
-    const offPaused = avCanvas.on('paused', () => {
-      isPlaying.value = false
-      // Sync time when paused at end
-      if (currentTimeUs.value >= trimOutUs.value) {
-        currentTimeUs.value = trimOutUs.value
-      }
-    })
-
-    const offPlaying = avCanvas.on('playing', () => {
-      isPlaying.value = true
-    })
-
-    unsubscribers.push(offTime, offPaused, offPlaying)
+    await avCanvas.value.previewFrame(0)
   } catch (err: any) {
     if (err?.name === 'AbortError') return
     loadError.value = err?.message || 'Failed to load video'
@@ -178,13 +135,13 @@ async function initEditor() {
 }
 
 function play() {
-  if (!avCanvas || durationUs.value === 0) return
+  if (!avCanvas.value || durationUs.value === 0) return
   const start = currentTimeUs.value >= trimOutUs.value ? trimInUs.value : currentTimeUs.value
-  avCanvas.play({ start, end: trimOutUs.value })
+  webAV.play(start, trimOutUs.value)
 }
 
 function pause() {
-  avCanvas?.pause()
+  webAV.pause()
 }
 
 function togglePlayPause() {
@@ -198,7 +155,7 @@ function togglePlayPause() {
 function rewind() {
   pause()
   currentTimeUs.value = trimInUs.value
-  avCanvas?.previewFrame(trimInUs.value)
+  avCanvas.value?.previewFrame(trimInUs.value)
 }
 
 async function onSeek(timeUs: number) {
@@ -206,7 +163,7 @@ async function onSeek(timeUs: number) {
   if (wasPlaying) pause()
 
   currentTimeUs.value = timeUs
-  await avCanvas?.previewFrame(timeUs)
+  await avCanvas.value?.previewFrame(timeUs)
 
   if (wasPlaying) play()
 }
@@ -302,10 +259,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  unsubscribers.forEach((fn) => fn())
-  unsubscribers = []
-  avCanvas?.destroy()
-  avCanvas = null
+  webAV.destroyCanvas()
   mp4Clip = null
   videoSprite = null
   void cleanupOpfsVideoFile()
@@ -336,7 +290,7 @@ onBeforeUnmount(() => {
         :icon="supportStatus === 'none' ? 'i-heroicons-exclamation-circle' : 'i-heroicons-information-circle'"
         :title="t('videoEditor.support.title')"
         :description="t(`videoEditor.support.${supportStatus}`)"
-        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => supportStatus = null }]"
+        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => { supportStatus = null } }]"
       />
     </div>
     <div v-else-if="supportStatus === 'full' && showSupportBanner" class="px-4 py-2 bg-gray-900 border-b border-gray-800">
@@ -346,7 +300,7 @@ onBeforeUnmount(() => {
         icon="i-heroicons-check-circle"
         :title="t('videoEditor.support.title')"
         :description="t('videoEditor.support.full')"
-        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => showSupportBanner = false }]"
+        :actions="[{ label: t('common.close'), variant: 'ghost', color: 'neutral', onClick: () => { showSupportBanner = false } }]"
       />
     </div>
 
