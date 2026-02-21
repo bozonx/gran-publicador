@@ -5,6 +5,7 @@ import {
   checkVideoCodecSupport,
   checkAudioCodecSupport
 } from '~/utils/webcodecs'
+import type { OTFile } from 'opfs-tools'
 
 interface Props {
   src: string
@@ -58,8 +59,20 @@ function formatTime(sec: number): string {
 let avCanvas: any = null
 let videoSprite: any = null
 let mp4Clip: any = null
-let opfsVideoFile: any = null
+let opfsVideoFile: OTFile | null = null
 let unsubscribers: Array<() => void> = []
+
+async function cleanupOpfsVideoFile() {
+  const fileToRemove = opfsVideoFile
+  opfsVideoFile = null
+  if (!fileToRemove) return
+
+  try {
+    await fileToRemove.remove({ force: true })
+  } catch (err) {
+    console.warn('[MediaVideoEditor] Failed to remove OPFS tmp file', err)
+  }
+}
 
 async function initEditor() {
   if (!containerEl.value) return
@@ -104,6 +117,9 @@ async function initEditor() {
     if (contentType.includes('webm') || contentType.includes('ogg')) {
       throw new Error(t('videoEditor.support.formatError', { type: contentType }))
     }
+
+    // Clean up previous tmp file (in case initEditor is re-run)
+    await cleanupOpfsVideoFile()
 
     // Write stream to OPFS tmp file — avoids holding the entire file in RAM.
     // MP4Clip reads samples on-demand from OPFS instead of from an ArrayBuffer.
@@ -155,6 +171,7 @@ async function initEditor() {
     if (err?.name === 'AbortError') return
     loadError.value = err?.message || 'Failed to load video'
     console.error('[MediaVideoEditor] init error:', err)
+    await cleanupOpfsVideoFile()
   } finally {
     isLoading.value = false
   }
@@ -270,7 +287,7 @@ onBeforeUnmount(() => {
   avCanvas = null
   mp4Clip = null
   videoSprite = null
-  opfsVideoFile = null
+  void cleanupOpfsVideoFile()
 })
 </script>
 
