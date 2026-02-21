@@ -31,12 +31,14 @@ interface OtioClip {
   name: string;
   media_reference: OtioExternalReference;
   source_range: OtioTimeRange;
+  metadata?: Record<string, unknown>;
 }
 
 interface OtioGap {
   OTIO_SCHEMA: 'Gap.1';
   name: string;
   source_range: OtioTimeRange;
+  metadata?: Record<string, unknown>;
 }
 
 interface OtioTrack {
@@ -117,46 +119,143 @@ function coerceName(raw: any, fallback: string): string {
   return v;
 }
 
-function parseClipItem(trackId: string, otio: OtioClip, index: number): TimelineClipItem {
+function parseTimelineStartUs(raw: any): number | null {
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return Math.round(value);
+}
+
+function safeGranMetadata(raw: any): any {
+  if (!raw || typeof raw !== 'object') return {};
+  const gran = (raw as any).gran;
+  if (!gran || typeof gran !== 'object') return {};
+  return gran;
+}
+
+function hashString(input: string): string {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash * 31 + input.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(36);
+}
+
+function buildFallbackItemId(input: {
+  prefix: 'clip' | 'gap';
+  trackId: string;
+  fingerprint: string;
+  occupiedIds: Set<string>;
+}): string {
+  const base = `${input.prefix}_${input.trackId}_${hashString(input.fingerprint)}`;
+  if (!input.occupiedIds.has(base)) {
+    input.occupiedIds.add(base);
+    return base;
+  }
+
+  let suffix = 2;
+  while (suffix < 10_000) {
+    const candidate = `${base}_${suffix}`;
+    if (!input.occupiedIds.has(candidate)) {
+      input.occupiedIds.add(candidate);
+      return candidate;
+    }
+    suffix += 1;
+  }
+
+  const emergency = `${base}_${Date.now()}`;
+  input.occupiedIds.add(emergency);
+  return emergency;
+}
+
+function resolveStableItemId(input: {
+  prefix: 'clip' | 'gap';
+  trackId: string;
+  fallbackFingerprint: string;
+  metadata: any;
+  occupiedIds: Set<string>;
+}): string {
+  const metadataId = coerceId(input.metadata?.id, '');
+  if (metadataId && !input.occupiedIds.has(metadataId)) {
+    input.occupiedIds.add(metadataId);
+    return metadataId;
+  }
+
+  return buildFallbackItemId({
+    prefix: input.prefix,
+    trackId: input.trackId,
+    fingerprint: input.fallbackFingerprint,
+    occupiedIds: input.occupiedIds,
+  });
+}
+
+function parseClipItem(input: {
+  trackId: string;
+  otio: OtioClip;
+  index: number;
+  occupiedIds: Set<string>;
+  fallbackStartUs: number;
+}): TimelineClipItem {
+  const { trackId, otio, index, occupiedIds, fallbackStartUs } = input;
   const sourceRange = fromTimeRange(otio.source_range);
   const name = coerceName(otio.name, `clip_${index + 1}`);
-  const path = typeof otio.media_reference?.target_url === 'string' ? otio.media_reference.target_url : '';
+  const path =
+    typeof otio.media_reference?.target_url === 'string' ? otio.media_reference.target_url : '';
+  const granMeta = safeGranMetadata(otio.metadata);
+  const timelineStartUs = parseTimelineStartUs(granMeta?.timelineStartUs) ?? fallbackStartUs;
+  const id = resolveStableItemId({
+    prefix: 'clip',
+    trackId,
+    fallbackFingerprint: JSON.stringify({
+      path,
+      sourceStartUs: sourceRange.startUs,
+      sourceDurationUs: sourceRange.durationUs,
+      timelineStartUs,
+      name,
+    }),
+    metadata: granMeta,
+    occupiedIds,
+  });
 
   return {
     kind: 'clip',
-    id: `clip_${trackId}_${index + 1}`,
+    id,
     trackId,
     name,
     source: { path },
-    timelineRange: { startUs: 0, durationUs: sourceRange.durationUs },
+    timelineRange: { startUs: timelineStartUs, durationUs: sourceRange.durationUs },
     sourceRange,
   };
 }
 
-function parseGapItem(trackId: string, otio: OtioGap, index: number): TimelineGapItem {
+function parseGapItem(input: {
+  trackId: string;
+  otio: OtioGap;
+  index: number;
+  occupiedIds: Set<string>;
+  fallbackStartUs: number;
+}): TimelineGapItem {
+  const { trackId, otio, index, occupiedIds, fallbackStartUs } = input;
   const range = fromTimeRange(otio.source_range);
+  const granMeta = safeGranMetadata(otio.metadata);
+  const timelineStartUs = parseTimelineStartUs(granMeta?.timelineStartUs) ?? fallbackStartUs;
+  const id = resolveStableItemId({
+    prefix: 'gap',
+    trackId,
+    fallbackFingerprint: JSON.stringify({
+      durationUs: range.durationUs,
+      timelineStartUs,
+      index,
+    }),
+    metadata: granMeta,
+    occupiedIds,
+  });
+
   return {
     kind: 'gap',
-    id: `gap_${trackId}_${index + 1}`,
+    id,
     trackId,
-    timelineRange: { startUs: 0, durationUs: range.durationUs },
+    timelineRange: { startUs: timelineStartUs, durationUs: range.durationUs },
   };
-}
-
-function buildTrackItemsWithTimelineStarts(trackId: string, rawItems: TimelineTrackItem[]): TimelineTrackItem[] {
-  let cursorUs = 0;
-  return rawItems.map((it) => {
-    const next = {
-      ...it,
-      timelineRange: {
-        ...it.timelineRange,
-        startUs: cursorUs,
-      },
-    } as TimelineTrackItem;
-
-    cursorUs += Math.max(0, next.timelineRange.durationUs);
-    return next;
-  });
 }
 
 export function createDefaultTimelineDocument(params: {
@@ -177,13 +276,19 @@ export function createDefaultTimelineDocument(params: {
 }
 
 export function serializeTimelineToOtio(doc: TimelineDocument): string {
-  const tracks: OtioTrack[] = doc.tracks.map((t) => {
-    const children: Array<OtioClip | OtioGap> = t.items.map((item) => {
+  const tracks: OtioTrack[] = doc.tracks.map(t => {
+    const children: Array<OtioClip | OtioGap> = t.items.map(item => {
       if (item.kind === 'gap') {
         return {
           OTIO_SCHEMA: 'Gap.1',
           name: 'gap',
           source_range: toTimeRange({ startUs: 0, durationUs: item.timelineRange.durationUs }),
+          metadata: {
+            gran: {
+              id: item.id,
+              timelineStartUs: item.timelineRange.startUs,
+            },
+          },
         };
       }
 
@@ -195,6 +300,12 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
           target_url: item.source.path,
         },
         source_range: toTimeRange(item.sourceRange),
+        metadata: {
+          gran: {
+            id: item.id,
+            timelineStartUs: item.timelineRange.startUs,
+          },
+        },
       };
     });
 
@@ -218,7 +329,7 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
       gran: {
         docId: doc.id,
         timebase: doc.timebase,
-        tracks: doc.tracks.map((t) => ({
+        tracks: doc.tracks.map(t => ({
           id: t.id,
           kind: t.kind,
           name: t.name,
@@ -230,39 +341,80 @@ export function serializeTimelineToOtio(doc: TimelineDocument): string {
   return `${JSON.stringify(payload, null, 2)}\n`;
 }
 
-export function parseTimelineFromOtio(text: string, fallback: { id: string; name: string; fps: number }): TimelineDocument {
+export function parseTimelineFromOtio(
+  text: string,
+  fallback: { id: string; name: string; fps: number },
+): TimelineDocument {
   let parsed: OtioTimeline | null = null;
   try {
     parsed = JSON.parse(text);
   } catch {
-    return createDefaultTimelineDocument({ id: fallback.id, name: fallback.name, fps: fallback.fps });
+    return createDefaultTimelineDocument({
+      id: fallback.id,
+      name: fallback.name,
+      fps: fallback.fps,
+    });
   }
 
   if (!parsed || parsed.OTIO_SCHEMA !== 'Timeline.1') {
-    return createDefaultTimelineDocument({ id: fallback.id, name: fallback.name, fps: fallback.fps });
+    return createDefaultTimelineDocument({
+      id: fallback.id,
+      name: fallback.name,
+      fps: fallback.fps,
+    });
   }
 
   const granMeta = (parsed.metadata as any)?.gran;
   const timebase = assertTimelineTimebase(granMeta?.timebase ?? { fps: fallback.fps });
 
-  const stackChildren = Array.isArray((parsed.tracks as any)?.children) ? (parsed.tracks as any).children : [];
+  const stackChildren = Array.isArray((parsed.tracks as any)?.children)
+    ? (parsed.tracks as any).children
+    : [];
 
   const trackMetas = Array.isArray(granMeta?.tracks) ? granMeta.tracks : [];
 
   const tracks: TimelineTrack[] = stackChildren.map((otioTrack: OtioTrack, trackIndex: number) => {
     const meta = trackMetas[trackIndex] ?? {};
     const id = coerceId(meta?.id, `${otioTrack.kind === 'Audio' ? 'a' : 'v'}${trackIndex + 1}`);
-    const kind = meta?.kind === 'audio' || meta?.kind === 'video' ? meta.kind : trackKindFromOtioKind(otioTrack.kind);
-    const name = coerceName(meta?.name ?? otioTrack.name, kind === 'audio' ? `Audio ${trackIndex + 1}` : `Video ${trackIndex + 1}`);
+    const kind =
+      meta?.kind === 'audio' || meta?.kind === 'video'
+        ? meta.kind
+        : trackKindFromOtioKind(otioTrack.kind);
+    const name = coerceName(
+      meta?.name ?? otioTrack.name,
+      kind === 'audio' ? `Audio ${trackIndex + 1}` : `Video ${trackIndex + 1}`,
+    );
 
     const children = Array.isArray(otioTrack.children) ? otioTrack.children : [];
+    const occupiedIds = new Set<string>();
+    let fallbackCursorUs = 0;
 
     const rawItems: TimelineTrackItem[] = children.map((child: any, itemIndex: number) => {
-      if (child?.OTIO_SCHEMA === 'Gap.1') return parseGapItem(id, child as OtioGap, itemIndex);
-      return parseClipItem(id, child as OtioClip, itemIndex);
+      const item =
+        child?.OTIO_SCHEMA === 'Gap.1'
+          ? parseGapItem({
+              trackId: id,
+              otio: child as OtioGap,
+              index: itemIndex,
+              occupiedIds,
+              fallbackStartUs: fallbackCursorUs,
+            })
+          : parseClipItem({
+              trackId: id,
+              otio: child as OtioClip,
+              index: itemIndex,
+              occupiedIds,
+              fallbackStartUs: fallbackCursorUs,
+            });
+
+      fallbackCursorUs = Math.max(
+        fallbackCursorUs,
+        item.timelineRange.startUs + Math.max(0, item.timelineRange.durationUs),
+      );
+      return item;
     });
 
-    const items = buildTrackItemsWithTimelineStarts(id, rawItems);
+    const items = [...rawItems].sort((a, b) => a.timelineRange.startUs - b.timelineRange.startUs);
 
     return { id, kind, name, items };
   });

@@ -392,8 +392,13 @@ function onFileAction(action: 'createFolder' | 'rename' | 'info' | 'delete', ent
   }
 }
 
-function onEntrySelect(entry: FsEntry) {
+async function onEntrySelect(entry: FsEntry) {
   videoEditorStore.selectedFsEntry = entry
+
+  if (entry.kind !== 'file') return
+  if (!entry.path?.toLowerCase().endsWith('.otio')) return
+
+  await videoEditorStore.openTimelineFile(entry.path)
 }
 
 function triggerFileUpload() {

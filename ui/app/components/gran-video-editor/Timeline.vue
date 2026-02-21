@@ -23,6 +23,7 @@ const draggingMode = ref<'move' | 'trim_start' | 'trim_end' | null>(null)
 const dragAnchorClientX = ref(0)
 const dragAnchorStartUs = ref(0)
 const dragAnchorDurationUs = ref(0)
+const hasPendingTimelinePersist = ref(false)
 
 function timeUsToPx(timeUs: number) {
   return (timeUs / 1e6) * PX_PER_SECOND
@@ -117,7 +118,8 @@ function onGlobalMouseMove(e: MouseEvent) {
   if (mode === 'move') {
     const startUs = Math.max(0, dragAnchorStartUs.value + deltaUs)
     try {
-      videoEditorStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs })
+      videoEditorStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs }, { saveMode: 'none' })
+      hasPendingTimelinePersist.value = true
     } catch {
     }
     return
@@ -127,7 +129,11 @@ function onGlobalMouseMove(e: MouseEvent) {
     const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
     const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
     try {
-      videoEditorStore.applyTimeline({ type: 'trim_item', trackId, itemId, edge: 'start', deltaUs: trimmedDeltaUs })
+      videoEditorStore.applyTimeline(
+        { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs: trimmedDeltaUs },
+        { saveMode: 'none' },
+      )
+      hasPendingTimelinePersist.value = true
     } catch {
     }
     return
@@ -137,13 +143,22 @@ function onGlobalMouseMove(e: MouseEvent) {
     const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
     const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
     try {
-      videoEditorStore.applyTimeline({ type: 'trim_item', trackId, itemId, edge: 'end', deltaUs: trimmedDeltaUs })
+      videoEditorStore.applyTimeline(
+        { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs: trimmedDeltaUs },
+        { saveMode: 'none' },
+      )
+      hasPendingTimelinePersist.value = true
     } catch {
     }
   }
 }
 
 function onGlobalMouseUp() {
+  if (hasPendingTimelinePersist.value) {
+    void videoEditorStore.requestTimelineSave({ immediate: true })
+    hasPendingTimelinePersist.value = false
+  }
+
   isDraggingPlayhead.value = false
   draggingMode.value = null
   draggingItemId.value = null

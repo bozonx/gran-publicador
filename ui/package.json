@@ -50,6 +50,7 @@
     "opfs-tools": "^0.7.4",
     "pinia": "^3.0.4",
     "pixi.js": "^8.16.0",
+    "p-queue": "^9.1.0",
     "reka-ui": "^2.8.2",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",

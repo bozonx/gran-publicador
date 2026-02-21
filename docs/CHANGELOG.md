@@ -26,6 +26,17 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.
+- **Gran Video Editor: OTIO timeline persistence architecture**:
+  - Timeline writes are now serialized via `p-queue` (`concurrency: 1`) to prevent overlapping file writes.
+  - Added debounced timeline persistence and dirty-state tracking (`isTimelineDirty`, `isSavingTimeline`, `timelineSaveError`).
+  - Timeline drag operations (move/trim) now update store state without writing on every mousemove; file save is flushed on mouse release.
+  - Added project-relative timeline path handling so active timeline file can live in nested folders.
+  - File Manager now opens `.otio` files on click by switching active timeline path and loading timeline document.
+
+### Fixed
+- **Gran Video Editor: OTIO roundtrip metadata fidelity**:
+  - Clip/gap stable IDs are now persisted in OTIO metadata (`metadata.gran.id`) and restored on parse.
+  - Explicit timeline position (`timelineRange.startUs`) is now persisted per item (`metadata.gran.timelineStartUs`) and restored from OTIO instead of implicit sequential reconstruction.
 
 ### Added
 - **Telegram post option: caption above media**: added support for Telegram Bot API option `show_caption_above_media` (sent via `options` object to the social-media microservice).

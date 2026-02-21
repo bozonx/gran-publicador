@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { useLocalStorage } from '@vueuse/core';
+import PQueue from 'p-queue';
 
 import type { TimelineDocument } from '~/timeline/types';
 import type { TimelineCommand } from '~/timeline/commands';
@@ -202,6 +203,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const workspaceHandle = ref<FileSystemDirectoryHandle | null>(null);
   const projectsHandle = ref<FileSystemDirectoryHandle | null>(null);
   const currentProjectName = ref<string | null>(null);
+  const currentTimelinePath = ref<string | null>(null);
   const currentFileName = ref<string | null>(null);
   const lastProjectName = useLocalStorage<string | null>('gran-editor-last-project', null);
   const userSettings = useLocalStorage<VideoEditorUserSettings>('gran-video-editor:user-settings', {
@@ -220,6 +222,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const duration = ref(0);
 
   const timelineDoc = ref<TimelineDocument | null>(null);
+  const isTimelineDirty = ref(false);
+  const isSavingTimeline = ref(false);
+  const timelineSaveError = ref<string | null>(null);
 
   const projectSettings = ref<VideoEditorProjectSettings>(createDefaultProjectSettings());
   const isLoadingProjectSettings = ref(false);
@@ -237,6 +242,10 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
   const fileTreeExpandedPaths = ref<Record<string, true>>({});
   let restoredFileTreeProjectName: string | null = null;
   let persistFileTreeTimeout: number | null = null;
+  let persistTimelineTimeout: number | null = null;
+  let timelineRevision = 0;
+  let savedTimelineRevision = 0;
+  const timelineSaveQueue = new PQueue({ concurrency: 1 });
 
   const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
@@ -320,34 +329,132 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     };
   }
 
-  async function getFileHandleByPath(path: string): Promise<FileSystemFileHandle | null> {
+  function toProjectRelativePath(path: string): string {
+    return path
+      .split('/')
+      .map(part => part.trim())
+      .filter(Boolean)
+      .join('/');
+  }
+
+  function clearPersistTimelineTimeout() {
+    if (typeof window === 'undefined') return;
+    if (persistTimelineTimeout === null) return;
+    window.clearTimeout(persistTimelineTimeout);
+    persistTimelineTimeout = null;
+  }
+
+  function markTimelineAsCleanForCurrentRevision() {
+    savedTimelineRevision = timelineRevision;
+    isTimelineDirty.value = false;
+  }
+
+  function markTimelineAsDirty() {
+    timelineRevision += 1;
+    isTimelineDirty.value = true;
+  }
+
+  async function getProjectFileHandleByRelativePath(input: {
+    relativePath: string;
+    create?: boolean;
+  }): Promise<FileSystemFileHandle | null> {
     if (!projectsHandle.value || !currentProjectName.value) return null;
+    const normalizedPath = toProjectRelativePath(input.relativePath);
+    if (!normalizedPath) return null;
+
+    const parts = normalizedPath.split('/');
+    const fileName = parts.pop();
+    if (!fileName) return null;
+
     try {
       const projectDir = await projectsHandle.value.getDirectoryHandle(currentProjectName.value);
-      const parts = path.split('/');
       let currentDir = projectDir;
-      for (let i = 0; i < parts.length - 1; i++) {
-        currentDir = await currentDir.getDirectoryHandle(parts[i]!);
+      for (const dirName of parts) {
+        currentDir = await currentDir.getDirectoryHandle(dirName, {
+          create: input.create ?? false,
+        });
       }
-      return await currentDir.getFileHandle(parts[parts.length - 1]!);
+
+      return await currentDir.getFileHandle(fileName, {
+        create: input.create ?? false,
+      });
     } catch (e) {
-      console.error('Failed to get file handle for path:', path, e);
+      console.error('Failed to get project file handle by path:', input.relativePath, e);
       return null;
     }
+  }
+
+  async function getFileHandleByPath(path: string): Promise<FileSystemFileHandle | null> {
+    return await getProjectFileHandleByRelativePath({ relativePath: path, create: false });
   }
 
   async function ensureTimelineFileHandle(options?: {
     create?: boolean;
   }): Promise<FileSystemFileHandle | null> {
-    if (!projectsHandle.value || !currentProjectName.value || !currentFileName.value) return null;
-    const projectDir = await projectsHandle.value.getDirectoryHandle(currentProjectName.value);
-    return await projectDir.getFileHandle(currentFileName.value, {
+    if (!currentTimelinePath.value) return null;
+    return await getProjectFileHandleByRelativePath({
+      relativePath: currentTimelinePath.value,
       create: options?.create ?? false,
     });
   }
 
+  async function persistTimelineNow() {
+    if (!timelineDoc.value || !isTimelineDirty.value) return;
+
+    isSavingTimeline.value = true;
+    timelineSaveError.value = null;
+    const snapshot = timelineDoc.value;
+    const revisionToSave = timelineRevision;
+
+    try {
+      const handle = await ensureTimelineFileHandle({ create: true });
+      if (!handle) return;
+
+      const writable = await (handle as any).createWritable();
+      await writable.write(serializeTimelineToOtio(snapshot));
+      await writable.close();
+
+      if (savedTimelineRevision < revisionToSave) {
+        savedTimelineRevision = revisionToSave;
+      }
+    } catch (e: any) {
+      timelineSaveError.value = e?.message ?? 'Failed to save timeline file';
+      console.warn('Failed to save timeline file', e);
+    } finally {
+      isSavingTimeline.value = false;
+      isTimelineDirty.value = savedTimelineRevision < timelineRevision;
+    }
+  }
+
+  async function enqueueTimelineSave() {
+    await timelineSaveQueue.add(async () => {
+      await persistTimelineNow();
+    });
+  }
+
+  async function requestTimelineSave(options?: { immediate?: boolean }) {
+    if (!timelineDoc.value) return;
+
+    if (options?.immediate) {
+      clearPersistTimelineTimeout();
+      await enqueueTimelineSave();
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      await enqueueTimelineSave();
+      return;
+    }
+
+    clearPersistTimelineTimeout();
+    persistTimelineTimeout = window.setTimeout(() => {
+      persistTimelineTimeout = null;
+      void enqueueTimelineSave();
+    }, 500);
+  }
+
   async function loadTimeline() {
-    if (!currentProjectName.value || !currentFileName.value) return;
+    if (!currentProjectName.value || !currentTimelinePath.value) return;
     const fallback = {
       id: createTimelineDocId(currentProjectName.value),
       name: currentProjectName.value,
@@ -369,20 +476,14 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       timelineDoc.value = createDefaultTimelineDocument(fallback);
     } finally {
       duration.value = timelineDoc.value ? selectTimelineDurationUs(timelineDoc.value) : 0;
+      timelineRevision = 0;
+      markTimelineAsCleanForCurrentRevision();
+      timelineSaveError.value = null;
     }
   }
 
   async function saveTimeline() {
-    if (!timelineDoc.value) return;
-    try {
-      const handle = await ensureTimelineFileHandle({ create: true });
-      if (!handle) return;
-      const writable = await (handle as any).createWritable();
-      await writable.write(serializeTimelineToOtio(timelineDoc.value));
-      await writable.close();
-    } catch (e) {
-      console.warn('Failed to save timeline file', e);
-    }
+    await requestTimelineSave({ immediate: true });
   }
 
   async function computeMediaDurationUs(
@@ -442,7 +543,10 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     });
   }
 
-  function applyTimeline(cmd: TimelineCommand) {
+  function applyTimeline(
+    cmd: TimelineCommand,
+    options?: { saveMode?: 'debounced' | 'immediate' | 'none' },
+  ) {
     if (!timelineDoc.value) {
       if (!currentProjectName.value) return;
       timelineDoc.value = createDefaultTimelineDocument({
@@ -453,10 +557,20 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     }
 
     try {
+      const prev = timelineDoc.value;
       const { next } = applyTimelineCommand(timelineDoc.value, cmd);
+      if (next === prev) return;
+
       timelineDoc.value = next;
       duration.value = selectTimelineDurationUs(next);
-      void saveTimeline();
+      markTimelineAsDirty();
+
+      const saveMode = options?.saveMode ?? 'debounced';
+      if (saveMode === 'immediate') {
+        void requestTimelineSave({ immediate: true });
+      } else if (saveMode === 'debounced') {
+        void requestTimelineSave();
+      }
     } catch (e: any) {
       error.value = e?.message ?? 'Failed to apply timeline command';
       throw e;
@@ -792,12 +906,14 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       await writable.close();
 
       currentProjectName.value = name;
+      currentTimelinePath.value = otioFileName;
       currentFileName.value = otioFileName;
       timelineDoc.value = createDefaultTimelineDocument({
         id: createTimelineDocId(name),
         name,
         fps: workspaceSettings.value.defaults.newProject.fps,
       });
+      markTimelineAsDirty();
       await saveTimeline();
 
       await loadProjects();
@@ -815,8 +931,13 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
       return;
     }
 
+    if (currentProjectName.value && isTimelineDirty.value) {
+      await saveTimeline();
+    }
+
     restoreFileTreeStateOnce(name);
     currentProjectName.value = name;
+    currentTimelinePath.value = `${name}_001.otio`;
     currentFileName.value = `${name}_001.otio`;
     lastProjectName.value = name;
     await loadProjectSettings();
@@ -825,10 +946,32 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     await loadTimeline();
   }
 
+  async function openTimelineFile(path: string) {
+    if (!currentProjectName.value) {
+      error.value = 'Project is not opened';
+      return;
+    }
+
+    if (isTimelineDirty.value) {
+      await saveTimeline();
+    }
+
+    const normalizedPath = toProjectRelativePath(path);
+    if (!normalizedPath.toLowerCase().endsWith('.otio')) return;
+
+    currentTimelinePath.value = normalizedPath;
+    currentFileName.value = normalizedPath.split('/').pop() ?? normalizedPath;
+    await loadTimeline();
+  }
+
   function resetWorkspace() {
+    clearPersistTimelineTimeout();
+    timelineSaveQueue.clear();
+
     workspaceHandle.value = null;
     projectsHandle.value = null;
     currentProjectName.value = null;
+    currentTimelinePath.value = null;
     currentFileName.value = null;
     selectedFsEntry.value = null;
     projects.value = [];
@@ -837,6 +980,11 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     currentTime.value = 0;
     duration.value = 0;
     timelineDoc.value = null;
+    isTimelineDirty.value = false;
+    isSavingTimeline.value = false;
+    timelineSaveError.value = null;
+    timelineRevision = 0;
+    savedTimelineRevision = 0;
     projectSettings.value = createDefaultProjectSettings();
     isLoadingProjectSettings.value = false;
     isPersistingProjectSettings = false;
@@ -880,6 +1028,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     workspaceHandle,
     projectsHandle,
     currentProjectName,
+    currentTimelinePath,
     currentFileName,
     lastProjectName,
     projects,
@@ -888,6 +1037,9 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     selectedFsEntry,
     isApiSupported,
     timelineDoc,
+    isTimelineDirty,
+    isSavingTimeline,
+    timelineSaveError,
     isPlaying,
     currentTime,
     duration,
@@ -904,6 +1056,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     getFileHandleByPath,
     loadTimeline,
     saveTimeline,
+    requestTimelineSave,
     applyTimeline,
     addClipToTimelineFromPath,
     init,
@@ -911,6 +1064,7 @@ export const useVideoEditorStore = defineStore('videoEditor', () => {
     createProject,
     loadProjects,
     openProject,
+    openTimelineFile,
     resetWorkspace,
   };
 });
