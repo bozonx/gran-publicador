@@ -200,7 +200,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
     let maxDurationUs = 0
     let hasAnyAudio = false
 
-    const spriteDefs: Array<{ mp4Clip: any; duration: number }> = []
+    const clipDefs: Array<{ opfsFile: any; duration: number }> = []
 
     for (const clip of clips) {
       if (clip.track !== 'video' || !clip.fileHandle) continue
@@ -215,40 +215,50 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       if (mp4Clip.meta?.duration > maxDurationUs) maxDurationUs = mp4Clip.meta.duration
       if (mp4Clip.meta?.audioSampleRate) hasAnyAudio = true
 
-      spriteDefs.push({ mp4Clip, duration: mp4Clip.meta.duration })
+      clipDefs.push({ opfsFile, duration: mp4Clip.meta.duration })
     }
 
     if (maxDurationUs <= 0) throw new Error('No video clips to export')
 
     const useAudio = options.audio && hasAnyAudio
 
-    const combinator = new Combinator({
-      width: 1280,
-      height: 720,
-      bgColor: '#000',
-      videoCodec: options.videoCodec,
-      bitrate: options.bitrate,
-      audio: useAudio ? { codec: options.audioCodec || 'aac', bitrate: options.audioBitrate } : false,
-    } as any)
-
-    for (const { mp4Clip, duration } of spriteDefs) {
-      const sprite = new OffscreenSprite(mp4Clip)
-      sprite.time.offset = 0
-      sprite.time.duration = duration
-      await combinator.addSprite(sprite)
+    // Helper: build a Combinator from fresh MP4Clip instances (each clip can only be used once)
+    async function buildCombinator(withAudio: boolean) {
+      const comb = new Combinator({
+        width: 1280,
+        height: 720,
+        bgColor: '#000',
+        videoCodec: options.videoCodec,
+        bitrate: options.bitrate,
+        audio: withAudio ? { codec: options.audioCodec || 'aac', bitrate: options.audioBitrate } : false,
+      } as any)
+      for (const { opfsFile, duration } of clipDefs) {
+        const clip = new MP4Clip(opfsFile)
+        await clip.ready
+        const sprite = new OffscreenSprite(clip)
+        sprite.time.offset = 0
+        sprite.time.duration = duration
+        await comb.addSprite(sprite)
+      }
+      return comb
     }
 
-    const mp4Stream = combinator.output({ maxTime: maxDurationUs })
-
     if (options.format === 'mp4') {
+      const combinator = await buildCombinator(useAudio)
+      const mp4Stream = combinator.output({ maxTime: maxDurationUs })
       // Cleanup is deferred to the caller — OPFS files must stay alive until stream is consumed
       return { stream: mp4Stream as unknown as ReadableStream<Uint8Array>, cleanup }
     }
 
-    // For WebM/MKV: fully buffer the MP4 stream into OPFS first, then re-encode
+    // For WebM/MKV: the intermediate MP4 must be video-only.
+    // Combinator with audio produces AAC that MP4Clip cannot re-decode via WebCodecs,
+    // causing "AudioDecoder err: Decoding error".
+    const videoOnlyCombinator = await buildCombinator(false)
+    const videoOnlyStream = videoOnlyCombinator.output({ maxTime: maxDurationUs })
+
     const opfsMp4 = tmpfile()
     tmpFiles.push(opfsMp4)
-    await write(opfsMp4, mp4Stream as any)
+    await write(opfsMp4, videoOnlyStream as any)
 
     const exportClip = new MP4Clip(opfsMp4)
     await exportClip.ready
@@ -261,7 +271,7 @@ async function exportTimelineToStream(options: ExportOptions): Promise<ExportStr
       trimOutUs: Math.max(1, Number(exportClip?.meta?.duration) || maxDurationUs),
       bitrate: options.bitrate,
       audioBitrate: options.audioBitrate,
-      audio: options.audio,
+      audio: false,
     })
 
     // For WebM/MKV exportToContainer returns a fully-buffered stream, cleanup is safe immediately
