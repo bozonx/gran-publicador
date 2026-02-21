@@ -17,14 +17,22 @@ const isApiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in
 
 async function readDirectory(dirHandle: FileSystemDirectoryHandle): Promise<FsEntry[]> {
   const entries: FsEntry[] = []
-  for await (const [, handle] of dirHandle as any) {
-    entries.push({
-      name: handle.name,
-      kind: handle.kind,
-      handle,
-      children: undefined,
-      expanded: false,
-    })
+  try {
+    const iterator = (dirHandle as any).values?.() ?? (dirHandle as any).entries?.()
+    if (!iterator) return entries
+
+    for await (const value of iterator) {
+      const handle = Array.isArray(value) ? value[1] : value
+      entries.push({
+        name: handle.name,
+        kind: handle.kind,
+        handle,
+        children: undefined,
+        expanded: false,
+      })
+    }
+  } catch (e: any) {
+    throw new Error(e?.message ?? 'Failed to read directory')
   }
   return entries.sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === 'directory' ? -1 : 1
@@ -50,9 +58,15 @@ async function openFolder() {
 
 async function toggleDirectory(entry: FsEntry) {
   if (entry.kind !== 'directory') return
+  error.value = null
   entry.expanded = !entry.expanded
   if (entry.expanded && entry.children === undefined) {
-    entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle)
+    try {
+      entry.children = await readDirectory(entry.handle as FileSystemDirectoryHandle)
+    } catch (e: any) {
+      error.value = e?.message ?? 'Failed to read folder'
+      entry.expanded = false
+    }
   }
 }
 

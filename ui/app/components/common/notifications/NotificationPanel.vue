@@ -6,6 +6,8 @@ const { t } = useI18n();
 
 const emit = defineEmits(['close']);
 
+const recentNotifications = computed(() => notificationsStore.items.slice(0, 5));
+
 async function markAllAsRead() {
   await notificationsStore.markAllAsRead();
 }
@@ -17,7 +19,7 @@ function handleNotificationClick() {
 </script>
 
 <template>
-  <div class="flex flex-col w-80 sm:w-96 max-h-[32rem] overflow-hidden bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-800">
+  <div class="flex flex-col w-80 sm:w-96 bg-white dark:bg-gray-900 shadow-xl rounded-lg border dark:border-gray-800">
     <!-- Header -->
     <div class="p-4 border-b dark:border-gray-800 flex items-center justify-between">
       <h3 class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-widest">
@@ -35,10 +37,10 @@ function handleNotificationClick() {
     </div>
 
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto min-h-0">
-      <div v-if="notificationsStore.items.length > 0">
+    <div class="flex-1 min-h-0">
+      <div v-if="recentNotifications.length > 0">
         <CommonNotificationsNotificationItem
-          v-for="item in notificationsStore.items"
+          v-for="item in recentNotifications"
           :key="item.id"
           :notification="item"
           @click="handleNotificationClick"
