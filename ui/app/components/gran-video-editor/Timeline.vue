@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useVideoEditorStore } from '~/stores/videoEditor'
 import type { TimelineTrack } from '~/timeline/types'
 
@@ -15,9 +15,148 @@ const audioItems = computed(() => audioTrack.value?.items ?? [])
 
 const PX_PER_SECOND = 10
 
+const scrollEl = ref<HTMLElement | null>(null)
+const isDraggingPlayhead = ref(false)
+const draggingItemId = ref<string | null>(null)
+const draggingTrackId = ref<string | null>(null)
+const draggingMode = ref<'move' | 'trim_start' | 'trim_end' | null>(null)
+const dragAnchorClientX = ref(0)
+const dragAnchorStartUs = ref(0)
+const dragAnchorDurationUs = ref(0)
+
 function timeUsToPx(timeUs: number) {
   return (timeUs / 1e6) * PX_PER_SECOND
 }
+
+function pxToTimeUs(px: number) {
+  return Math.max(0, Math.round((px / PX_PER_SECOND) * 1e6))
+}
+
+function pxToDeltaUs(px: number) {
+  return Math.round((px / PX_PER_SECOND) * 1e6)
+}
+
+function getLocalX(e: MouseEvent): number {
+  const target = e.currentTarget as HTMLElement | null
+  const rect = target?.getBoundingClientRect()
+  const scrollX = scrollEl.value?.scrollLeft ?? 0
+  if (!rect) return 0
+  return e.clientX - rect.left + scrollX
+}
+
+function seekByMouseEvent(e: MouseEvent) {
+  const x = getLocalX(e)
+  videoEditorStore.currentTime = pxToTimeUs(x)
+}
+
+function onTimeRulerMouseDown(e: MouseEvent) {
+  if (e.button !== 0) return
+  seekByMouseEvent(e)
+  startPlayheadDrag(e)
+}
+
+function startPlayheadDrag(e: MouseEvent) {
+  if (e.button !== 0) return
+  isDraggingPlayhead.value = true
+  window.addEventListener('mousemove', onGlobalMouseMove)
+  window.addEventListener('mouseup', onGlobalMouseUp)
+}
+
+function startMoveItem(e: MouseEvent, trackId: string, itemId: string, startUs: number) {
+  if (e.button !== 0) return
+  e.preventDefault()
+  e.stopPropagation()
+
+  draggingMode.value = 'move'
+  draggingTrackId.value = trackId
+  draggingItemId.value = itemId
+  dragAnchorClientX.value = e.clientX
+  dragAnchorStartUs.value = startUs
+
+  window.addEventListener('mousemove', onGlobalMouseMove)
+  window.addEventListener('mouseup', onGlobalMouseUp)
+}
+
+function startTrimItem(
+  e: MouseEvent,
+  input: { trackId: string; itemId: string; edge: 'start' | 'end'; startUs: number; durationUs: number },
+) {
+  if (e.button !== 0) return
+  e.preventDefault()
+  e.stopPropagation()
+
+  draggingMode.value = input.edge === 'start' ? 'trim_start' : 'trim_end'
+  draggingTrackId.value = input.trackId
+  draggingItemId.value = input.itemId
+  dragAnchorClientX.value = e.clientX
+  dragAnchorStartUs.value = input.startUs
+  dragAnchorDurationUs.value = input.durationUs
+
+  window.addEventListener('mousemove', onGlobalMouseMove)
+  window.addEventListener('mouseup', onGlobalMouseUp)
+}
+
+function onGlobalMouseMove(e: MouseEvent) {
+  if (isDraggingPlayhead.value) {
+    const scrollerRect = scrollEl.value?.getBoundingClientRect()
+    if (!scrollerRect) return
+    const scrollX = scrollEl.value?.scrollLeft ?? 0
+    const x = e.clientX - scrollerRect.left + scrollX
+    videoEditorStore.currentTime = pxToTimeUs(x)
+    return
+  }
+
+  const mode = draggingMode.value
+  const trackId = draggingTrackId.value
+  const itemId = draggingItemId.value
+  if (!mode || !trackId || !itemId) return
+
+  const dxPx = e.clientX - dragAnchorClientX.value
+  const deltaUs = pxToDeltaUs(dxPx)
+
+  if (mode === 'move') {
+    const startUs = Math.max(0, dragAnchorStartUs.value + deltaUs)
+    try {
+      videoEditorStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs })
+    } catch {
+    }
+    return
+  }
+
+  if (mode === 'trim_start') {
+    const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
+    const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
+    try {
+      videoEditorStore.applyTimeline({ type: 'trim_item', trackId, itemId, edge: 'start', deltaUs: trimmedDeltaUs })
+    } catch {
+    }
+    return
+  }
+
+  if (mode === 'trim_end') {
+    const maxDeltaUs = Math.max(0, dragAnchorDurationUs.value)
+    const trimmedDeltaUs = Math.min(maxDeltaUs, Math.max(0, deltaUs))
+    try {
+      videoEditorStore.applyTimeline({ type: 'trim_item', trackId, itemId, edge: 'end', deltaUs: trimmedDeltaUs })
+    } catch {
+    }
+  }
+}
+
+function onGlobalMouseUp() {
+  isDraggingPlayhead.value = false
+  draggingMode.value = null
+  draggingItemId.value = null
+  draggingTrackId.value = null
+
+  window.removeEventListener('mousemove', onGlobalMouseMove)
+  window.removeEventListener('mouseup', onGlobalMouseUp)
+}
+
+onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onGlobalMouseMove)
+  window.removeEventListener('mouseup', onGlobalMouseUp)
+})
 
 async function onDrop(e: DragEvent, track: 'video' | 'audio') {
   const data = e.dataTransfer?.getData('application/json')
@@ -123,9 +262,12 @@ function stop() {
       </div>
 
       <!-- Scrollable track area -->
-      <div class="flex-1 overflow-x-auto overflow-y-hidden relative">
+      <div ref="scrollEl" class="flex-1 overflow-x-auto overflow-y-hidden relative">
         <!-- Time ruler -->
-        <div class="h-6 border-b border-gray-700 bg-gray-850 sticky top-0 flex items-end px-2 gap-16 text-xxs text-gray-600 font-mono select-none">
+        <div
+          class="h-6 border-b border-gray-700 bg-gray-850 sticky top-0 flex items-end px-2 gap-16 text-xxs text-gray-600 font-mono select-none cursor-pointer"
+          @mousedown="onTimeRulerMouseDown"
+        >
           <span v-for="n in 10" :key="n">{{ formatTime((n - 1) * 10) }}</span>
         </div>
 
@@ -148,8 +290,19 @@ function stop() {
               :key="item.id"
               class="absolute inset-y-1 bg-indigo-600 border border-indigo-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-indigo-500"
               :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
+              @mousedown="startMoveItem($event, item.trackId, item.id, item.timelineRange.startUs)"
             >
+              <div
+                v-if="item.kind === 'clip'"
+                class="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'start', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+              />
               <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
+              <div
+                v-if="item.kind === 'clip'"
+                class="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'end', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+              />
             </div>
           </div>
           <!-- Audio track -->
@@ -169,16 +322,28 @@ function stop() {
               :key="item.id"
               class="absolute inset-y-1 bg-teal-600 border border-teal-400 rounded px-2 flex items-center text-xs text-white z-10 cursor-pointer hover:bg-teal-500"
               :style="{ left: `${2 + timeUsToPx(item.timelineRange.startUs)}px`, width: `${Math.max(30, timeUsToPx(item.timelineRange.durationUs))}px` }"
+              @mousedown="startMoveItem($event, item.trackId, item.id, item.timelineRange.startUs)"
             >
+              <div
+                v-if="item.kind === 'clip'"
+                class="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'start', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+              />
               <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
+              <div
+                v-if="item.kind === 'clip'"
+                class="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'end', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+              />
             </div>
           </div>
         </div>
 
         <!-- Playhead -->
         <div
-          class="absolute top-0 bottom-0 w-px bg-primary-500 pointer-events-none"
+          class="absolute top-0 bottom-0 w-px bg-primary-500 cursor-ew-resize"
           :style="{ left: `${timeUsToPx(videoEditorStore.currentTime)}px` }"
+          @mousedown="startPlayheadDrag"
         >
           <div class="w-2.5 h-2.5 bg-primary-500 rounded-full -translate-x-1/2 mt-0.5" />
         </div>

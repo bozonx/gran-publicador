@@ -31,13 +31,30 @@ export interface MoveItemCommand {
   startUs: number;
 }
 
-export type TimelineCommand = AddClipToTrackCommand | RemoveItemCommand | MoveItemCommand;
+export interface TrimItemCommand {
+  type: 'trim_item';
+  trackId: string;
+  itemId: string;
+  edge: 'start' | 'end';
+  deltaUs: number;
+}
+
+export type TimelineCommand =
+  | AddClipToTrackCommand
+  | RemoveItemCommand
+  | MoveItemCommand
+  | TrimItemCommand;
 
 function rangesOverlap(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
   return aStart < bEnd && bStart < aEnd;
 }
 
-function assertNoOverlap(track: TimelineTrack, movedItemId: string, startUs: number, durationUs: number) {
+function assertNoOverlap(
+  track: TimelineTrack,
+  movedItemId: string,
+  startUs: number,
+  durationUs: number,
+) {
   const endUs = startUs + durationUs;
   for (const it of track.items) {
     if (it.id === movedItemId) continue;
@@ -50,13 +67,13 @@ function assertNoOverlap(track: TimelineTrack, movedItemId: string, startUs: num
 }
 
 function getTrackByKind(doc: TimelineDocument, kind: TrackKind): TimelineTrack {
-  const t = doc.tracks.find((x) => x.kind === kind);
+  const t = doc.tracks.find(x => x.kind === kind);
   if (!t) throw new Error('Track not found');
   return t;
 }
 
 function getTrackById(doc: TimelineDocument, trackId: string): TimelineTrack {
-  const t = doc.tracks.find((x) => x.id === trackId);
+  const t = doc.tracks.find(x => x.id === trackId);
   if (!t) throw new Error('Track not found');
   return t;
 }
@@ -73,7 +90,10 @@ function computeTrackEndUs(track: TimelineTrack): number {
   return end;
 }
 
-export function applyTimelineCommand(doc: TimelineDocument, cmd: TimelineCommand): TimelineCommandResult {
+export function applyTimelineCommand(
+  doc: TimelineDocument,
+  cmd: TimelineCommand,
+): TimelineCommandResult {
   if (cmd.type === 'add_clip_to_track') {
     const track = getTrackByKind(doc, cmd.trackKind);
     const durationUs = Math.max(0, Math.round(Number(cmd.durationUs ?? 0)));
@@ -91,7 +111,9 @@ export function applyTimelineCommand(doc: TimelineDocument, cmd: TimelineCommand
       sourceRange: { startUs: 0, durationUs },
     };
 
-    const nextTracks = doc.tracks.map((t) => (t.id === track.id ? { ...t, items: [...t.items, clip] } : t));
+    const nextTracks = doc.tracks.map(t =>
+      t.id === track.id ? { ...t, items: [...t.items, clip] } : t,
+    );
 
     return {
       next: {
@@ -103,16 +125,16 @@ export function applyTimelineCommand(doc: TimelineDocument, cmd: TimelineCommand
 
   if (cmd.type === 'remove_item') {
     const track = getTrackById(doc, cmd.trackId);
-    const nextItems = track.items.filter((x) => x.id !== cmd.itemId);
+    const nextItems = track.items.filter(x => x.id !== cmd.itemId);
     if (nextItems.length === track.items.length) return { next: doc };
 
-    const nextTracks = doc.tracks.map((t) => (t.id === track.id ? { ...t, items: nextItems } : t));
+    const nextTracks = doc.tracks.map(t => (t.id === track.id ? { ...t, items: nextItems } : t));
     return { next: { ...doc, tracks: nextTracks } };
   }
 
   if (cmd.type === 'move_item') {
     const track = getTrackById(doc, cmd.trackId);
-    const item = track.items.find((x) => x.id === cmd.itemId);
+    const item = track.items.find(x => x.id === cmd.itemId);
     if (!item) return { next: doc };
 
     const startUs = Math.max(0, Math.round(cmd.startUs));
@@ -120,7 +142,7 @@ export function applyTimelineCommand(doc: TimelineDocument, cmd: TimelineCommand
 
     assertNoOverlap(track, item.id, startUs, durationUs);
 
-    const nextItems: TimelineTrackItem[] = track.items.map((x) =>
+    const nextItems: TimelineTrackItem[] = track.items.map(x =>
       x.id === item.id
         ? {
             ...x,
@@ -131,7 +153,43 @@ export function applyTimelineCommand(doc: TimelineDocument, cmd: TimelineCommand
 
     nextItems.sort((a, b) => a.timelineRange.startUs - b.timelineRange.startUs);
 
-    const nextTracks = doc.tracks.map((t) => (t.id === track.id ? { ...t, items: nextItems } : t));
+    const nextTracks = doc.tracks.map(t => (t.id === track.id ? { ...t, items: nextItems } : t));
+    return { next: { ...doc, tracks: nextTracks } };
+  }
+
+  if (cmd.type === 'trim_item') {
+    const track = getTrackById(doc, cmd.trackId);
+    const item = track.items.find(x => x.id === cmd.itemId);
+    if (!item) return { next: doc };
+    if (item.kind !== 'clip') return { next: doc };
+
+    const deltaUs = Math.max(0, Math.round(cmd.deltaUs));
+    const prevStartUs = Math.max(0, item.timelineRange.startUs);
+    const prevDurationUs = Math.max(0, item.timelineRange.durationUs);
+
+    const nextDurationUs = Math.max(0, prevDurationUs - deltaUs);
+    const nextStartUs =
+      cmd.edge === 'start' ? prevStartUs + (prevDurationUs - nextDurationUs) : prevStartUs;
+
+    const nextSourceStartUs =
+      cmd.edge === 'start'
+        ? Math.max(0, item.sourceRange.startUs + (prevDurationUs - nextDurationUs))
+        : item.sourceRange.startUs;
+
+    assertNoOverlap(track, item.id, nextStartUs, nextDurationUs);
+
+    const nextItems: TimelineTrackItem[] = track.items.map(x =>
+      x.id === item.id
+        ? {
+            ...x,
+            timelineRange: { startUs: nextStartUs, durationUs: nextDurationUs },
+            sourceRange: { startUs: nextSourceStartUs, durationUs: nextDurationUs },
+          }
+        : x,
+    );
+
+    nextItems.sort((a, b) => a.timelineRange.startUs - b.timelineRange.startUs);
+    const nextTracks = doc.tracks.map(t => (t.id === track.id ? { ...t, items: nextItems } : t));
     return { next: { ...doc, tracks: nextTracks } };
   }
 
