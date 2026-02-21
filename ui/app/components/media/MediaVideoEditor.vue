@@ -233,14 +233,34 @@ function resetTrim() {
 }
 
 interface ExportOptions {
+  format: 'mp4' | 'webm'
   videoCodec: string
   bitrate: number
+  audioBitrate: number
   audio: boolean
   audioCodec?: string
 }
 
 async function exportTrimmed(options: ExportOptions): Promise<ReadableStream<Uint8Array>> {
   if (!opfsVideoFile) throw new Error('No video loaded')
+
+  if (options.format === 'webm') {
+    const [{ MP4Clip }, { exportToWebM }] = await Promise.all([
+      import('@webav/av-cliper'),
+      import('~/utils/video-webm-export'),
+    ])
+
+    const exportClip = new MP4Clip(opfsVideoFile)
+    await exportClip.ready
+
+    return exportToWebM(exportClip, {
+      trimInUs: trimInUs.value,
+      trimOutUs: trimOutUs.value,
+      bitrate: options.bitrate,
+      audioBitrate: options.audioBitrate,
+      audio: options.audio,
+    })
+  }
 
   const { MP4Clip, OffscreenSprite, Combinator } = await import('@webav/av-cliper')
 

@@ -25,8 +25,10 @@ interface Props {
 }
 
 interface ExportOptions {
+  format: 'mp4' | 'webm'
   videoCodec: string
   bitrate: number
+  audioBitrate: number
   audio: boolean
   audioCodec?: string
 }
@@ -68,12 +70,18 @@ async function loadProjects() {
   }
 }
 
+const outputFormat = ref<'mp4' | 'webm'>('mp4')
 const videoCodec = ref('avc1.42E032')
 const bitrateMbps = ref<number>(5)
 const excludeAudio = ref(false)
 
 const audioCodec = ref('aac')
 const audioBitrateKbps = ref<number>(128)
+
+const formatOptions = [
+  { value: 'mp4', label: 'MP4' },
+  { value: 'webm', label: 'WebM (VP9 + Opus)' },
+]
 
 const videoCodecSupport = ref<Record<string, boolean>>({})
 const isLoadingCodecSupport = ref(false)
@@ -179,6 +187,7 @@ watch(
   (val) => {
     if (!val) return
     // Reset state on open
+    outputFormat.value = 'mp4'
     const base = (props.filename || 'video').replace(/\.[^.]+$/, '')
     outputFilename.value = `${base}_trimmed.mp4`
     scope.value = props.projectId ? 'project' : 'personal'
@@ -197,6 +206,11 @@ watch(
   },
 )
 
+watch(outputFormat, (fmt) => {
+  const base = outputFilename.value.replace(/\.[^.]+$/, '')
+  outputFilename.value = `${base}.${fmt}`
+})
+
 const videoCodecOptions = computed(() =>
   resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
 )
@@ -209,6 +223,7 @@ const bitrateBps = computed(() => {
 })
 
 watch(scope, () => {
+  if (scope.value === 'project' && !selectedProjectId.value) return
   loadCollections()
 })
 
@@ -261,19 +276,23 @@ async function handleConfirm() {
     // Phase 1: encode
     exportPhase.value = 'encoding'
     const stream = await props.exportFn({
+      format: outputFormat.value,
       videoCodec: videoCodec.value,
       bitrate: bitrateBps.value,
+      audioBitrate: audioBitrateKbps.value * 1000,
       audio: !excludeAudio.value,
       audioCodec: audioCodec.value,
     })
     exportProgress.value = 30
+
+    const mimeType = outputFormat.value === 'webm' ? 'video/webm' : 'video/mp4'
 
     // Phase 2: upload media file as stream (no Blob buffering)
     exportPhase.value = 'uploading'
     const uploadedMedia = await uploadMediaStream(
       stream,
       outputFilename.value,
-      'video/mp4',
+      mimeType,
       undefined,
       scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
       (pct) => { exportProgress.value = 30 + Math.round((pct / 100) * 60) },
@@ -394,7 +413,15 @@ function handleCancel() {
           {{ t('videoEditor.export.encodingSettings') }}
         </div>
 
-        <UFormField :label="t('videoEditor.export.videoCodec')">
+        <UFormField :label="t('videoEditor.export.outputFormat')">
+          <UiAppButtonGroup
+            v-model="outputFormat"
+            :options="formatOptions"
+            :disabled="isExporting"
+          />
+        </UFormField>
+
+        <UFormField v-if="outputFormat === 'mp4'" :label="t('videoEditor.export.videoCodec')">
           <USelectMenu
             :model-value="(videoCodecOptions.find(o => o.value === videoCodec) || videoCodec) as any"
             @update:model-value="(v: any) => videoCodec = v?.value ?? v"
@@ -404,6 +431,9 @@ function handleCancel() {
             :disabled="isExporting || isLoadingCodecSupport"
             class="w-full"
           />
+        </UFormField>
+        <UFormField v-else :label="t('videoEditor.export.videoCodec')">
+          <UInput disabled model-value="VP9" class="w-full" />
         </UFormField>
 
         <UFormField
@@ -433,7 +463,7 @@ function handleCancel() {
         >
           <UInput
             disabled
-            :model-value="audioCodec === 'opus' ? 'Opus' : 'AAC'"
+            :model-value="outputFormat === 'webm' ? 'Opus' : (audioCodec === 'opus' ? 'Opus' : 'AAC')"
             class="w-full"
           />
         </UFormField>
