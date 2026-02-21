@@ -210,37 +210,6 @@ export const useGranVideoEditorTimelineStore = defineStore('granVideoEditorTimel
     }
   }
 
-  async function computeMediaDurationUs(
-    fileHandle: FileSystemFileHandle,
-    trackKind: 'video' | 'audio',
-  ) {
-    try {
-      const file = await fileHandle.getFile();
-      const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
-      const source = new BlobSource(file);
-      const input = new Input({ source, formats: ALL_FORMATS } as any);
-      try {
-        const track =
-          trackKind === 'audio'
-            ? await input.getPrimaryAudioTrack()
-            : await input.getPrimaryVideoTrack();
-        if (!track) return 0;
-        if (typeof track.canDecode === 'function' && !(await track.canDecode())) return 0;
-        const durS = await track.computeDuration();
-        const durUs = Math.floor(durS * 1_000_000);
-        return Number.isFinite(durUs) && durUs > 0 ? durUs : 0;
-      } finally {
-        if ('dispose' in input && typeof (input as any).dispose === 'function')
-          (input as any).dispose();
-        else if ('close' in input && typeof (input as any).close === 'function')
-          (input as any).close();
-      }
-    } catch (e) {
-      console.warn('Failed to compute media duration', e);
-      return 0;
-    }
-  }
-
   async function addClipToTimelineFromPath(input: { trackId: string; name: string; path: string }) {
     const handle = await projectStore.getFileHandleByPath(input.path);
     if (!handle) throw new Error('Failed to access file handle');
@@ -250,8 +219,12 @@ export const useGranVideoEditorTimelineStore = defineStore('granVideoEditorTimel
       resolvedTrackKind === 'audio' || resolvedTrackKind === 'video' ? resolvedTrackKind : null;
     if (!trackKind) throw new Error('Track not found');
 
-    const durationUs = await computeMediaDurationUs(handle, trackKind);
-    if (!durationUs) throw new Error('Failed to compute media duration');
+    const metadata = await mediaStore.getOrFetchMetadata(handle, input.path);
+    const durationS = Number(metadata?.duration);
+    const durationUs = Math.floor(durationS * 1_000_000);
+    if (!Number.isFinite(durationUs) || durationUs <= 0) {
+      throw new Error('Failed to resolve media duration');
+    }
 
     if (!timelineDoc.value) {
       timelineDoc.value = projectStore.createFallbackTimelineDoc();
