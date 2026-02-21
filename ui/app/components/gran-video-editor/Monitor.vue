@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-import { useMediabunny } from '~/composables/useMediabunny'
 import { useGranVideoEditorMediaStore } from '~/stores/granVideoEditor/media.store'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
+import { VideoCompositor } from '~/utils/video-editor/VideoCompositor'
 import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
 const { t } = useI18n()
 const projectStore = useGranVideoEditorProjectStore()
 const timelineStore = useGranVideoEditorTimelineStore()
 const mediaStore = useGranVideoEditorMediaStore()
-const mediaBunny = useMediabunny()
 
 const videoTrack = computed(() => (timelineStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
 const videoItems = computed(() => (videoTrack.value?.items ?? []).filter((it: TimelineTrackItem) => it.kind === 'clip'))
@@ -71,6 +70,8 @@ function getCanvasInnerStyle() {
 let viewportResizeObserver: ResizeObserver | null = null
 let buildRequestId = 0
 
+const compositor = new VideoCompositor()
+
 function updateCanvasDisplaySize() {
   const viewport = viewportEl.value
   if (!viewport) return
@@ -105,72 +106,31 @@ async function buildTimeline() {
     const clips = videoItems.value
     console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
+      compositor.clearClips()
       isLoading.value = false
       return
     }
 
-    await mediaBunny.initCanvas(containerEl.value, exportWidth.value, exportHeight.value, '#000')
-    console.log('[Monitor] PixiJS+Mediabunny initialized canvas', exportWidth.value, exportHeight.value)
-
-    let maxDuration = 0
-
-    // Load each video clip based on timelineRange.startUs
-    for (const clip of clips) {
-      if (requestId !== buildRequestId) return
-      const fileHandle = await projectStore.getFileHandleByPath(clip.source.path)
-      if (!fileHandle) continue
-
-      const metadata = await mediaStore.getOrFetchMetadata(fileHandle, clip.source.path)
-      if (!metadata || !metadata.video) continue
-
-      const file = await fileHandle.getFile()
-      const startUs = clip.timelineRange.startUs
-
-      const { Input, BlobSource, VideoSampleSink, ALL_FORMATS } = await import('mediabunny')
-
-      const source = new BlobSource(file)
-      const input = new Input({ source, formats: ALL_FORMATS } as any)
-      const track = await input.getPrimaryVideoTrack()
-
-      if (track && (await track.canDecode())) {
-        const sink = new VideoSampleSink(track)
-        const clipDurationUs = Math.floor(metadata.duration * 1_000_000)
-
-        const canvas = new OffscreenCanvas(exportWidth.value, exportHeight.value)
-        const ctx = canvas.getContext('2d')!
-        const { Texture, Sprite, CanvasSource } = await import('pixi.js')
-        const canvasSource = new CanvasSource({ resource: canvas as any })
-        const texture = new Texture({ source: canvasSource })
-        const sprite = new Sprite(texture)
-
-        sprite.width = exportWidth.value
-        sprite.height = exportHeight.value
-        sprite.visible = false
-
-        mediaBunny.app.value!.stage.addChild(sprite)
-
-        mediaBunny.clips.value.push({
-          fileHandle,
-          input,
-          sink,
-          startUs,
-          endUs: startUs + clipDurationUs,
-          durationUs: clipDurationUs,
-          sprite,
-          canvas,
-          ctx,
-        })
+    await compositor.init(exportWidth.value, exportHeight.value, '#000')
+    if (containerEl.value) {
+      containerEl.value.innerHTML = ''
+      if (compositor.app && compositor.app.canvas) {
+        containerEl.value.appendChild(compositor.app.canvas as unknown as HTMLCanvasElement)
       }
     }
-    
-    maxDuration = Math.max(0, ...mediaBunny.clips.value.map(c => c.endUs))
-    mediaBunny.durationUs.value = maxDuration
+
+    console.log('[Monitor] VideoCompositor initialized canvas', exportWidth.value, exportHeight.value)
+
+    const maxDuration = await compositor.loadTimeline(clips, async (path) => {
+      return await projectStore.getFileHandleByPath(path)
+    })
+
     timelineStore.duration = maxDuration
     console.log('[Monitor] Timeline duration:', maxDuration)
 
     // Show first frame
     console.log('[Monitor] Previewing first frame...')
-    await mediaBunny.seek(0)
+    await compositor.renderFrame(0)
     console.log('[Monitor] First frame previewed')
 
     timelineStore.currentTime = 0
@@ -201,7 +161,34 @@ watch(
   },
 )
 
-// Sync playback controls from store
+// Playback loop state
+let playbackLoopId = 0
+let lastFrameTimeMs = 0
+let renderQueue: Promise<any> = Promise.resolve()
+
+function updatePlayback(timestamp: number) {
+  if (!timelineStore.isPlaying) return
+
+  const deltaMs = timestamp - lastFrameTimeMs
+  lastFrameTimeMs = timestamp
+
+  let newTimeUs = timelineStore.currentTime + deltaMs * 1000
+  if (newTimeUs >= timelineStore.duration) {
+    newTimeUs = timelineStore.duration
+    timelineStore.isPlaying = false
+    timelineStore.currentTime = newTimeUs
+    renderQueue = renderQueue.then(() => compositor.renderFrame(newTimeUs))
+    return
+  }
+
+  timelineStore.currentTime = newTimeUs
+  renderQueue = renderQueue.then(() => compositor.renderFrame(newTimeUs))
+
+  if (timelineStore.isPlaying) {
+    playbackLoopId = requestAnimationFrame(updatePlayback)
+  }
+}
+
 watch(() => timelineStore.isPlaying, (playing) => {
   if (isLoading.value || loadError.value) {
     if (playing) timelineStore.isPlaying = false
@@ -209,26 +196,10 @@ watch(() => timelineStore.isPlaying, (playing) => {
   }
 
   if (playing) {
-    const start = Math.max(0, timelineStore.currentTime)
-    mediaBunny.play(start)
-  } else {
-    mediaBunny.pause()
-  }
-})
-
-// Update playback loop timing
-let playbackLoopId = 0
-function updatePlayback() {
-  if (timelineStore.isPlaying && mediaBunny.isPlaying.value) {
-    timelineStore.currentTime = mediaBunny.currentTimeUs.value
-    playbackLoopId = requestAnimationFrame(updatePlayback)
-  } else if (!mediaBunny.isPlaying.value) {
-    timelineStore.isPlaying = false
-  }
-}
-
-watch(() => mediaBunny.isPlaying.value, (isPlaying) => {
-  if (isPlaying) {
+    if (timelineStore.currentTime >= timelineStore.duration) {
+      timelineStore.currentTime = 0
+    }
+    lastFrameTimeMs = performance.now()
     playbackLoopId = requestAnimationFrame(updatePlayback)
   } else {
     cancelAnimationFrame(playbackLoopId)
@@ -237,8 +208,8 @@ watch(() => mediaBunny.isPlaying.value, (isPlaying) => {
 
 // Sync time to store (initial seek or external seek)
 watch(() => timelineStore.currentTime, (val) => {
-  if (!timelineStore.isPlaying && Math.abs(val - mediaBunny.currentTimeUs.value) > 100000) { // 100ms difference threshold
-    mediaBunny.seek(val)
+  if (!timelineStore.isPlaying) {
+    renderQueue = renderQueue.then(() => compositor.renderFrame(val))
   }
 })
 
@@ -256,7 +227,8 @@ onMounted(() => {
 onBeforeUnmount(() => {
   viewportResizeObserver?.disconnect()
   viewportResizeObserver = null
-  mediaBunny.destroyCanvas()
+  cancelAnimationFrame(playbackLoopId)
+  compositor.destroy()
 })
 
 function formatTime(seconds: number): string {
