@@ -1,4 +1,4 @@
-import { Muxer, ArrayBufferTarget } from 'webm-muxer';
+import { Muxer, StreamTarget } from 'webm-muxer';
 
 export interface WebMExportOptions {
   trimInUs: number;
@@ -46,8 +46,28 @@ export async function exportToWebM(
     );
   }
 
+  // StreamTarget delivers chunks to the ReadableStream as they are produced,
+  // so encoding and upload can run in parallel — same pattern as Combinator.output().
+  // Typed as unknown first to prevent TypeScript control-flow narrowing to never
+  // when the variable is assigned inside a callback and checked later.
+  let streamController: ReadableStreamDefaultController<Uint8Array> | null =
+    null as ReadableStreamDefaultController<Uint8Array> | null;
+
+  const outputStream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      streamController = controller;
+    },
+  });
+
   const muxerOptions: ConstructorParameters<typeof Muxer>[0] = {
-    target: new ArrayBufferTarget(),
+    target: new StreamTarget({
+      onData: (data, _position) => streamController?.enqueue(data.slice()),
+      chunked: true,
+    }),
+    // streaming: true ensures data is written monotonically so position can be ignored.
+    // Without it, the muxer may patch earlier byte offsets (e.g. duration in the header)
+    // which is incompatible with a forward-only ReadableStream.
+    streaming: true,
     video: {
       codec: 'V_VP9',
       width: videoWidth,
@@ -178,15 +198,9 @@ export async function exportToWebM(
   if (audioEncoder) await audioEncoder.flush();
 
   muxer.finalize();
+  if (streamController !== null) streamController.close();
 
-  const { buffer } = muxer.target as ArrayBufferTarget;
-
-  return new ReadableStream<Uint8Array>({
-    start(controller) {
-      controller.enqueue(new Uint8Array(buffer));
-      controller.close();
-    },
-  });
+  return outputStream;
 }
 
 /**
