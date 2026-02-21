@@ -11,6 +11,22 @@ const containerEl = ref<HTMLDivElement | null>(null)
 const loadError = ref<string | null>(null)
 const isLoading = ref(false)
 
+let opfsTmpFiles: Array<{ remove: (options?: any) => Promise<void> }> = []
+
+async function cleanupTmpFiles() {
+  const files = opfsTmpFiles
+  opfsTmpFiles = []
+  await Promise.all(
+    files.map(async f => {
+      try {
+        await f.remove({ force: true })
+      } catch (err) {
+        console.warn('[GranVideoEditorMonitor] Failed to remove OPFS tmp file', err)
+      }
+    }),
+  )
+}
+
 async function buildTimeline() {
   if (!containerEl.value) return
   isLoading.value = true
@@ -18,8 +34,10 @@ async function buildTimeline() {
 
   try {
     const { MP4Clip, VisibleSprite } = await import('@webav/av-cliper')
+    const { tmpfile, write } = await import('opfs-tools')
 
     // Always re-init canvas to clear previous sprites
+    await cleanupTmpFiles()
     await webAV.initCanvas(containerEl.value, 1280, 720, '#000')
 
     const clips = videoEditorStore.timelineClips
@@ -34,8 +52,12 @@ async function buildTimeline() {
     for (const clip of clips) {
       if (clip.track === 'video' && clip.fileHandle) {
         const file = await clip.fileHandle.getFile()
-        // Provide stream directly. MP4Clip accepts a ReadableStream
-        const rawClipObj = new MP4Clip(file.stream() as any)
+        const opfsFile = markRaw(tmpfile())
+        opfsTmpFiles.push(opfsFile)
+
+        await write(opfsFile, file.stream() as any)
+
+        const rawClipObj = new MP4Clip(opfsFile as any)
         const clipObj = markRaw(rawClipObj)
         await clipObj.ready
 
@@ -59,6 +81,9 @@ async function buildTimeline() {
     // Show first frame
     await webAV.avCanvas.value.previewFrame(0)
 
+    videoEditorStore.currentTime = 0
+    videoEditorStore.isPlaying = false
+
   } catch (e: any) {
     console.error('Failed to build timeline components', e)
     loadError.value = e.message || 'Error loading timeline'
@@ -74,8 +99,15 @@ watch(() => videoEditorStore.timelineClips, () => {
 
 // Sync playback controls from store
 watch(() => videoEditorStore.isPlaying, (playing) => {
+  if (isLoading.value || loadError.value) {
+    if (playing) videoEditorStore.isPlaying = false
+    return
+  }
+
   if (playing) {
-    webAV.play()
+    const start = Math.max(0, videoEditorStore.currentTime)
+    const end = videoEditorStore.duration > 0 ? videoEditorStore.duration : undefined
+    webAV.play(start, end)
   } else {
     webAV.pause()
   }
@@ -99,6 +131,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   webAV.destroyCanvas()
+  void cleanupTmpFiles()
 })
 
 function formatTime(seconds: number): string {

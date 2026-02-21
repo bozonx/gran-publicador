@@ -1,4 +1,4 @@
-import { ref, shallowRef, markRaw } from 'vue'
+import { ref, shallowRef, markRaw } from 'vue';
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
@@ -11,12 +11,12 @@ export function useWebAV() {
   const supportStatus = ref<'full' | 'partial' | 'none' | null>(null);
   const isWebCodecsSupported = ref(false);
 
-  const isPlaying = ref(false)
-  const currentTimeUs = ref(0)
-  const durationUs = ref(0)
-  const avCanvas = shallowRef<any>(null)
+  const isPlaying = ref(false);
+  const currentTimeUs = ref(0);
+  const durationUs = ref(0);
+  const avCanvas = shallowRef<any>(null);
 
-  let unsubscribers: Array<() => void> = []
+  let unsubscribers: Array<() => void> = [];
 
   async function checkSupport() {
     const [videoSupport, audioSupport] = await Promise.all([
@@ -51,13 +51,15 @@ export function useWebAV() {
     height: number = 720,
     bgColor: string = '#000',
   ) {
-    destroyCanvas()
-    const { AVCanvas } = await import('@webav/av-canvas')
-    avCanvas.value = markRaw(new AVCanvas(containerEl, {
-      bgColor,
-      width,
-      height,
-    }))
+    destroyCanvas();
+    const { AVCanvas } = await import('@webav/av-canvas');
+    avCanvas.value = markRaw(
+      new AVCanvas(containerEl, {
+        bgColor,
+        width,
+        height,
+      }),
+    );
 
     const offTime = avCanvas.value.on('timeupdate', (time: number) => {
       currentTimeUs.value = time;
@@ -71,13 +73,32 @@ export function useWebAV() {
       isPlaying.value = true;
     });
 
+    const offEnded = (avCanvas.value as any).on?.('ended', () => {
+      isPlaying.value = false;
+    });
+
+    const offError = (avCanvas.value as any).on?.('error', (err: unknown) => {
+      console.error('[useWebAV] AVCanvas error', err);
+    });
+
     unsubscribers.push(offTime, offPaused, offPlaying);
+    if (typeof offEnded === 'function') unsubscribers.push(offEnded);
+    if (typeof offError === 'function') unsubscribers.push(offError);
 
     return avCanvas.value;
   }
 
   function play(start?: number, end?: number) {
     if (!avCanvas.value) return;
+
+    const maybeAudioCtx =
+      (avCanvas.value as any)?.audioCtx ?? (avCanvas.value as any)?.audioContext;
+    if (maybeAudioCtx?.state === 'suspended' && typeof maybeAudioCtx.resume === 'function') {
+      void maybeAudioCtx.resume().catch((err: unknown) => {
+        console.warn('[useWebAV] Failed to resume AudioContext', err);
+      });
+    }
+
     avCanvas.value.play({ start, end });
   }
 
@@ -100,7 +121,7 @@ export function useWebAV() {
     currentTimeUs.value = timeUs;
     await avCanvas.value?.previewFrame(timeUs);
 
-    if (wasPlaying) play();
+    if (wasPlaying) play(currentTimeUs.value);
   }
 
   function destroyCanvas() {
