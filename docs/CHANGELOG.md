@@ -45,6 +45,9 @@ All notable changes to this project will be documented in this file.
   - Group deletion now explicitly moves primary group assignments to root (`groupId = null`) and removes relations to the deleted group in a transaction.
 
 ### Fixed
+- **Gran Video Editor monitor playback (canvas)**:
+  - Stabilized frame rendering queue to avoid overlapping decode/render calls during playback and seek.
+  - Added robust drawing fallback (`sample.draw(...)`) when `toCanvasImageSource()` cannot be rendered on OffscreenCanvas 2D context.
 - **Content Library groups UX**:
   - Groups tree sidebar is now rendered only when active tab type is `GROUP`.
   - Group node menu now hides delete action for root groups (root group remains non-deletable in backend and UI).

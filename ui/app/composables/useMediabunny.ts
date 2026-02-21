@@ -24,6 +24,7 @@ export function useMediabunny() {
 
   let animationFrameId = 0;
   let lastFrameTimeMs = 0;
+  let renderQueue: Promise<void> = Promise.resolve();
 
   function disposeResource(resource: unknown) {
     if (!resource || typeof resource !== 'object') return;
@@ -37,6 +38,35 @@ export function useMediabunny() {
     if ('close' in resource && typeof (resource as { close?: unknown }).close === 'function') {
       (resource as { close: () => void }).close();
     }
+  }
+
+  function drawSampleToCanvas(sample: any, clip: MonitorClipData) {
+    clip.ctx.clearRect(0, 0, clip.canvas.width, clip.canvas.height);
+
+    try {
+      const imageSource = sample.toCanvasImageSource();
+      const frameW = imageSource?.displayWidth ?? imageSource?.width ?? clip.canvas.width;
+      const frameH = imageSource?.displayHeight ?? imageSource?.height ?? clip.canvas.height;
+      const scale = Math.min(clip.canvas.width / frameW, clip.canvas.height / frameH);
+
+      const targetW = frameW * scale;
+      const targetH = frameH * scale;
+      const targetX = (clip.canvas.width - targetW) / 2;
+      const targetY = (clip.canvas.height - targetH) / 2;
+
+      clip.ctx.drawImage(imageSource, targetX, targetY, targetW, targetH);
+      return;
+    } catch {
+      // Fallback for browsers/codecs where toCanvasImageSource() cannot be drawn
+      // on an OffscreenCanvas 2D context.
+    }
+
+    if (typeof sample.draw === 'function') {
+      sample.draw(clip.ctx, 0, 0, clip.canvas.width, clip.canvas.height);
+      return;
+    }
+
+    throw new Error('Unable to draw video sample on canvas');
   }
 
   async function initCanvas(
@@ -60,6 +90,7 @@ export function useMediabunny() {
 
   function destroyCanvas() {
     pause();
+    renderQueue = Promise.resolve();
     for (const clip of clips.value) {
       disposeResource(clip.sink);
       disposeResource(clip.input);
@@ -76,41 +107,20 @@ export function useMediabunny() {
 
   async function renderFrameAt(timeUs: number) {
     if (!app.value) return;
-    const timeS = timeUs / 1_000_000;
-
-    let anyUpdated = false;
-    let drawnCount = 0;
 
     for (const clip of clips.value) {
       if (timeUs >= clip.startUs && timeUs < clip.endUs) {
         const localTimeS = (timeUs - clip.startUs) / 1_000_000;
         try {
-          // Add a small threshold (e.g. 0.1s) to catch slightly delayed first frames
           const fetchTimeS = Math.max(0, localTimeS);
           const sample = await clip.sink.getSample(fetchTimeS);
 
           if (sample) {
-            clip.ctx.clearRect(0, 0, clip.canvas.width, clip.canvas.height);
-
-            // Get image source and its dimensions
-            const img = sample.toCanvasImageSource();
-            const frameW = (img as any).displayWidth || (img as any).width || clip.canvas.width;
-            const frameH = (img as any).displayHeight || (img as any).height || clip.canvas.height;
-            const scale = Math.min(clip.canvas.width / frameW, clip.canvas.height / frameH);
-
-            const targetW = frameW * scale;
-            const targetH = frameH * scale;
-            const targetX = (clip.canvas.width - targetW) / 2;
-            const targetY = (clip.canvas.height - targetH) / 2;
-
-            clip.ctx.drawImage(img, targetX, targetY, targetW, targetH);
-
-            if ('close' in sample) (sample as any).close();
-
+            drawSampleToCanvas(sample, clip);
             clip.sprite.texture.source.update();
             clip.sprite.visible = true;
-            anyUpdated = true;
-            drawnCount++;
+
+            if ('close' in sample) (sample as any).close();
           } else {
             console.log(`[Monitor] getSample(${fetchTimeS}) returned null for clip.`);
             clip.sprite.visible = false;
@@ -123,8 +133,17 @@ export function useMediabunny() {
       }
     }
 
-    // Only render if we drew something or if nothing is visible (so we render black)
     app.value.render();
+  }
+
+  function enqueueRenderFrame(timeUs: number) {
+    renderQueue = renderQueue
+      .then(() => renderFrameAt(timeUs))
+      .catch(e => {
+        console.error('[Monitor] Failed to render queued frame', e);
+      });
+
+    return renderQueue;
   }
 
   function loop(timestamp: number) {
@@ -136,14 +155,14 @@ export function useMediabunny() {
     if (newTime >= durationUs.value) {
       newTime = durationUs.value;
       isPlaying.value = false;
-      renderFrameAt(newTime).then(() => {
+      enqueueRenderFrame(newTime).then(() => {
         currentTimeUs.value = newTime;
       });
       return;
     }
 
     currentTimeUs.value = newTime;
-    renderFrameAt(newTime);
+    enqueueRenderFrame(newTime);
 
     if (isPlaying.value) {
       animationFrameId = requestAnimationFrame(loop);
@@ -167,7 +186,7 @@ export function useMediabunny() {
   async function seek(timeUs: number) {
     currentTimeUs.value = Math.min(Math.max(0, timeUs), durationUs.value);
     if (!isPlaying.value) {
-      await renderFrameAt(currentTimeUs.value);
+      await enqueueRenderFrame(currentTimeUs.value);
     }
   }
 
