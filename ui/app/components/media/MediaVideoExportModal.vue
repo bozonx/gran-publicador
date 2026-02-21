@@ -6,6 +6,7 @@ import { useApi } from '~/composables/useApi'
 import { useProjects } from '~/composables/useProjects'
 import { buildGroupTreeFromRoot } from '~/composables/useContentLibraryGroupsTree'
 import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
+import MediaEncodingSettings from './MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
   checkVideoCodecSupport,
@@ -213,6 +214,11 @@ watch(outputFormat, (fmt) => {
   outputFilename.value = `${base}.${ext}`
 })
 
+const audioCodecLabel = computed(() => {
+  if (outputFormat.value === 'webm' || outputFormat.value === 'mkv') return 'Opus'
+  return audioCodec.value === 'opus' ? 'Opus' : 'AAC'
+})
+
 const videoCodecOptions = computed(() =>
   resolveVideoCodecOptions(BASE_VIDEO_CODEC_OPTIONS, videoCodecSupport.value),
 )
@@ -413,82 +419,19 @@ function handleCancel() {
       </UFormField>
 
       <!-- Encoding settings -->
-      <div class="flex flex-col gap-4">
-        <div class="text-sm font-medium text-gray-700 dark:text-gray-200">
-          {{ t('videoEditor.export.encodingSettings') }}
-        </div>
-
-        <UFormField :label="t('videoEditor.export.outputFormat')">
-          <UiAppButtonGroup
-            v-model="outputFormat"
-            :options="formatOptions"
-            :disabled="isExporting"
-          />
-        </UFormField>
-
-        <UFormField v-if="outputFormat === 'mp4'" :label="t('videoEditor.export.videoCodec')">
-          <USelectMenu
-            :model-value="(videoCodecOptions.find(o => o.value === videoCodec) || videoCodec) as any"
-            @update:model-value="(v: any) => videoCodec = v?.value ?? v"
-            :items="videoCodecOptions"
-            value-key="value"
-            label-key="label"
-            :disabled="isExporting || isLoadingCodecSupport"
-            class="w-full"
-          />
-        </UFormField>
-        <UFormField v-else :label="t('videoEditor.export.videoCodec')">
-          <UInput disabled :model-value="outputFormat === 'mkv' ? 'AV1' : 'VP9'" class="w-full" />
-        </UFormField>
-
-        <UFormField
-          :label="t('videoEditor.export.videoBitrate')"
-          :help="t('videoEditor.export.videoBitrateHelp')"
-        >
-          <UInput
-            v-model.number="bitrateMbps"
-            type="number"
-            inputmode="decimal"
-            min="0.2"
-            step="0.1"
-            :disabled="isExporting"
-            class="w-full"
-          />
-        </UFormField>
-
-        <label class="flex items-center gap-3 cursor-pointer">
-          <UCheckbox v-model="excludeAudio" :disabled="isExporting || !props.hasAudio" />
-          <span class="text-sm text-gray-700 dark:text-gray-200">{{ t('videoEditor.export.excludeAudio') }}</span>
-        </label>
-
-        <UFormField
-          v-if="!excludeAudio"
-          :label="t('videoEditor.export.audioCodecStatic')"
-          :help="t('videoEditor.export.audioCodecStaticHelp')"
-        >
-          <UInput
-            disabled
-            :model-value="outputFormat === 'webm' || outputFormat === 'mkv' ? 'Opus' : (audioCodec === 'opus' ? 'Opus' : 'AAC')"
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField
-          v-if="!excludeAudio"
-          :label="t('videoEditor.export.audioBitrate')"
-          :help="t('videoEditor.export.audioBitrateHelp')"
-        >
-          <UInput
-            v-model.number="audioBitrateKbps"
-            type="number"
-            inputmode="numeric"
-            min="32"
-            step="16"
-            :disabled="isExporting"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
+      <MediaEncodingSettings
+        v-model:output-format="outputFormat"
+        v-model:video-codec="videoCodec"
+        v-model:bitrate-mbps="bitrateMbps"
+        v-model:exclude-audio="excludeAudio"
+        v-model:audio-bitrate-kbps="audioBitrateKbps"
+        :disabled="isExporting"
+        :has-audio="props.hasAudio"
+        :is-loading-codec-support="isLoadingCodecSupport"
+        :format-options="formatOptions"
+        :video-codec-options="videoCodecOptions"
+        :audio-codec-label="audioCodecLabel"
+      />
 
 
       <!-- Progress -->

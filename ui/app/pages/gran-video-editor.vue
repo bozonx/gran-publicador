@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { useVideoEditorStore } from '~/stores/videoEditor'
+import { ref } from 'vue'
+import TimelineExportModal from '~/components/gran-video-editor/TimelineExportModal.vue'
 
 const { t } = useI18n()
 const videoEditorStore = useVideoEditorStore()
+
+const isExportModalOpen = ref(false)
 
 definePageMeta({
   layout: 'editor',
@@ -184,6 +188,18 @@ async function createNewProject() {
             </span>
           </div>
         </div>
+
+        <div class="flex items-center gap-2">
+          <UButton
+            size="xs"
+            variant="soft"
+            color="primary"
+            icon="i-heroicons-arrow-down-tray"
+            :disabled="videoEditorStore.timelineClips.length === 0"
+            :label="t('videoEditor.export.confirm', 'Export')"
+            @click="isExportModalOpen = true"
+          />
+        </div>
       </div>
 
       <!-- Top half: File Manager + Preview + Monitor -->
@@ -197,6 +213,11 @@ async function createNewProject() {
       <div class="flex-1 min-h-0">
         <GranVideoEditorTimeline />
       </div>
+
+      <TimelineExportModal
+        v-model:open="isExportModalOpen"
+        @exported="() => {}"
+      />
     </template>
   </div>
 </template>
