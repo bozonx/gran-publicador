@@ -55,12 +55,12 @@ export class RedisIoAdapter extends IoAdapter {
       throw new Error('Redis is disabled, but RedisIoAdapter is required for scalability');
     }
 
-    const pubClient = new Redis({
-      host: config.host,
-      port: config.port,
-      password: config.password,
-      db: config.db,
-    });
+    const isUpstash = config.url.includes('upstash.io');
+    const redisOptions: any = {};
+    if (isUpstash) {
+      redisOptions.family = 0;
+    }
+    const pubClient = new Redis(config.url, redisOptions);
     const subClient = pubClient.duplicate();
 
     await Promise.all([this.ensureConnected(pubClient), this.ensureConnected(subClient)]);

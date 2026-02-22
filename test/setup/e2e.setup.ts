@@ -30,8 +30,7 @@ beforeAll(() => {
   process.env.STT_SERVICE_URL = process.env.STT_SERVICE_URL || 'http://localhost:9999';
 
   // Redis for tests (can use defaults, but set just in case)
-  process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';
-  process.env.REDIS_PORT = process.env.REDIS_PORT || '6379';
+  process.env.REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379/0';
 });
 
 // Set global timeout for all e2e tests to 30 seconds

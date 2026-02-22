@@ -77,13 +77,9 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         'REDIS_ENABLED must not be false. Redis is required in non-test environments',
       );
     }
-    const redisHost = config.REDIS_HOST;
-    if (!redisHost || typeof redisHost !== 'string') {
-      throw new Error('REDIS_HOST environment variable is not set');
-    }
-    const redisPort = config.REDIS_PORT;
-    if (!redisPort || typeof redisPort !== 'string') {
-      throw new Error('REDIS_PORT environment variable is not set');
+    const redisUrl = config.REDIS_URL;
+    if (!redisUrl || typeof redisUrl !== 'string') {
+      throw new Error('REDIS_URL environment variable is not set');
     }
   }
 
@@ -222,17 +218,18 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
           throw new Error('Redis is disabled in configuration, but it is required.');
         }
 
+        const isUpstash = config.url.includes('upstash.io');
+        const socketOptions: any = { connectTimeout: 5000 };
+        if (isUpstash) {
+          socketOptions.family = 0;
+        }
+
         const store = await redisStore({
-          socket: {
-            host: config.host,
-            port: config.port,
-            connectTimeout: 5000,
-          },
-          password: config.password,
-          database: config.db,
+          url: config.url,
+          socket: socketOptions,
           ttl: config.ttlMs,
           keyPrefix: config.keyPrefix,
-        });
+        } as any);
 
         return {
           store,

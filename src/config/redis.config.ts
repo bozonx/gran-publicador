@@ -18,25 +18,7 @@ export class RedisConfig {
   public enabled: boolean = true;
 
   @IsString()
-  public host: string = 'localhost';
-
-  /**
-   * Redis port.
-   * Defined by REDIS_PORT environment variable.
-   * Default: 6379
-   */
-  @IsInt()
-  @Min(1)
-  @Max(65535)
-  public port: number = 6379;
-
-  /**
-   * Redis password.
-   * Defined by REDIS_PASSWORD environment variable.
-   */
-  @IsOptional()
-  @IsString()
-  public password?: string;
+  public url: string = 'redis://localhost:6379/0';
 
   /**
    * Default TTL for cache in milliseconds.
@@ -46,15 +28,7 @@ export class RedisConfig {
   @Min(0)
   public ttlMs: number = DEFAULT_REDIS_TTL_MS;
 
-  /**
-   * Redis database index.
-   * Defined by REDIS_DB environment variable.
-   * Default: 0
-   */
-  @IsInt()
-  @Min(0)
-  @Max(15)
-  public db: number = 0;
+
 
   /**
    * Redis key prefix.
@@ -69,11 +43,8 @@ export class RedisConfig {
 export default registerAs('redis', (): RedisConfig => {
   const config = plainToClass(RedisConfig, {
     enabled: process.env.REDIS_ENABLED !== 'false',
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT, 10) : 6379,
-    password: process.env.REDIS_PASSWORD || undefined,
+    url: process.env.REDIS_URL || 'redis://localhost:6379/0',
     ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
-    db: process.env.REDIS_DB ? parseInt(process.env.REDIS_DB, 10) : 0,
     keyPrefix: process.env.REDIS_KEY_PREFIX || undefined,
   });
 

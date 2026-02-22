@@ -20,15 +20,18 @@ import { RedisService } from './redis.service.js';
         }
 
         try {
-          return new Redis({
-            host: config.host,
-            port: config.port,
-            password: config.password,
-            db: config.db,
+          const isUpstash = config.url.includes('upstash.io');
+          const redisOptions: any = {
             keyPrefix: config.keyPrefix,
             maxRetriesPerRequest: 0,
             enableOfflineQueue: false,
-          });
+          };
+
+          if (isUpstash) {
+            redisOptions.family = 0; // Prevent IPv6 issues with Upstash on some Node runtimes
+          }
+
+          return new Redis(config.url, redisOptions);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           const stack = error instanceof Error ? error.stack : undefined;

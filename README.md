@@ -276,8 +276,7 @@ pnpm dev
 | `SOCIAL_POSTING_SERVICE_URL` | Да | URL микросервиса постинга в соцсети |
 | `MEDIA_STORAGE_SERVICE_URL` | Да | URL микросервиса хранения медиафайлов |
 | `FREE_LLM_ROUTER_URL` | Да | URL микросервиса LLM Router |
-| `REDIS_HOST` | Нет | Хост Redis (по умолчанию `localhost`) |
-| `REDIS_PORT` | Нет | Порт Redis (по умолчанию `6379`) |
+| `REDIS_URL` | Нет | URL подключения к Redis, поддерживает Upstash (по умолчанию `redis://localhost:6379/0`) |
 | `REDIS_ENABLED` | Нет | Использовать ли Redis (по умолчанию `true`) |
 | `STT_SERVICE_URL` | Нет | URL микросервиса Speech-To-Text |
 | `TRANSLATE_SERVICE_URL` | Нет | URL микросервиса перевода |
