@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
-import { VideoCompositor } from '~/utils/video-editor/VideoCompositor'
+import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
 import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
@@ -223,128 +223,14 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
   const clips = (track?.items ?? []).filter((it: any) => it.kind === 'clip')
   if (!clips.length) throw new Error('Timeline is empty')
 
-  const { Output, Mp4OutputFormat, WebMOutputFormat, MkvOutputFormat, CanvasSource: MediaBunnyCanvasSource, AudioBufferSource, StreamTarget } = await import('mediabunny')
+  const { client } = getWorkerClient();
 
-  const compositor = new VideoCompositor()
-  await compositor.init(options.width, options.height, '#000')
+  setHostApi({
+    getFileHandleByPath: async (path) => projectStore.getFileHandleByPath(path),
+    onExportProgress: (progress) => onProgress(progress),
+  });
 
-  try {
-    const maxDurationUs = await compositor.loadTimeline(clips, async (path: string) => {
-      return await projectStore.getFileHandleByPath(path)
-    })
-
-    if (maxDurationUs <= 0) throw new Error('No video clips to export')
-
-    const durationS = maxDurationUs / 1_000_000
-
-    // Audio Processing using Web Audio API OfflineAudioContext
-    let offlineCtx: OfflineAudioContext | null = null
-    let audioData: AudioBuffer | null = null
-
-    // Determine if we have any audio across all clips
-    let hasAnyAudio = false
-    for (const c of compositor.clips) {
-      if (c.input) {
-        const audioTrack = await c.input.getPrimaryAudioTrack()
-        if (audioTrack) {
-          hasAnyAudio = true
-          break
-        }
-      }
-    }
-
-    if (options.audio && hasAnyAudio) {
-      offlineCtx = new OfflineAudioContext({
-        numberOfChannels: 2,
-        sampleRate: 48000,
-        length: Math.ceil(48000 * durationS)
-      })
-
-      for (const clipData of compositor.clips) {
-        const arrayBuffer = await clipData.fileHandle.getFile().then((f: File) => f.arrayBuffer())
-        try {
-          const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer)
-          const sourceNode = offlineCtx.createBufferSource()
-          sourceNode.buffer = audioBuffer
-          sourceNode.connect(offlineCtx.destination)
-          sourceNode.start(clipData.startUs / 1_000_000)
-        } catch (err) {
-          console.warn('[TimelineExportModal] Failed to decode audio for clip', err)
-        }
-      }
-
-      audioData = await offlineCtx.startRendering()
-    }
-
-    let format;
-    if (options.format === 'webm') format = new WebMOutputFormat()
-    else if (options.format === 'mkv') format = new MkvOutputFormat()
-    else format = new Mp4OutputFormat()
-
-    // Pass writable directly to StreamTarget
-    const writable = await (fileHandle as any).createWritable()
-    const target = new StreamTarget(writable, {
-      chunked: true,
-      chunkSize: 16 * 1024 * 1024,
-    })
-    const output = new Output({ target, format })
-    
-    // We pass the compositor tracking canvas
-    if (!compositor.canvas) throw new Error("VideoCompositor canvas is missing")
-
-    const videoSource = new MediaBunnyCanvasSource(compositor.canvas as any, {
-      codec: getBunnyVideoCodec(options.videoCodec),
-      bitrate: options.bitrate,
-      hardwareAcceleration: 'prefer-software'
-    })
-    
-    output.addVideoTrack(videoSource)
-
-    let audioSource: any = null
-    if (audioData) {
-      audioSource = new AudioBufferSource(audioData, {
-        codec: options.audioCodec || 'aac',
-        bitrate: options.audioBitrate,
-        numberOfChannels: audioData.numberOfChannels,
-        sampleRate: audioData.sampleRate
-      })
-      output.addAudioTrack(audioSource)
-    }
-
-    // Generate frames
-    const totalFrames = Math.ceil(durationS * options.fps)
-    const dtUs = Math.floor(1_000_000 / options.fps)
-    let currentTimeUs = 0
-
-    // Force output start before generating
-    await output.start()
-
-    for (let frameNum = 0; frameNum < totalFrames; frameNum++) {
-      const generatedCanvas = await compositor.renderFrame(currentTimeUs)
-      
-      if (generatedCanvas) {
-        // Send frame from main canvas
-        await (videoSource as any).add(currentTimeUs / 1_000_000)
-      }
-      
-      currentTimeUs += dtUs
-      onProgress(Math.min(100, Math.round(((frameNum + 1) / totalFrames) * 100)))
-
-      if ((frameNum + 1) % EXPORT_FRAME_YIELD_INTERVAL === 0) {
-        await new Promise<void>((resolve) => {
-          setTimeout(resolve, 0)
-        })
-      }
-    }
-
-    if ('close' in videoSource) (videoSource as any).close()
-    if (audioSource && 'close' in audioSource) (audioSource as any).close()
-
-    await output.finalize()
-
-  } finally {
-    compositor.destroy()
-  }
+  await client.exportTimeline(fileHandle, options, clips);
 }
 
 async function ensureExportDir(): Promise<FileSystemDirectoryHandle> {

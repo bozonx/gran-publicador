@@ -314,6 +314,9 @@ importers:
       '@webav/av-cliper':
         specifier: ^1.2.8
         version: 1.2.8(patch_hash=8bd6963e7c22e1810cf897f284df620ebc58d277d60bef2d0da132ee7ff1ee90)
+      bidc:
+        specifier: ^0.0.4
+        version: 0.0.4
       filerobot-image-editor:
         specifier: ^4.8.1
         version: 4.8.1(@babel/core@7.29.0)(@types/react@19.2.9)(konva@10.2.0)(react-filerobot-image-editor@4.9.1(@types/react-dom@19.2.3(@types/react@19.2.9))(@types/react@19.2.9)(react-dom@18.3.1(react@18.3.1))(react-konva@18.2.14(@types/react@19.2.9)(konva@10.2.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(styled-components@5.3.11(@babel/core@7.29.0)(react-dom@18.3.1(react@18.3.1))(react-is@18.3.1)(react@18.3.1)))(react-is@18.3.1)
@@ -4746,6 +4749,9 @@ packages:
 
   better-promises@1.0.0:
     resolution: {integrity: sha512-gPgL2nRgeSbMIe3QpsYdKR3K0S9OZuphVuos60Eqsw8d/6GivOkyJ5D/zmnolJ6hzh7upnnflBUWUlQh4qpU2A==}
+
+  bidc@0.0.4:
+    resolution: {integrity: sha512-WgHZ4TFk9/Lb6QhW/ntEquB6RSieCcMToRSG2xIOHeALDeiUTOXdMx9ixBHUe3wuXphtjqGEOXBvkmkGEZznSw==}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -14355,6 +14361,8 @@ snapshots:
   better-promises@1.0.0:
     dependencies:
       error-kid: 1.0.2
+
+  bidc@0.0.4: {}
 
   bidi-js@1.0.3:
     dependencies:

@@ -3,6 +3,7 @@ import { ref } from 'vue';
 
 import { useGranVideoEditorWorkspaceStore } from './workspace.store';
 import { useGranVideoEditorProjectStore } from './project.store';
+import { getWorkerClient } from '../../utils/video-editor/worker-client';
 
 export interface MediaMetadata {
   source: {
@@ -51,20 +52,7 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
     return await projectCacheDir.getDirectoryHandle('files-meta', { create: true });
   }
 
-  function parseVideoCodec(codec: string): string {
-    if (codec.startsWith('avc1')) return 'H.264 (AVC)';
-    if (codec.startsWith('hev1') || codec.startsWith('hvc1')) return 'H.265 (HEVC)';
-    if (codec.startsWith('vp09')) return 'VP9';
-    if (codec.startsWith('av01')) return 'AV1';
-    return codec;
-  }
 
-  function parseAudioCodec(codec: string): string {
-    if (codec.startsWith('mp4a')) return 'AAC';
-    if (codec.startsWith('opus')) return 'Opus';
-    if (codec.startsWith('vorbis')) return 'Vorbis';
-    return codec;
-  }
 
   async function getOrFetchMetadataByPath(path: string, options?: { forceRefresh?: boolean }) {
     const handle = await projectStore.getFileHandleByPath(path);
@@ -106,51 +94,10 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
     }
 
     try {
-      const { Input, BlobSource, ALL_FORMATS } = await import('mediabunny');
-      const source = new BlobSource(file);
-      const input = new Input({ source, formats: ALL_FORMATS } as any);
+      const { client } = getWorkerClient();
+      const meta = await client.extractMetadata(fileHandle);
 
-      try {
-        const durationS = await input.computeDuration();
-        const vTrack = await input.getPrimaryVideoTrack();
-        const aTrack = await input.getPrimaryAudioTrack();
-
-        const meta: MediaMetadata = {
-          source: {
-            size: file.size,
-            lastModified: file.lastModified,
-          },
-          duration: durationS,
-        };
-
-        if (vTrack) {
-          const stats = await vTrack.computePacketStats(100);
-          const codecParam = await vTrack.getCodecParameterString();
-          const colorSpace = typeof vTrack.getColorSpace === 'function' ? await vTrack.getColorSpace() : undefined;
-
-          meta.video = {
-            width: vTrack.codedWidth,
-            height: vTrack.codedHeight,
-            displayWidth: vTrack.displayWidth,
-            displayHeight: vTrack.displayHeight,
-            rotation: vTrack.rotation,
-            codec: codecParam || vTrack.codec || '',
-            parsedCodec: parseVideoCodec(codecParam || vTrack.codec || ''),
-            fps: stats.averagePacketRate,
-            colorSpace,
-          };
-        }
-
-        if (aTrack) {
-          const codecParam = await aTrack.getCodecParameterString();
-          meta.audio = {
-            codec: codecParam || aTrack.codec || '',
-            parsedCodec: parseAudioCodec(codecParam || aTrack.codec || ''),
-            sampleRate: aTrack.sampleRate,
-            channels: aTrack.numberOfChannels,
-          };
-        }
-
+      if (meta) {
         mediaMetadata.value[cacheKey] = meta;
 
         if (metaDir) {
@@ -161,10 +108,8 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
         }
 
         return meta;
-      } finally {
-        if ('dispose' in input && typeof (input as any).dispose === 'function') (input as any).dispose();
-        else if ('close' in input && typeof (input as any).close === 'function') (input as any).close();
       }
+      return null;
     } catch (e) {
       console.error('Failed to fetch metadata for', projectRelativePath, e);
       return null;

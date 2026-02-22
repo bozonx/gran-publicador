@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
-import { VideoCompositor } from '~/utils/video-editor/VideoCompositor'
+import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
 import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
 const { t } = useI18n()
@@ -92,7 +92,7 @@ let buildRequestId = 0
 let lastBuiltSourceSignature = ''
 let buildQueue: Promise<void> = Promise.resolve()
 
-const compositor = new VideoCompositor()
+const { client } = getWorkerClient()
 
 function updateCanvasDisplaySize() {
   const viewport = viewportEl.value
@@ -128,24 +128,32 @@ async function buildTimeline() {
     const clips = videoItems.value
     console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
-      compositor.clearClips()
+      await client.clearClips()
       isLoading.value = false
       return
     }
 
-    await compositor.init(exportWidth.value, exportHeight.value, '#000', false)
     if (containerEl.value) {
       containerEl.value.innerHTML = ''
-      if (compositor.app && compositor.app.canvas) {
-        containerEl.value.appendChild(compositor.app.canvas as unknown as HTMLCanvasElement)
-      }
+      const canvas = document.createElement('canvas')
+      canvas.width = exportWidth.value
+      canvas.height = exportHeight.value
+      canvas.style.width = '100%'
+      canvas.style.height = '100%'
+      canvas.style.display = 'block'
+      containerEl.value.appendChild(canvas)
+      const offscreen = canvas.transferControlToOffscreen()
+      await client.initCompositor(offscreen, exportWidth.value, exportHeight.value, '#000')
     }
 
-    console.log('[Monitor] VideoCompositor initialized canvas', exportWidth.value, exportHeight.value)
+    console.log('[Monitor] VideoCompositor initialized canvas via worker', exportWidth.value, exportHeight.value)
 
-    const maxDuration = await compositor.loadTimeline(clips, async (path) => {
-      return await projectStore.getFileHandleByPath(path)
+    setHostApi({
+      getFileHandleByPath: async (path) => projectStore.getFileHandleByPath(path),
+      onExportProgress: () => {},
     })
+
+    const maxDuration = await client.loadTimeline(clips)
 
     lastBuiltSourceSignature = clipSourceSignature.value
 
@@ -154,7 +162,7 @@ async function buildTimeline() {
 
     // Show first frame
     console.log('[Monitor] Previewing first frame...')
-    await compositor.renderFrame(0)
+    await client.renderFrame(0)
     console.log('[Monitor] First frame previewed')
 
     timelineStore.currentTime = 0
@@ -177,16 +185,18 @@ watch(clipSourceSignature, () => {
 })
 
 watch(clipLayoutSignature, () => {
-  if (!compositor.app || isLoading.value) {
+  if (isLoading.value) {
     return
   }
   if (clipSourceSignature.value !== lastBuiltSourceSignature) {
     return
   }
 
-  const maxDuration = compositor.updateTimelineLayout(videoItems.value)
-  timelineStore.duration = maxDuration
-  renderQueue = renderQueue.then(() => compositor.renderFrame(timelineStore.currentTime))
+  renderQueue = renderQueue.then(async () => {
+    const maxDuration = await client.updateTimelineLayout(videoItems.value)
+    timelineStore.duration = maxDuration
+    await client.renderFrame(timelineStore.currentTime)
+  })
 })
 
 watch(
@@ -213,12 +223,12 @@ function updatePlayback(timestamp: number) {
     newTimeUs = timelineStore.duration
     timelineStore.isPlaying = false
     timelineStore.currentTime = newTimeUs
-    renderQueue = renderQueue.then(() => compositor.renderFrame(newTimeUs))
+    renderQueue = renderQueue.then(() => client.renderFrame(newTimeUs))
     return
   }
 
   timelineStore.currentTime = newTimeUs
-  renderQueue = renderQueue.then(() => compositor.renderFrame(newTimeUs))
+  renderQueue = renderQueue.then(() => client.renderFrame(newTimeUs))
 
   if (timelineStore.isPlaying) {
     playbackLoopId = requestAnimationFrame(updatePlayback)
@@ -245,7 +255,7 @@ watch(() => timelineStore.isPlaying, (playing) => {
 // Sync time to store (initial seek or external seek)
 watch(() => timelineStore.currentTime, (val) => {
   if (!timelineStore.isPlaying) {
-    renderQueue = renderQueue.then(() => compositor.renderFrame(val))
+    renderQueue = renderQueue.then(() => client.renderFrame(val))
   }
 })
 
@@ -264,7 +274,7 @@ onBeforeUnmount(() => {
   viewportResizeObserver?.disconnect()
   viewportResizeObserver = null
   cancelAnimationFrame(playbackLoopId)
-  compositor.destroy()
+  client.destroyCompositor()
 })
 
 function formatTime(seconds: number): string {
