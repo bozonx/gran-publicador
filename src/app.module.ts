@@ -22,6 +22,7 @@ import redisConfig, { RedisConfig } from './config/redis.config.js';
 import mediaConfig, { MediaConfig } from './config/media.config.js';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
+import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from './common/redis/redis.module.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
@@ -233,6 +234,33 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
 
         return {
           store,
+        };
+      },
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const config = configService.get<RedisConfig>('redis')!;
+
+        if (!config.enabled) {
+          throw new Error('Redis is disabled in configuration, but it is required for BullMQ.');
+        }
+
+        const isUpstash = config.url.includes('upstash.io');
+        const redisOptions: any = {
+          maxRetriesPerRequest: null, // BullMQ requires maxRetriesPerRequest to be null
+        };
+
+        if (isUpstash) {
+          redisOptions.family = 0;
+        }
+
+        return {
+          connection: {
+            url: config.url,
+            ...redisOptions,
+          },
+          prefix: config.keyPrefix,
         };
       },
     }),
