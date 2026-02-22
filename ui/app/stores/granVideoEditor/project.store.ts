@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import PQueue from 'p-queue';
 
 import { createTimelineDocId } from '~/timeline/id';
 import type { TimelineDocument } from '~/timeline/types';
@@ -130,7 +131,28 @@ export const useGranVideoEditorProjectStore = defineStore('granVideoEditorProjec
 
   const projectSettings = ref<GranVideoEditorProjectSettings>(createDefaultProjectSettings());
   const isLoadingProjectSettings = ref(false);
-  let isPersistingProjectSettings = false;
+  const isSavingProjectSettings = ref(false);
+
+  let persistProjectSettingsTimeout: number | null = null;
+  let projectSettingsRevision = 0;
+  let savedProjectSettingsRevision = 0;
+
+  const projectSettingsSaveQueue = new PQueue({ concurrency: 1 });
+
+  function clearPersistProjectSettingsTimeout() {
+    if (typeof window === 'undefined') return;
+    if (persistProjectSettingsTimeout === null) return;
+    window.clearTimeout(persistProjectSettingsTimeout);
+    persistProjectSettingsTimeout = null;
+  }
+
+  function markProjectSettingsAsDirty() {
+    projectSettingsRevision += 1;
+  }
+
+  function markProjectSettingsAsCleanForCurrentRevision() {
+    savedProjectSettingsRevision = projectSettingsRevision;
+  }
 
   function toProjectRelativePath(path: string): string {
     return path
@@ -230,33 +252,73 @@ export const useGranVideoEditorProjectStore = defineStore('granVideoEditorProjec
       projectSettings.value = applyWorkspaceDefaultsToProjectSettings(createDefaultProjectSettings());
     } finally {
       isLoadingProjectSettings.value = false;
+      projectSettingsRevision = 0;
+      markProjectSettingsAsCleanForCurrentRevision();
     }
   }
 
-  async function saveProjectSettings() {
+  async function persistProjectSettingsNow() {
     if (!workspaceStore.projectsHandle || !currentProjectName.value || isLoadingProjectSettings.value) {
       return;
     }
 
-    isPersistingProjectSettings = true;
+    if (savedProjectSettingsRevision >= projectSettingsRevision) return;
+
+    isSavingProjectSettings.value = true;
+    const revisionToSave = projectSettingsRevision;
+
     try {
       const settingsFileHandle = await ensureProjectSettingsFile({ create: true });
       if (!settingsFileHandle) return;
       const writable = await (settingsFileHandle as any).createWritable();
       await writable.write(`${JSON.stringify(projectSettings.value, null, 2)}\n`);
       await writable.close();
+
+      if (savedProjectSettingsRevision < revisionToSave) {
+        savedProjectSettingsRevision = revisionToSave;
+      }
     } catch (e) {
       console.warn('Failed to save project settings', e);
     } finally {
-      isPersistingProjectSettings = false;
+      isSavingProjectSettings.value = false;
     }
+  }
+
+  async function enqueueProjectSettingsSave() {
+    await projectSettingsSaveQueue.add(async () => {
+      await persistProjectSettingsNow();
+    });
+  }
+
+  async function requestProjectSettingsSave(options?: { immediate?: boolean }) {
+    if (options?.immediate) {
+      clearPersistProjectSettingsTimeout();
+      await enqueueProjectSettingsSave();
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      await enqueueProjectSettingsSave();
+      return;
+    }
+
+    clearPersistProjectSettingsTimeout();
+    persistProjectSettingsTimeout = window.setTimeout(() => {
+      persistProjectSettingsTimeout = null;
+      void enqueueProjectSettingsSave();
+    }, 500);
+  }
+
+  async function saveProjectSettings() {
+    await requestProjectSettingsSave({ immediate: true });
   }
 
   watch(
     projectSettings,
-    async () => {
-      if (isLoadingProjectSettings.value || isPersistingProjectSettings) return;
-      await saveProjectSettings();
+    () => {
+      if (isLoadingProjectSettings.value) return;
+      markProjectSettingsAsDirty();
+      void requestProjectSettingsSave();
     },
     { deep: true },
   );

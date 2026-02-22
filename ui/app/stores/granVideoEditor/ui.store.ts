@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import PQueue from 'p-queue';
 
 interface PersistedFileTreeState {
   expandedPaths: string[];
@@ -42,6 +43,28 @@ export const useGranVideoEditorUiStore = defineStore('granVideoEditorUi', () => 
   const fileTreeExpandedPaths = ref<Record<string, true>>({});
   const currentFileTreeProjectName = ref<string | null>(null);
 
+  const isSavingFileTree = ref(false);
+  let persistFileTreeTimeout: number | null = null;
+  let fileTreeRevision = 0;
+  let savedFileTreeRevision = 0;
+
+  const fileTreeSaveQueue = new PQueue({ concurrency: 1 });
+
+  function clearPersistFileTreeTimeout() {
+    if (typeof window === 'undefined') return;
+    if (persistFileTreeTimeout === null) return;
+    window.clearTimeout(persistFileTreeTimeout);
+    persistFileTreeTimeout = null;
+  }
+
+  function markFileTreeAsDirty() {
+    fileTreeRevision += 1;
+  }
+
+  function markFileTreeAsCleanForCurrentRevision() {
+    savedFileTreeRevision = fileTreeRevision;
+  }
+
   function restoreFileTreeStateOnce(projectName: string) {
     if (typeof window === 'undefined') return;
     if (currentFileTreeProjectName.value === projectName) return;
@@ -58,11 +81,53 @@ export const useGranVideoEditorUiStore = defineStore('granVideoEditorUi', () => 
     }
 
     fileTreeExpandedPaths.value = next;
+    fileTreeRevision = 0;
+    markFileTreeAsCleanForCurrentRevision();
   }
 
-  function schedulePersistFileTreeState(projectName: string) {
-    const expandedPaths = Object.keys(fileTreeExpandedPaths.value);
-    writeLocalStorageJson(getFileTreeStorageKey(projectName), { expandedPaths });
+  async function persistFileTreeNow(projectName: string) {
+    if (savedFileTreeRevision >= fileTreeRevision) return;
+
+    isSavingFileTree.value = true;
+    const revisionToSave = fileTreeRevision;
+
+    try {
+      const expandedPaths = Object.keys(fileTreeExpandedPaths.value);
+      writeLocalStorageJson(getFileTreeStorageKey(projectName), { expandedPaths });
+
+      if (savedFileTreeRevision < revisionToSave) {
+        savedFileTreeRevision = revisionToSave;
+      }
+    } catch (e) {
+      console.warn('Failed to persist file tree state', e);
+    } finally {
+      isSavingFileTree.value = false;
+    }
+  }
+
+  async function enqueueFileTreeSave(projectName: string) {
+    await fileTreeSaveQueue.add(async () => {
+      await persistFileTreeNow(projectName);
+    });
+  }
+
+  async function requestFileTreeSave(projectName: string, options?: { immediate?: boolean }) {
+    if (options?.immediate) {
+      clearPersistFileTreeTimeout();
+      await enqueueFileTreeSave(projectName);
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      await enqueueFileTreeSave(projectName);
+      return;
+    }
+
+    clearPersistFileTreeTimeout();
+    persistFileTreeTimeout = window.setTimeout(() => {
+      persistFileTreeTimeout = null;
+      void enqueueFileTreeSave(projectName);
+    }, 500);
   }
 
   function isFileTreePathExpanded(path: string): boolean {
@@ -75,7 +140,8 @@ export const useGranVideoEditorUiStore = defineStore('granVideoEditorUi', () => 
     if (expanded) {
       if (fileTreeExpandedPaths.value[path]) return;
       fileTreeExpandedPaths.value = { ...fileTreeExpandedPaths.value, [path]: true };
-      schedulePersistFileTreeState(projectName);
+      markFileTreeAsDirty();
+      void requestFileTreeSave(projectName);
       return;
     }
 
@@ -83,7 +149,8 @@ export const useGranVideoEditorUiStore = defineStore('granVideoEditorUi', () => 
     const next = { ...fileTreeExpandedPaths.value };
     delete next[path];
     fileTreeExpandedPaths.value = next;
-    schedulePersistFileTreeState(projectName);
+    markFileTreeAsDirty();
+    void requestFileTreeSave(projectName);
   }
 
   watch(

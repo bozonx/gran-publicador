@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
+import PQueue from 'p-queue';
 
 function readLocalStorageJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
@@ -119,24 +120,167 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
     }),
   );
 
+  const isSavingUserSettings = ref(false);
+  let persistUserSettingsTimeout: number | null = null;
+  let userSettingsRevision = 0;
+  let savedUserSettingsRevision = 0;
+  const userSettingsSaveQueue = new PQueue({ concurrency: 1 });
+
+  const isSavingWorkspaceSettings = ref(false);
+  let persistWorkspaceSettingsTimeout: number | null = null;
+  let workspaceSettingsRevision = 0;
+  let savedWorkspaceSettingsRevision = 0;
+  const workspaceSettingsSaveQueue = new PQueue({ concurrency: 1 });
+
+  function clearPersistUserSettingsTimeout() {
+    if (typeof window === 'undefined') return;
+    if (persistUserSettingsTimeout === null) return;
+    window.clearTimeout(persistUserSettingsTimeout);
+    persistUserSettingsTimeout = null;
+  }
+
+  function clearPersistWorkspaceSettingsTimeout() {
+    if (typeof window === 'undefined') return;
+    if (persistWorkspaceSettingsTimeout === null) return;
+    window.clearTimeout(persistWorkspaceSettingsTimeout);
+    persistWorkspaceSettingsTimeout = null;
+  }
+
+  function markUserSettingsAsDirty() {
+    userSettingsRevision += 1;
+  }
+
+  function markUserSettingsAsCleanForCurrentRevision() {
+    savedUserSettingsRevision = userSettingsRevision;
+  }
+
+  function markWorkspaceSettingsAsDirty() {
+    workspaceSettingsRevision += 1;
+  }
+
+  function markWorkspaceSettingsAsCleanForCurrentRevision() {
+    savedWorkspaceSettingsRevision = workspaceSettingsRevision;
+  }
+
   watch(lastProjectName, v => {
     if (typeof window === 'undefined') return;
     if (v === null) window.localStorage.removeItem('gran-editor-last-project');
     else window.localStorage.setItem('gran-editor-last-project', v);
   });
 
+  async function persistUserSettingsNow() {
+    if (savedUserSettingsRevision >= userSettingsRevision) return;
+
+    isSavingUserSettings.value = true;
+    const revisionToSave = userSettingsRevision;
+
+    try {
+      writeLocalStorageJson('gran-video-editor:user-settings', userSettings.value);
+
+      if (savedUserSettingsRevision < revisionToSave) {
+        savedUserSettingsRevision = revisionToSave;
+      }
+    } catch (e) {
+      console.warn('Failed to save user settings', e);
+    } finally {
+      isSavingUserSettings.value = false;
+    }
+  }
+
+  async function enqueueUserSettingsSave() {
+    await userSettingsSaveQueue.add(async () => {
+      await persistUserSettingsNow();
+    });
+  }
+
+  async function requestUserSettingsSave(options?: { immediate?: boolean }) {
+    if (options?.immediate) {
+      clearPersistUserSettingsTimeout();
+      await enqueueUserSettingsSave();
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      await enqueueUserSettingsSave();
+      return;
+    }
+
+    clearPersistUserSettingsTimeout();
+    persistUserSettingsTimeout = window.setTimeout(() => {
+      persistUserSettingsTimeout = null;
+      void enqueueUserSettingsSave();
+    }, 500);
+  }
+
   watch(
     userSettings,
-    v => {
-      writeLocalStorageJson('gran-video-editor:user-settings', v);
+    () => {
+      markUserSettingsAsDirty();
+      void requestUserSettingsSave();
     },
     { deep: true },
   );
 
+  async function persistWorkspaceSettingsNow() {
+    if (savedWorkspaceSettingsRevision >= workspaceSettingsRevision) return;
+
+    isSavingWorkspaceSettings.value = true;
+    const revisionToSave = workspaceSettingsRevision;
+
+    try {
+      // Save to localStorage first (fast)
+      writeLocalStorageJson('gran-video-editor:workspace-settings', workspaceSettings.value);
+
+      // Save to disk if possible
+      if (workspaceHandle.value) {
+        const handle = await ensureWorkspaceSettingsFile({ create: true });
+        if (handle) {
+          const writable = await (handle as any).createWritable();
+          await writable.write(`${JSON.stringify(workspaceSettings.value, null, 2)}\n`);
+          await writable.close();
+        }
+      }
+
+      if (savedWorkspaceSettingsRevision < revisionToSave) {
+        savedWorkspaceSettingsRevision = revisionToSave;
+      }
+    } catch (e) {
+      console.warn('Failed to save workspace settings', e);
+    } finally {
+      isSavingWorkspaceSettings.value = false;
+    }
+  }
+
+  async function enqueueWorkspaceSettingsSave() {
+    await workspaceSettingsSaveQueue.add(async () => {
+      await persistWorkspaceSettingsNow();
+    });
+  }
+
+  async function requestWorkspaceSettingsSave(options?: { immediate?: boolean }) {
+    if (options?.immediate) {
+      clearPersistWorkspaceSettingsTimeout();
+      await enqueueWorkspaceSettingsSave();
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      await enqueueWorkspaceSettingsSave();
+      return;
+    }
+
+    clearPersistWorkspaceSettingsTimeout();
+    persistWorkspaceSettingsTimeout = window.setTimeout(() => {
+      persistWorkspaceSettingsTimeout = null;
+      void enqueueWorkspaceSettingsSave();
+    }, 500);
+  }
+
   watch(
     workspaceSettings,
-    v => {
-      writeLocalStorageJson('gran-video-editor:workspace-settings', v);
+    () => {
+      markWorkspaceSettingsAsDirty();
+      void requestWorkspaceSettingsSave();
     },
     { deep: true },
   );
@@ -196,30 +340,15 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
       workspaceSettings.value = normalizeWorkspaceSettings(text.trim() ? JSON.parse(text) : null);
     } catch {
       workspaceSettings.value = normalizeWorkspaceSettings(null);
+    } finally {
+      workspaceSettingsRevision = 0;
+      markWorkspaceSettingsAsCleanForCurrentRevision();
     }
   }
 
   async function saveWorkspaceSettingsToDisk() {
-    if (!workspaceHandle.value) return;
-
-    try {
-      const handle = await ensureWorkspaceSettingsFile({ create: true });
-      if (!handle) return;
-      const writable = await (handle as any).createWritable();
-      await writable.write(`${JSON.stringify(workspaceSettings.value, null, 2)}\n`);
-      await writable.close();
-    } catch (e) {
-      console.warn('Failed to save workspace editor settings', e);
-    }
+    await requestWorkspaceSettingsSave({ immediate: true });
   }
-
-  watch(
-    workspaceSettings,
-    async () => {
-      await saveWorkspaceSettingsToDisk();
-    },
-    { deep: true },
-  );
 
   async function saveHandleToIndexedDB(handle: FileSystemDirectoryHandle) {
     const request = indexedDB.open('GranVideoEditor', 1);
