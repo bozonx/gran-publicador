@@ -203,6 +203,8 @@ model Role {
   systemType  String?  @map("system_type")
   // Role permissions stored as JSON
   permissions Json
+  // Optimistic locking version
+  version     Int      @default(1)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

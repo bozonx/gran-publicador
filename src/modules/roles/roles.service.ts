@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -217,14 +218,31 @@ export class RolesService {
       }
     }
 
-    const updated = await this.prisma.role.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        permissions: data.permissions ? (data.permissions as any) : undefined,
-      },
-    });
+    const updateData: any = {
+      name: data.name,
+      description: data.description,
+      permissions: data.permissions ? (data.permissions as any) : undefined,
+    };
+
+    let updated: any;
+    if (data.version !== undefined) {
+      updateData.version = { increment: 1 };
+      const { count } = await this.prisma.role.updateMany({
+        where: { id, version: data.version },
+        data: updateData,
+      });
+
+      if (count === 0) {
+        throw new ConflictException('Роль была изменена в другой вкладке. Обновите страницу.');
+      }
+
+      updated = await this.prisma.role.findUnique({ where: { id } });
+    } else {
+      updated = await this.prisma.role.update({
+        where: { id },
+        data: updateData,
+      });
+    }
 
     this.logger.log(
       `Role "${updated.name}" updated for project ${role.projectId} by user ${userId}`,

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, ValidateNested, MaxLength } from 'class-validator';
+import { IsString, IsOptional, ValidateNested, MaxLength, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RolePermissionsDto } from './create-role.dto.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
@@ -18,4 +18,8 @@ export class UpdateRoleDto {
   @Type(() => RolePermissionsDto)
   @IsOptional()
   public permissions?: RolePermissionsDto;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }
