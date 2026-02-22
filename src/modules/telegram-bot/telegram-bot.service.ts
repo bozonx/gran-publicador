@@ -9,6 +9,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramBotService.name);
   private bot: Bot | null = null;
   private isDestroying = false;
+  private isStarted = false;
 
   constructor(
     private readonly configService: ConfigService,
@@ -18,19 +19,23 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   public async onModuleInit(): Promise<void> {
     const appConfig = this.configService.get<AppConfig>('app')!;
 
-    if (!appConfig.telegramBotEnabled) {
-      this.logger.log('Telegram Bot is disabled via config.');
-      return;
-    }
-
     if (!appConfig.telegramBotToken) {
-      this.logger.error('TELEGRAM_BOT_TOKEN is not defined but TELEGRAM_BOT_ENABLED is true.');
+      if (appConfig.telegramBotEnabled) {
+        this.logger.error('TELEGRAM_BOT_TOKEN is not defined but TELEGRAM_BOT_ENABLED is true.');
+      } else {
+        this.logger.log('Telegram Bot is disabled and token is not configured.');
+      }
       return;
     }
 
     this.bot = new Bot(appConfig.telegramBotToken);
 
-    // Register handlers
+    if (!appConfig.telegramBotEnabled) {
+      this.logger.log('Telegram Bot polling is disabled via config.');
+      return;
+    }
+
+    // Register handlers (polling mode)
     this.bot.command('start', ctx => this.telegramBotUpdate.onStart(ctx));
     this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
 
@@ -53,6 +58,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       .start({
         onStart: botInfo => {
           this.logger.log(`Telegram Bot @${botInfo.username ?? 'unknown'} started`);
+          this.isStarted = true;
         },
       })
       .catch(err => {
@@ -67,7 +73,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
 
   public async onModuleDestroy(): Promise<void> {
     this.isDestroying = true;
-    if (this.bot) {
+    if (this.bot && this.isStarted) {
       this.logger.log('Stopping Telegram Bot...');
       try {
         await this.bot.stop();
