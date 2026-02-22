@@ -6,6 +6,7 @@ import {
   IsUUID,
   MaxLength,
   ValidateIf,
+  IsInt,
 } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
@@ -30,4 +31,8 @@ export class UpdateContentCollectionDto {
   @IsObject()
   @IsOptional()
   public config?: Record<string, unknown>;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

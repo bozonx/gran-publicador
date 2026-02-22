@@ -7,6 +7,7 @@ import {
   IsUUID,
   MaxLength,
   ValidateIf,
+  IsInt,
 } from 'class-validator';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
@@ -33,4 +34,8 @@ export class UpdateContentItemDto {
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

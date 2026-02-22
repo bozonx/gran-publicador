@@ -10,6 +10,7 @@ import {
   MaxLength,
   ArrayMaxSize,
   IsUUID,
+  IsInt,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/index.js';
@@ -118,4 +119,8 @@ export class UpdatePublicationDto {
   @IsUUID()
   @IsOptional()
   public projectTemplateId?: string;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -116,14 +117,30 @@ export class ProjectTemplatesService {
 
     return this.prisma.$transaction(
       async tx => {
+        const updateData: any = {
+          name: data.name,
+          postType: data.postType !== undefined ? data.postType : undefined,
+          language: data.language,
+          template: data.template ? (data.template as any) : undefined,
+        };
+
+        if (data.version !== undefined) {
+          updateData.version = { increment: 1 };
+          const { count } = await tx.projectTemplate.updateMany({
+            where: { id: templateId, version: data.version },
+            data: updateData,
+          });
+
+          if (count === 0) {
+            throw new ConflictException('Шаблон был изменен в другой вкладке. Обновите страницу.');
+          }
+
+          return tx.projectTemplate.findUnique({ where: { id: templateId } });
+        }
+
         return tx.projectTemplate.update({
           where: { id: templateId },
-          data: {
-            name: data.name,
-            postType: data.postType !== undefined ? data.postType : undefined,
-            language: data.language,
-            template: data.template ? (data.template as any) : undefined,
-          },
+          data: updateData,
         });
       },
       {

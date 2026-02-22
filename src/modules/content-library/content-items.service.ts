@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -552,6 +553,41 @@ export class ContentItemsService {
             update: {},
           });
         }
+      }
+      if (dto.version !== undefined) {
+        const { count } = await (tx.contentItem as any).updateMany({
+          where: { id, version: dto.version },
+          data: {
+            version: { increment: 1 },
+            title: dto.title,
+            tagObjects:
+              dto.tags !== undefined
+                ? await this.tagsService.prepareTagsConnectOrCreate(
+                    dto.tags ?? [],
+                    {
+                      projectId: item.projectId ?? undefined,
+                      userId: item.userId ?? undefined,
+                    },
+                    'CONTENT_LIBRARY',
+                    true,
+                  )
+                : undefined,
+            note: dto.note,
+          },
+        });
+        if (count === 0) {
+          throw new ConflictException('Элемент был изменен в другой вкладке. Обновите страницу.');
+        }
+        return (tx.contentItem as any).findUnique({
+          where: { id },
+          include: {
+            tagObjects: true,
+            media: {
+              orderBy: { order: 'asc' },
+              include: { media: true },
+            },
+          },
+        });
       }
 
       return (tx.contentItem as any).update({

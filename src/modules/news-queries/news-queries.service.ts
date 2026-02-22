@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateNewsQueryDto } from './dto/create-news-query.dto.js';
 import { UpdateNewsQueryDto } from './dto/update-news-query.dto.js';

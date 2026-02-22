@@ -2,6 +2,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsInt,
   IsOptional,
   IsString,
   MaxLength,
@@ -37,4 +38,8 @@ export class UpdateProjectTemplateDto {
   @ValidateNested({ each: true })
   @Type(() => TemplateBlockDto)
   public template?: TemplateBlockDto[];
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

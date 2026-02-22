@@ -1,9 +1,10 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import {
   PublicationStatus,
@@ -1284,60 +1285,88 @@ export class PublicationsService {
       }
     }
 
-    const updated = await this.prisma.publication.update({
-      where: { id },
-      data: {
-        title: data.title,
-        description: data.description,
-        content: data.content,
-        authorComment: data.authorComment,
-        meta: mergedMeta,
-        // Update Media: Replace all existing with new list if any media field is provided
-        // Logic: if any media DTO field is present, we assume full replace.
-        // If all are undefined, we touch nothing.
-        // Note: This logic assumes that the client sends the FULL state of media.
-        media:
-          data.media || data.existingMediaIds
-            ? {
-                deleteMany: {}, // Clear existing
-                create: [
-                  // New Media
-                  ...(data.media || []).map((m, i) => ({
-                    order: i,
-                    media: { create: { ...m, meta: m.meta } },
-                  })),
-                  // Existing Media
-                  ...(data.existingMediaIds || []).map((item, i) => {
-                    const input = this.getMediaInput(item);
-                    return {
-                      order: (data.media?.length || 0) + i,
-                      mediaId: input.id,
-                      hasSpoiler: input.hasSpoiler,
-                    };
-                  }),
-                ],
-              }
-            : undefined,
-        status: data.status,
-        postType: data.postType,
-        projectTemplateId: data.projectTemplateId,
-        postDate: data.postDate,
-        scheduledAt: data.scheduledAt,
-        note: data.note,
-        tagObjects:
-          data.tags !== undefined
-            ? await this.tagsService.prepareTagsConnectOrCreate(
-                normalizeTags(data.tags),
-                {
-                  projectId: publication.projectId!,
-                },
-                'PUBLICATIONS',
-                true,
-              )
-            : undefined,
-      },
-      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
-    });
+    const updateData: Prisma.PublicationUpdateInput = {
+      title: data.title,
+      description: data.description,
+      content: data.content,
+      authorComment: data.authorComment,
+      meta: mergedMeta,
+      // Update Media: Replace all existing with new list if any media field is provided
+      // Logic: if any media DTO field is present, we assume full replace.
+      // If all are undefined, we touch nothing.
+      // Note: This logic assumes that the client sends the FULL state of media.
+      media:
+        data.media || data.existingMediaIds
+          ? {
+              deleteMany: {}, // Clear existing
+              create: [
+                // New Media
+                ...(data.media || []).map((m, i) => ({
+                  order: i,
+                  media: { create: { ...m, meta: m.meta as Prisma.InputJsonValue } },
+                })),
+                // Existing Media
+                ...(data.existingMediaIds || []).map((item, i) => {
+                  const input = this.getMediaInput(item);
+                  return {
+                    order: (data.media?.length || 0) + i,
+                    mediaId: input.id,
+                    hasSpoiler: input.hasSpoiler,
+                  };
+                }),
+              ],
+            }
+          : undefined,
+      status: data.status,
+      postType: data.postType,
+      projectTemplate:
+        data.projectTemplateId !== undefined
+          ? data.projectTemplateId === null
+            ? { disconnect: true }
+            : { connect: { id: data.projectTemplateId } }
+          : undefined,
+      postDate: data.postDate,
+      scheduledAt: data.scheduledAt,
+      note: data.note,
+      tagObjects:
+        data.tags !== undefined
+          ? await this.tagsService.prepareTagsConnectOrCreate(
+              normalizeTags(data.tags),
+              {
+                projectId: publication.projectId!,
+              },
+              'PUBLICATIONS',
+              true,
+            )
+          : undefined,
+    };
+
+    let updated: any;
+    if (data.version !== undefined) {
+      updateData.version = { increment: 1 };
+
+      const { count } = await this.prisma.publication.updateMany({
+        where: { id, version: data.version },
+        data: updateData,
+      });
+
+      if (count === 0) {
+        throw new ConflictException(
+          'Данные публикации были изменены в другой вкладке. Обновите страницу.',
+        );
+      }
+
+      updated = await this.prisma.publication.findUnique({
+        where: { id },
+        include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
+      });
+    } else {
+      updated = await this.prisma.publication.update({
+        where: { id },
+        data: updateData,
+        include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
+      });
+    }
 
     if (data.scheduledAt !== undefined || data.status !== undefined) {
       await this.refreshPublicationEffectiveAt(id);
