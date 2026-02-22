@@ -30,7 +30,12 @@ export class VideoCompositor {
 
   async init(width: number, height: number, bgColor = '#000', offscreen = true): Promise<void> {
     if (this.app) {
-      this.destroy();
+      try {
+        this.destroy();
+      } catch (err) {
+        console.error('[VideoCompositor] Failed to destroy previous application instance', err);
+        this.app = null;
+      }
     }
 
     this.width = width;
@@ -338,7 +343,29 @@ export class VideoCompositor {
   destroy() {
     this.clearClips();
     if (this.app) {
-      this.app.destroy(true, { children: true, texture: true });
+      const pixiApp = this.app as any;
+
+      // Pixi v8 ResizePlugin teardown may call an internal _cancelResize callback.
+      // Guard it because some lifecycle interleavings leave it unset.
+      if (typeof pixiApp._cancelResize !== 'function') {
+        pixiApp._cancelResize = () => {};
+      }
+      if (typeof pixiApp.cancelResize === 'function') {
+        pixiApp.cancelResize();
+      }
+
+      try {
+        this.app.destroy(
+          { removeView: false },
+          {
+            children: true,
+            texture: true,
+            textureSource: true,
+          },
+        );
+      } catch (err) {
+        console.error('[VideoCompositor] Application destroy failed', err);
+      }
       this.app = null;
     }
     this.canvas = null;

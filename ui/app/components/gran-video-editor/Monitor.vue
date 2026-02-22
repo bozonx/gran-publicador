@@ -70,6 +70,14 @@ function getCanvasWrapperStyle() {
   }
 }
 
+function scheduleBuild() {
+  buildQueue = buildQueue
+    .then(() => buildTimeline())
+    .catch((err) => {
+      console.error('[Monitor] Failed to build timeline queue', err)
+    })
+}
+
 function getCanvasInnerStyle() {
   return {
     width: `${exportWidth.value}px`,
@@ -82,6 +90,7 @@ function getCanvasInnerStyle() {
 let viewportResizeObserver: ResizeObserver | null = null
 let buildRequestId = 0
 let lastBuiltSourceSignature = ''
+let buildQueue: Promise<void> = Promise.resolve()
 
 const compositor = new VideoCompositor()
 
@@ -164,7 +173,7 @@ async function buildTimeline() {
 }
 
 watch(clipSourceSignature, () => {
-  buildTimeline()
+  scheduleBuild()
 })
 
 watch(clipLayoutSignature, () => {
@@ -184,7 +193,7 @@ watch(
   () => [projectStore.projectSettings.export.width, projectStore.projectSettings.export.height],
   () => {
     updateCanvasDisplaySize()
-    buildTimeline()
+    scheduleBuild()
   },
 )
 
@@ -248,7 +257,7 @@ onMounted(() => {
     })
     viewportResizeObserver.observe(viewportEl.value)
   }
-  buildTimeline()
+  scheduleBuild()
 })
 
 onBeforeUnmount(() => {
