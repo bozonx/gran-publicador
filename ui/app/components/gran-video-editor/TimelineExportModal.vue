@@ -4,6 +4,7 @@ import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/works
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
 import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
+import type { TimelineTrackItem } from '~/timeline/types'
 import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
@@ -26,6 +27,45 @@ interface ExportOptions {
   width: number
   height: number
   fps: number
+}
+
+interface WorkerTimelineClip {
+  kind: 'clip'
+  id: string
+  source: {
+    path: string
+  }
+  timelineRange: {
+    startUs: number
+    durationUs: number
+  }
+  sourceRange: {
+    startUs: number
+    durationUs: number
+  }
+}
+
+function toWorkerTimelineClips(items: TimelineTrackItem[]): WorkerTimelineClip[] {
+  const clips: WorkerTimelineClip[] = []
+  for (const item of items) {
+    if (item.kind !== 'clip') continue
+    clips.push({
+      kind: 'clip',
+      id: item.id,
+      source: {
+        path: item.source.path,
+      },
+      timelineRange: {
+        startUs: item.timelineRange.startUs,
+        durationUs: item.timelineRange.durationUs,
+      },
+      sourceRange: {
+        startUs: item.sourceRange.startUs,
+        durationUs: item.sourceRange.durationUs,
+      },
+    })
+  }
+  return clips
 }
 
 const EXPORT_FRAME_YIELD_INTERVAL = 12
@@ -219,8 +259,8 @@ function resolveExportCodecs(format: 'mp4' | 'webm' | 'mkv', selectedVideoCodec:
 
 async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSystemFileHandle, onProgress: (progress: number) => void): Promise<void> {
   const doc = timelineStore.timelineDoc
-  const track = doc?.tracks?.find((t: any) => t.kind === 'video')
-  const clips = (track?.items ?? []).filter((it: any) => it.kind === 'clip')
+  const track = doc?.tracks?.find(track => track.kind === 'video')
+  const clips = toWorkerTimelineClips(track?.items ?? [])
   if (!clips.length) throw new Error('Timeline is empty')
 
   const { client } = getWorkerClient();
@@ -230,7 +270,7 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
     onExportProgress: (progress) => onProgress(progress),
   });
 
-  await client.exportTimeline(fileHandle, options, JSON.parse(JSON.stringify(clips)));
+  await client.exportTimeline(fileHandle, options, clips);
 }
 
 async function ensureExportDir(): Promise<FileSystemDirectoryHandle> {

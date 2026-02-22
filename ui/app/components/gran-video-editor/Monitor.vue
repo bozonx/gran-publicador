@@ -5,6 +5,22 @@ import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeli
 import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
 import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
+interface WorkerTimelineClip {
+  kind: 'clip'
+  id: string
+  source: {
+    path: string
+  }
+  timelineRange: {
+    startUs: number
+    durationUs: number
+  }
+  sourceRange: {
+    startUs: number
+    durationUs: number
+  }
+}
+
 const { t } = useI18n()
 const projectStore = useGranVideoEditorProjectStore()
 const timelineStore = useGranVideoEditorTimelineStore()
@@ -70,6 +86,29 @@ function getCanvasWrapperStyle() {
   }
 }
 
+function toWorkerTimelineClips(items: TimelineTrackItem[]): WorkerTimelineClip[] {
+  const clips: WorkerTimelineClip[] = []
+  for (const item of items) {
+    if (item.kind !== 'clip') continue
+    clips.push({
+      kind: 'clip',
+      id: item.id,
+      source: {
+        path: item.source.path,
+      },
+      timelineRange: {
+        startUs: item.timelineRange.startUs,
+        durationUs: item.timelineRange.durationUs,
+      },
+      sourceRange: {
+        startUs: item.sourceRange.startUs,
+        durationUs: item.sourceRange.durationUs,
+      },
+    })
+  }
+  return clips
+}
+
 function scheduleBuild() {
   buildQueue = buildQueue
     .then(() => buildTimeline())
@@ -91,8 +130,41 @@ let viewportResizeObserver: ResizeObserver | null = null
 let buildRequestId = 0
 let lastBuiltSourceSignature = ''
 let buildQueue: Promise<void> = Promise.resolve()
+let renderLoopInFlight = false
+let latestRenderTimeUs: number | null = null
+let isUnmounted = false
 
 const { client } = getWorkerClient()
+
+function scheduleRender(timeUs: number) {
+  if (isUnmounted) return
+  latestRenderTimeUs = timeUs
+  if (renderLoopInFlight) return
+
+  renderLoopInFlight = true
+  const run = async () => {
+    try {
+      while (latestRenderTimeUs !== null) {
+        if (isUnmounted) {
+          latestRenderTimeUs = null
+          break
+        }
+        const nextTimeUs = latestRenderTimeUs
+        latestRenderTimeUs = null
+        await client.renderFrame(nextTimeUs)
+      }
+    } catch (err) {
+      console.error('[Monitor] Render failed', err)
+    } finally {
+      renderLoopInFlight = false
+      if (latestRenderTimeUs !== null) {
+        scheduleRender(latestRenderTimeUs)
+      }
+    }
+  }
+
+  void run()
+}
 
 function updateCanvasDisplaySize() {
   const viewport = viewportEl.value
@@ -125,7 +197,7 @@ async function buildTimeline() {
   loadError.value = null
 
   try {
-    const clips = videoItems.value
+    const clips = toWorkerTimelineClips(videoItems.value)
     console.log('[Monitor] Timeline clips count:', clips.length)
     if (clips.length === 0) {
       await client.clearClips()
@@ -143,6 +215,7 @@ async function buildTimeline() {
       canvas.style.display = 'block'
       containerEl.value.appendChild(canvas)
       const offscreen = canvas.transferControlToOffscreen()
+      await client.destroyCompositor()
       await client.initCompositor(offscreen, exportWidth.value, exportHeight.value, '#000')
     }
 
@@ -153,7 +226,7 @@ async function buildTimeline() {
       onExportProgress: () => {},
     })
 
-    const maxDuration = await client.loadTimeline(JSON.parse(JSON.stringify(clips)))
+    const maxDuration = await client.loadTimeline(clips)
 
     lastBuiltSourceSignature = clipSourceSignature.value
 
@@ -162,7 +235,7 @@ async function buildTimeline() {
 
     // Show first frame
     console.log('[Monitor] Previewing first frame...')
-    await client.renderFrame(0)
+    scheduleRender(0)
     console.log('[Monitor] First frame previewed')
 
     timelineStore.currentTime = 0
@@ -192,10 +265,11 @@ watch(clipLayoutSignature, () => {
     return
   }
 
+  const layoutClips = toWorkerTimelineClips(videoItems.value)
   renderQueue = renderQueue.then(async () => {
-    const maxDuration = await client.updateTimelineLayout(JSON.parse(JSON.stringify(videoItems.value)))
+    const maxDuration = await client.updateTimelineLayout(layoutClips)
     timelineStore.duration = maxDuration
-    await client.renderFrame(timelineStore.currentTime)
+    scheduleRender(timelineStore.currentTime)
   })
 })
 
@@ -223,12 +297,12 @@ function updatePlayback(timestamp: number) {
     newTimeUs = timelineStore.duration
     timelineStore.isPlaying = false
     timelineStore.currentTime = newTimeUs
-    renderQueue = renderQueue.then(() => client.renderFrame(newTimeUs))
+    scheduleRender(newTimeUs)
     return
   }
 
   timelineStore.currentTime = newTimeUs
-  renderQueue = renderQueue.then(() => client.renderFrame(newTimeUs))
+  scheduleRender(newTimeUs)
 
   if (timelineStore.isPlaying) {
     playbackLoopId = requestAnimationFrame(updatePlayback)
@@ -255,11 +329,12 @@ watch(() => timelineStore.isPlaying, (playing) => {
 // Sync time to store (initial seek or external seek)
 watch(() => timelineStore.currentTime, (val) => {
   if (!timelineStore.isPlaying) {
-    renderQueue = renderQueue.then(() => client.renderFrame(val))
+    scheduleRender(val)
   }
 })
 
 onMounted(() => {
+  isUnmounted = false
   updateCanvasDisplaySize()
   if (typeof ResizeObserver !== 'undefined' && viewportEl.value) {
     viewportResizeObserver = new ResizeObserver(() => {
@@ -271,6 +346,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  isUnmounted = true
+  latestRenderTimeUs = null
   viewportResizeObserver?.disconnect()
   viewportResizeObserver = null
   cancelAnimationFrame(playbackLoopId)

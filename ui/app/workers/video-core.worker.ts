@@ -57,7 +57,8 @@ const api: any = {
       if (vTrack) {
         const stats = await vTrack.computePacketStats(100);
         const codecParam = await vTrack.getCodecParameterString();
-        const colorSpace = typeof vTrack.getColorSpace === 'function' ? await vTrack.getColorSpace() : undefined;
+        const colorSpace =
+          typeof vTrack.getColorSpace === 'function' ? await vTrack.getColorSpace() : undefined;
 
         meta.video = {
           width: vTrack.codedWidth,
@@ -84,21 +85,26 @@ const api: any = {
 
       return meta;
     } finally {
-      if ('dispose' in input && typeof (input as any).dispose === 'function') (input as any).dispose();
-      else if ('close' in input && typeof (input as any).close === 'function') (input as any).close();
+      if ('dispose' in input && typeof (input as any).dispose === 'function')
+        (input as any).dispose();
+      else if ('close' in input && typeof (input as any).close === 'function')
+        (input as any).close();
     }
   },
 
   async initCompositor(canvas: OffscreenCanvas, width: number, height: number, bgColor: string) {
-    if (!compositor) {
-      compositor = new VideoCompositor();
+    if (compositor) {
+      compositor.destroy();
+      compositor = null;
     }
+
+    compositor = new VideoCompositor();
     await compositor.init(width, height, bgColor, true, canvas);
   },
 
   async loadTimeline(clips: any[]) {
     if (!compositor) throw new Error('Compositor not initialized');
-    return compositor.loadTimeline(clips, async (path) => {
+    return compositor.loadTimeline(clips, async path => {
       if (!hostClient) return null;
       return hostClient.getFileHandleByPath(path);
     });
@@ -127,13 +133,21 @@ const api: any = {
   },
 
   async exportTimeline(targetHandle: FileSystemFileHandle, options: any, timelineClips: any[]) {
-    const { Output, Mp4OutputFormat, WebMOutputFormat, MkvOutputFormat, CanvasSource, AudioBufferSource, StreamTarget } = await import('mediabunny');
+    const {
+      Output,
+      Mp4OutputFormat,
+      WebMOutputFormat,
+      MkvOutputFormat,
+      CanvasSource,
+      AudioBufferSource,
+      StreamTarget,
+    } = await import('mediabunny');
 
     const localCompositor = new VideoCompositor();
     await localCompositor.init(options.width, options.height, '#000', true);
 
     try {
-      const maxDurationUs = await localCompositor.loadTimeline(timelineClips, async (path) => {
+      const maxDurationUs = await localCompositor.loadTimeline(timelineClips, async path => {
         if (!hostClient) return null;
         return hostClient.getFileHandleByPath(path);
       });
@@ -159,11 +173,13 @@ const api: any = {
         offlineCtx = new OfflineAudioContext({
           numberOfChannels: 2,
           sampleRate: 48000,
-          length: Math.ceil(48000 * durationS)
+          length: Math.ceil(48000 * durationS),
         });
 
         for (const clipData of localCompositor.clips) {
-          const arrayBuffer = await clipData.fileHandle.getFile().then((f: File) => f.arrayBuffer());
+          const arrayBuffer = await clipData.fileHandle
+            .getFile()
+            .then((f: File) => f.arrayBuffer());
           try {
             const audioBuffer = await offlineCtx.decodeAudioData(arrayBuffer);
             const sourceNode = offlineCtx.createBufferSource();
@@ -193,7 +209,7 @@ const api: any = {
       const videoSource = new CanvasSource(localCompositor.canvas as any, {
         codec: getBunnyVideoCodec(options.videoCodec),
         bitrate: options.bitrate,
-        hardwareAcceleration: 'prefer-software'
+        hardwareAcceleration: 'prefer-software',
       });
       output.addVideoTrack(videoSource);
 
@@ -203,7 +219,7 @@ const api: any = {
           codec: options.audioCodec || 'aac',
           bitrate: options.audioBitrate,
           numberOfChannels: audioData.numberOfChannels,
-          sampleRate: audioData.sampleRate
+          sampleRate: audioData.sampleRate,
         });
         output.addAudioTrack(audioSource);
       }
@@ -225,7 +241,7 @@ const api: any = {
         if (hostClient) hostClient.onExportProgress(progress);
 
         if ((frameNum + 1) % 12 === 0) {
-          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          await new Promise<void>(resolve => setTimeout(resolve, 0));
         }
       }
 
@@ -233,15 +249,14 @@ const api: any = {
       if (audioSource && 'close' in audioSource) (audioSource as any).close();
 
       await output.finalize();
-
     } finally {
       localCompositor.destroy();
     }
-  }
+  },
 };
 
 let callIdCounter = 0;
-const pendingCalls = new Map<number, { resolve: Function, reject: Function }>();
+const pendingCalls = new Map<number, { resolve: Function; reject: Function }>();
 
 self.addEventListener('message', async (e: any) => {
   const data = e.data;
@@ -269,14 +284,17 @@ self.addEventListener('message', async (e: any) => {
   }
 });
 
-hostClient = new Proxy({}, {
-  get(_, method: string) {
-    return async (...args: any[]) => {
-      return new Promise((resolve, reject) => {
-        const id = ++callIdCounter;
-        pendingCalls.set(id, { resolve, reject });
-        self.postMessage({ type: 'rpc-call', id, method, args });
-      });
-    };
-  }
-}) as VideoCoreHostAPI;
+hostClient = new Proxy(
+  {},
+  {
+    get(_, method: string) {
+      return async (...args: any[]) => {
+        return new Promise((resolve, reject) => {
+          const id = ++callIdCounter;
+          pendingCalls.set(id, { resolve, reject });
+          self.postMessage({ type: 'rpc-call', id, method, args });
+        });
+      };
+    },
+  },
+) as VideoCoreHostAPI;
