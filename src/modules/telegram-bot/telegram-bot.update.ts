@@ -157,7 +157,7 @@ export class TelegramBotUpdate {
         message: message as Message,
       } satisfies TelegramProcessMessageJobData,
       {
-        jobId: `telegram:${from.id}:${message.chat.id}:${message.message_id}`,
+        jobId: `telegram-${from.id}-${message.chat.id}-${message.message_id}`,
         attempts: 5,
         backoff: {
           type: 'exponential',

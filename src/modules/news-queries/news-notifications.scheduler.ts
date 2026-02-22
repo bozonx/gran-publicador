@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProjectsService } from '../projects/projects.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -8,6 +10,11 @@ import { NewsConfig } from '../../config/news.config.js';
 import { Prisma } from '../../generated/prisma/index.js';
 import { randomUUID } from 'crypto';
 import { RedisService } from '../../common/redis/redis.service.js';
+import {
+  NEWS_NOTIFICATIONS_QUEUE,
+  PROCESS_NEWS_QUERY_JOB,
+  ProcessNewsQueryJobData,
+} from './news-notifications.queue.js';
 
 export interface NewsNotificationsRunResult {
   skipped: boolean;
@@ -16,6 +23,7 @@ export interface NewsNotificationsRunResult {
   failedQueriesCount: number;
   queriesWithNewItemsCount: number;
   createdNotificationsCount: number;
+  queuedQueriesCount?: number;
 }
 
 interface NewsNotificationState {
@@ -37,6 +45,8 @@ export class NewsNotificationsScheduler {
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    @InjectQueue(NEWS_NOTIFICATIONS_QUEUE)
+    private readonly newsNotificationsQueue: Queue<ProcessNewsQueryJobData>,
   ) {}
 
   public async runNow(): Promise<NewsNotificationsRunResult> {
@@ -73,23 +83,27 @@ export class NewsNotificationsScheduler {
         },
       });
 
-      this.logger.debug(`Found ${queries.length} active queries to check`);
+      this.logger.debug(`Found ${queries.length} active queries to queue`);
 
       let failedQueriesCount = 0;
-      let queriesWithNewItemsCount = 0;
-      let createdNotificationsCount = 0;
+      let queuedQueriesCount = 0;
 
       for (const query of queries) {
         try {
-          const result = await this.processQuery(query);
-          if (result.hasNewItems) {
-            queriesWithNewItemsCount += 1;
-          }
-          createdNotificationsCount += result.createdNotificationsCount;
+          await this.newsNotificationsQueue.add(
+            PROCESS_NEWS_QUERY_JOB,
+            { queryId: query.id },
+            {
+              jobId: `news-query-${query.id}-${Date.now()}`,
+              removeOnComplete: true,
+              removeOnFail: false,
+            },
+          );
+          queuedQueriesCount += 1;
         } catch (error: any) {
           failedQueriesCount += 1;
           this.logger.error(
-            `Failed to process news notifications for query ${query.id}: ${error.message}`,
+            `Failed to queue news notifications for query ${query.id}: ${error.message}`,
           );
         }
       }
@@ -98,12 +112,38 @@ export class NewsNotificationsScheduler {
         skipped: false,
         checkedQueriesCount: queries.length,
         failedQueriesCount,
-        queriesWithNewItemsCount,
-        createdNotificationsCount,
+        queriesWithNewItemsCount: 0,
+        createdNotificationsCount: 0,
+        queuedQueriesCount,
       };
     } finally {
       await this.redisService.releaseLock(this.lockKey, lockToken);
     }
+  }
+
+  public async processQueryById(queryId: string): Promise<void> {
+    const query = await this.prisma.projectNewsQuery.findUnique({
+      where: { id: queryId },
+      include: {
+        project: {
+          include: {
+            owner: { select: { id: true, uiLanguage: true } },
+            members: {
+              include: {
+                user: { select: { id: true, uiLanguage: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!query || !query.isNotificationEnabled) {
+      this.logger.debug(`Query ${queryId} not found or notifications disabled`);
+      return;
+    }
+
+    await this.processQuery(query);
   }
 
   private async processQuery(query: any): Promise<{
