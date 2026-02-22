@@ -26,6 +26,12 @@ export class TelegramMessageProcessor extends WorkerHost {
   }
 
   public async process(job: Job<TelegramProcessMessageJobData>): Promise<void> {
+    if (this.telegramBotService.isShuttingDown) {
+      this.logger.warn(`Worker is shutting down. Delaying job ${String(job.id)}`);
+      await job.moveToDelayed(Date.now() + 5000, job.token);
+      return;
+    }
+
     const { telegramUserId, chatId, message } = job.data;
 
     const bot = this.telegramBotService.getBot();

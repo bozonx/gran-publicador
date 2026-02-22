@@ -21,6 +21,12 @@ import { RedisService } from '../../common/redis/redis.service.js';
 
 const MAX_TITLE_LENGTH = 80;
 
+interface TelegramActionContext {
+  from: Message['from'];
+  reply: (text: string, extra?: any) => Promise<any>;
+  api: Api;
+}
+
 @Injectable()
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
@@ -58,7 +64,7 @@ export class TelegramBotUpdate {
   }
 
   private async replyContentItemCreated(
-    ctx: Context,
+    ctx: TelegramActionContext,
     lang: string,
     contentItemId: string,
   ): Promise<void> {
@@ -177,21 +183,24 @@ export class TelegramBotUpdate {
     }
 
     try {
-      const ctxLike: any = {
-        from: message.from ?? { id: telegramUserId, language_code: 'en-US' },
-        chat: message.chat,
-        message,
+      const ctxLike: TelegramActionContext = {
+        from: message.from ?? {
+          id: telegramUserId,
+          is_bot: false,
+          first_name: 'Unknown',
+          language_code: 'en-US',
+        },
         api: botApi,
         reply: (text: string, extra?: any) => botApi.sendMessage(chatId, text, extra),
       };
 
-      await this.processMessage(ctxLike as Context, message);
+      await this.processMessage(ctxLike, message);
     } finally {
       await this.redisService.releaseLock(lockKey, lockToken);
     }
   }
 
-  private async processMessage(ctx: Context, message: Message): Promise<void> {
+  private async processMessage(ctx: TelegramActionContext, message: Message): Promise<void> {
     const from = ctx.from;
     if (!from) return;
 
@@ -283,6 +292,7 @@ export class TelegramBotUpdate {
       await ctx
         .reply(String(this.i18n.t('telegram.error_internal', { lang: fallbackLang })))
         .catch(() => undefined);
+      throw error;
     }
   }
 
@@ -336,7 +346,7 @@ export class TelegramBotUpdate {
   }
 
   private async createContentItemFromMessage(options: {
-    ctx: Context;
+    ctx: TelegramActionContext;
     userId: string;
     telegramUserId: number;
     message: Message;
@@ -429,7 +439,7 @@ export class TelegramBotUpdate {
   }
 
   private async addMediaGroupMessageToContentItem(options: {
-    ctx: Context;
+    ctx: TelegramActionContext;
     userId: string;
     telegramUserId: number;
     message: Message;
@@ -557,7 +567,11 @@ export class TelegramBotUpdate {
   /**
    * Transcribe voice message using STT service
    */
-  private async transcribeVoice(ctx: Context, fileId: string, language?: string): Promise<string> {
+  private async transcribeVoice(
+    ctx: TelegramActionContext,
+    fileId: string,
+    language?: string,
+  ): Promise<string> {
     try {
       const file = await ctx.api.getFile(fileId);
       if (!file.file_path) {
