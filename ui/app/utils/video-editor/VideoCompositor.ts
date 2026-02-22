@@ -28,7 +28,13 @@ export class VideoCompositor {
   private clipById = new Map<string, CompositorClip>();
   private replacedClipIds = new Set<string>();
 
-  async init(width: number, height: number, bgColor = '#000', offscreen = true): Promise<void> {
+  async init(
+    width: number,
+    height: number,
+    bgColor = '#000',
+    offscreen = true,
+    externalCanvas?: OffscreenCanvas | HTMLCanvasElement
+  ): Promise<void> {
     if (this.app) {
       try {
         this.destroy();
@@ -47,7 +53,9 @@ export class VideoCompositor {
 
     this.app = new Application();
 
-    if (offscreen) {
+    if (externalCanvas) {
+      this.canvas = externalCanvas;
+    } else if (offscreen) {
       this.canvas = new OffscreenCanvas(width, height);
     } else {
       this.canvas = document.createElement('canvas');

@@ -3,7 +3,6 @@ import './worker-polyfill';
 import { DOMAdapter, WebWorkerAdapter } from 'pixi.js';
 DOMAdapter.set(WebWorkerAdapter);
 
-import { createChannel } from 'bidc';
 import type { VideoCoreHostAPI } from '../utils/video-editor/worker-client';
 import type { VideoCoreWorkerAPI } from '../utils/video-editor/worker-rpc';
 import { VideoCompositor } from '../utils/video-editor/VideoCompositor';
@@ -90,7 +89,12 @@ const api: any = {
     }
   },
 
-
+  async initCompositor(canvas: OffscreenCanvas, width: number, height: number, bgColor: string) {
+    if (!compositor) {
+      compositor = new VideoCompositor();
+    }
+    await compositor.init(width, height, bgColor, true, canvas);
+  },
 
   async loadTimeline(clips: any[]) {
     if (!compositor) throw new Error('Compositor not initialized');
@@ -236,41 +240,43 @@ const api: any = {
   }
 };
 
-// Create a pseudo-target to bypass bidc's internal context checks when 'window' is mocked
-const pseudoTarget = {
-  postMessage: (message: any, transfer?: any[]) => {
-    self.postMessage(message, transfer as any);
+let callIdCounter = 0;
+const pendingCalls = new Map<number, { resolve: Function, reject: Function }>();
+
+self.addEventListener('message', async (e: any) => {
+  const data = e.data;
+  if (!data) return;
+
+  if (data.type === 'rpc-response') {
+    const pending = pendingCalls.get(data.id);
+    if (pending) {
+      if (data.error) pending.reject(new Error(data.error));
+      else pending.resolve(data.result);
+      pendingCalls.delete(data.id);
+    }
+  } else if (data.type === 'rpc-call') {
+    try {
+      const method = data.method;
+      if (typeof api[method] !== 'function') {
+        throw new Error(`Method ${method} not found on Worker API`);
+      }
+      const result = await api[method](...(data.args || []));
+      self.postMessage({ type: 'rpc-response', id: data.id, result });
+    } catch (err: any) {
+      console.error(`[Worker] Error in method ${data.method}:`, err);
+      self.postMessage({ type: 'rpc-response', id: data.id, error: err.message });
+    }
   }
-};
-const channel = createChannel(pseudoTarget as any);
+});
 
 hostClient = new Proxy({}, {
   get(_, method: string) {
     return async (...args: any[]) => {
-      return channel.send({ type: 'rpc', method, args });
+      return new Promise((resolve, reject) => {
+        const id = ++callIdCounter;
+        pendingCalls.set(id, { resolve, reject });
+        self.postMessage({ type: 'rpc-call', id, method, args });
+      });
     };
   }
 }) as VideoCoreHostAPI;
-
-// Worker receives calls from host
-channel.receive(async (data: any) => {
-  if (data && data.type === 'rpc' && api[data.method]) {
-    return api[data.method](...(data.args || []));
-  }
-});
-
-self.addEventListener('message', async (e: any) => {
-  if (e.data && e.data.type === 'initCanvas') {
-    try {
-      if (!compositor) {
-        compositor = new VideoCompositor();
-      }
-      await compositor.init(e.data.width, e.data.height, e.data.bgColor, true);
-      compositor.canvas = e.data.canvas;
-      self.postMessage({ type: 'canvasInitialized' });
-    } catch (err: any) {
-      console.error('[Worker] initCanvas failed', err);
-      self.postMessage({ type: 'canvasInitError', error: err.message });
-    }
-  }
-});

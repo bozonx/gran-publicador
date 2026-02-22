@@ -1,4 +1,3 @@
-import { createChannel } from 'bidc';
 import type { VideoCoreWorkerAPI } from './worker-rpc';
 
 export interface VideoCoreHostAPI {
@@ -6,29 +5,45 @@ export interface VideoCoreHostAPI {
   onExportProgress(progress: number): void;
 }
 
-let channelInstance: ReturnType<typeof createChannel> | null = null;
 let workerInstance: Worker | null = null;
 let hostApiInstance: VideoCoreHostAPI | null = null;
+
+let callIdCounter = 0;
+const pendingCalls = new Map<number, { resolve: Function, reject: Function }>();
 
 export function setHostApi(api: VideoCoreHostAPI) {
   hostApiInstance = api;
 }
 
 export function getWorkerClient(): { client: VideoCoreWorkerAPI; worker: Worker } {
-  if (!workerInstance || !channelInstance) {
+  if (!workerInstance) {
     workerInstance = new Worker(new URL('../../workers/video-core.worker.ts', import.meta.url), {
       type: 'module',
       name: 'video-core',
     });
 
-    channelInstance = createChannel(workerInstance);
+    workerInstance.addEventListener('message', async (e) => {
+      const data = e.data;
+      if (!data || !data.type) return;
 
-    // Host handles messages from the worker
-    channelInstance.receive(async (data: any) => {
-      if (data && data.type === 'rpc' && hostApiInstance) {
-        const method = data.method as keyof VideoCoreHostAPI;
-        if (typeof hostApiInstance[method] === 'function') {
-          return (hostApiInstance[method] as any)(...(data.args || []));
+      if (data.type === 'rpc-response') {
+        const pending = pendingCalls.get(data.id);
+        if (pending) {
+          if (data.error) pending.reject(new Error(data.error));
+          else pending.resolve(data.result);
+          pendingCalls.delete(data.id);
+        }
+      } else if (data.type === 'rpc-call') {
+        try {
+          if (!hostApiInstance) throw new Error('Host API not set');
+          const method = data.method as keyof VideoCoreHostAPI;
+          if (typeof hostApiInstance[method] !== 'function') {
+            throw new Error(`Method ${data.method} not found on Host API`);
+          }
+          const result = await (hostApiInstance[method] as any)(...(data.args || []));
+          workerInstance!.postMessage({ type: 'rpc-response', id: data.id, result });
+        } catch (err: any) {
+          workerInstance!.postMessage({ type: 'rpc-response', id: data.id, error: err.message });
         }
       }
     });
@@ -40,22 +55,23 @@ export function getWorkerClient(): { client: VideoCoreWorkerAPI; worker: Worker 
       if (method === 'initCompositor') {
         return async (canvas: OffscreenCanvas, width: number, height: number, bgColor: string) => {
           return new Promise<void>((resolve, reject) => {
-            const handler = (msg: MessageEvent) => {
-              if (msg.data && msg.data.type === 'canvasInitialized') {
-                workerInstance!.removeEventListener('message', handler);
-                resolve();
-              } else if (msg.data && msg.data.type === 'canvasInitError') {
-                workerInstance!.removeEventListener('message', handler);
-                reject(new Error(msg.data.error));
-              }
-            };
-            workerInstance!.addEventListener('message', handler);
-            workerInstance!.postMessage({ type: 'initCanvas', canvas, width, height, bgColor }, [canvas]);
+            const id = ++callIdCounter;
+            pendingCalls.set(id, { resolve, reject });
+            workerInstance!.postMessage({
+              type: 'rpc-call',
+              id,
+              method: 'initCompositor',
+              args: [canvas, width, height, bgColor]
+            }, [canvas]);
           });
         };
       }
       return async (...args: any[]) => {
-        return channelInstance!.send({ type: 'rpc', method, args });
+        return new Promise((resolve, reject) => {
+          const id = ++callIdCounter;
+          pendingCalls.set(id, { resolve, reject });
+          workerInstance!.postMessage({ type: 'rpc-call', id, method, args });
+        });
       };
     }
   }) as VideoCoreWorkerAPI;
