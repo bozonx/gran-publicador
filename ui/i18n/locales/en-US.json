@@ -783,7 +783,6 @@
     "admin": "Administration",
     "channels": "Channels",
     "dashboard": "Dashboard",
-    "granVideoEditor": "Gran Video Editor",
     "my_projects": "My Projects",
     "news": "News",
     "projects": "Projects",
@@ -1550,47 +1549,6 @@
       "partial": "Your browser has limited support. Export in some formats may be unavailable (e.g., AAC or H.264 might be missing).",
       "none": "Your browser does not support WebCodecs. Video editing and export are not possible. Please use a modern browser (Chrome, Edge).",
       "formatError": "Unsupported format: {type}. The editor requires MP4 (H.264/H.265) as source. WebM export is available after loading."
-    }
-  },
-  "granVideoEditor": {
-    "welcome": {
-      "selectFolder": "Select a workspace folder on your computer. This folder will store all your project files, media proxies, and cache.",
-      "openWorkspace": "Select Workspace Folder"
-    },
-    "fileManager": {
-      "unsupported": "File System Access API is not supported in this browser"
-    },
-    "export": {
-      "destination": "Destination: export/"
-    },
-    "projects": {
-      "title": "Projects",
-      "changeWorkspace": "Change Workspace",
-      "continueWorking": "Continue Working",
-      "openLast": "Open Project",
-      "newProject": "New Project",
-      "projectNamePlaceholder": "Project Name"
-    },
-    "preview": {
-      "title": "Preview",
-      "noFile": "No file selected",
-      "unsupported": "Unsupported file format"
-    },
-    "monitor": {
-      "title": "Monitor",
-      "empty": "No clip selected",
-      "loadError": "Error loading timeline",
-      "rewind": "Rewind",
-      "play": "Play"
-    },
-    "timeline": {
-      "rewind": "Rewind to start",
-      "pause": "Pause",
-      "play": "Play",
-      "stop": "Stop",
-      "zoom": "Zoom",
-      "dropClip": "Drop clip here",
-      "clipAdded": "Clip Added"
     }
   }
 }
