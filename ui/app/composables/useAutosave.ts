@@ -257,6 +257,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
   // Promise queue to ensure sequential saves
   let saveQueue = Promise.resolve();
+  let currentAbortController: AbortController | null = null;
 
   if (skipInitial && data.value) {
     lastSavedState.value = deepCloneOrNull(data.value);
@@ -278,6 +279,10 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     lastErrorRetryable = false;
     authToastShownForCycle = false;
     isIndicatorVisible.value = false;
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+    }
     clearIndicatorTimers();
     clearRetryTimer();
   }
@@ -317,8 +322,19 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         isIndicatorVisible.value = true;
       }, AUTOSAVE_INDICATOR_DELAY_MS);
 
+      if (currentAbortController) {
+        currentAbortController.abort();
+      }
+      currentAbortController = new AbortController();
+      const signal = currentAbortController.signal;
+
       try {
-        const result = await saveFn(data.value!);
+        const result = await saveFn(data.value!, signal);
+
+        // If this request was aborted by a newer one, just ignore the result
+        if (signal.aborted) {
+          return;
+        }
 
         // Handle both simple void return and SaveResult object
         const wasSaved =

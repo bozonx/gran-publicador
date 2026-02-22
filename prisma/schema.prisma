@@ -2,8 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client-js"
+  output     = "../src/generated/prisma"
   engineType = "library"
 }
 
@@ -14,43 +14,43 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  fullName         String?  @map("full_name")
+  fullName           String?   @map("full_name")
   // Telegram username without @ symbol
-  telegramUsername String?  @map("telegram_username")
-  avatarUrl        String?  @map("avatar_url")
+  telegramUsername   String?   @map("telegram_username")
+  avatarUrl          String?   @map("avatar_url")
   // Unique Telegram user ID for authentication
-  telegramId       BigInt?  @unique @map("telegram_id")
+  telegramId         BigInt?   @unique @map("telegram_id")
   // System administrator flag for elevated permissions
-  isAdmin          Boolean  @default(false) @map("is_admin")
+  isAdmin            Boolean   @default(false) @map("is_admin")
   // Hashed refresh token for JWT pair auth
-  hashedRefreshToken String? @map("hashed_refresh_token")
+  hashedRefreshToken String?   @map("hashed_refresh_token")
   // User ban status
-  isBanned         Boolean  @default(false) @map("is_banned")
-  banReason        String?  @map("ban_reason")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  isBanned           Boolean   @default(false) @map("is_banned")
+  banReason          String?   @map("ban_reason")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
   // Timestamp when user was soft-deleted
-  deletedAt        DateTime? @map("deleted_at")
+  deletedAt          DateTime? @map("deleted_at")
   // Main content language (affects research, news, channels)
-  language         String   @default("en-US") @map("language")
+  language           String    @default("en-US") @map("language")
   // Interface language (e.g., en-US, ru-RU)
-  uiLanguage       String   @default("en-US") @map("ui_language")
+  uiLanguage         String    @default("en-US") @map("ui_language")
   // User preferences stored as JSON
-  preferences      Json
+  preferences        Json
   // Optimistic locking version
-  version          Int      @default(1)
+  version            Int       @default(1)
 
-  ownedProjects  Project[]       @relation("ProjectOwner")
-  projectMembers ProjectMember[]
-  publications       Publication[] @relation("PublicationCreator")
-  contentItems ContentItem[]
-  apiTokens      ApiToken[]
-  notifications  Notification[]
-  llmPromptTemplates LlmPromptTemplate[]
-  llmSystemPromptHidden LlmSystemPromptHidden[]
-  authorSignatures ProjectAuthorSignature[]
-  contentCollections ContentCollection[]
-  tags               Tag[]
+  ownedProjects          Project[]                   @relation("ProjectOwner")
+  projectMembers         ProjectMember[]
+  publications           Publication[]               @relation("PublicationCreator")
+  contentItems           ContentItem[]
+  apiTokens              ApiToken[]
+  notifications          Notification[]
+  llmPromptTemplates     LlmPromptTemplate[]
+  llmSystemPromptHidden  LlmSystemPromptHidden[]
+  authorSignatures       ProjectAuthorSignature[]
+  contentCollections     ContentCollection[]
+  tags                   Tag[]
   newsNotificationStates NewsNotificationUserState[]
 
   @@index([telegramUsername])
@@ -58,22 +58,22 @@ model User {
 }
 
 model ApiToken {
-  id              String    @id @default(uuid())
-  userId          String    @map("user_id")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
   // User-friendly name for the token
-  name            String
+  name           String
   // Hashed token for authentication (bcrypt/argon2)
-  hashedToken     String    @unique @map("hashed_token")
+  hashedToken    String    @unique @map("hashed_token")
   // Encrypted token for one-time display to user
-  encryptedToken  String    @map("encrypted_token")
+  encryptedToken String    @map("encrypted_token")
   // If true, token has access to all user's projects (including future ones)
-  allProjects     Boolean   @default(false) @map("all_projects")
+  allProjects    Boolean   @default(false) @map("all_projects")
   // Last time this token was used for authentication
-  lastUsedAt      DateTime? @map("last_used_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects ApiTokenProject[]
 
   @@index([userId])
@@ -94,30 +94,30 @@ model Project {
   // Project preferences stored as JSON
   preferences Json
   // Optimistic locking version
-  version     Int      @default(1)
+  version     Int       @default(1)
 
-  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members      ProjectMember[]
-  channels     Channel[]
-  publications Publication[]
-  contentItems ContentItem[]
-  newsQueries  ProjectNewsQuery[]
+  owner              User                       @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members            ProjectMember[]
+  channels           Channel[]
+  publications       Publication[]
+  contentItems       ContentItem[]
+  newsQueries        ProjectNewsQuery[]
   llmPromptTemplates LlmPromptTemplate[]
-  apiTokens    ApiTokenProject[]
-  roles        Role[]
+  apiTokens          ApiTokenProject[]
+  roles              Role[]
   contentCollections ContentCollection[]
-  relationGroups PublicationRelationGroup[]
-  projectTemplates ProjectTemplate[]
-  authorSignatures ProjectAuthorSignature[]
-  tags             Tag[]
+  relationGroups     PublicationRelationGroup[]
+  projectTemplates   ProjectTemplate[]
+  authorSignatures   ProjectAuthorSignature[]
+  tags               Tag[]
 
   @@map("projects")
 }
 
 model ContentCollection {
-  id        String  @id @default(uuid())
-  type      ContentCollectionType
-  title     String
+  id    String                @id @default(uuid())
+  type  ContentCollectionType
+  title String
 
   groupType ContentLibraryGroupType? @map("group_type")
 
@@ -125,18 +125,18 @@ model ContentCollection {
   projectId String? @map("project_id")
   parentId  String? @map("parent_id")
 
-  order     Int     @default(0)
-  config    Json
+  order   Int  @default(0)
+  config  Json
   // Optimistic locking version
-  version   Int     @default(1)
+  version Int  @default(1)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent  ContentCollection? @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children ContentCollection[] @relation("ContentCollectionHierarchy")
+  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project           Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent            ContentCollection?  @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children          ContentCollection[] @relation("ContentCollectionHierarchy")
   contentItemGroups ContentItemGroup[]
 
   @@index([userId, order])
@@ -146,27 +146,27 @@ model ContentCollection {
 }
 
 model ProjectNewsQuery {
-  id        String   @id @default(uuid())
-  projectId String   @map("project_id")
-  
+  id        String @id @default(uuid())
+  projectId String @map("project_id")
+
   // Display name for the tab
-  name      String
-  
+  name String
+
   // Search settings stored as JSON: { q, mode, lang, sourceTags, newsTags, minScore, since, note }
-  settings  Json
-  
+  settings Json
+
   // Notification system fields
   isNotificationEnabled Boolean   @default(false) @map("is_notification_enabled")
   lastCheckedAt         DateTime? @map("last_checked_at")
-  
-  order     Int      @default(0)
+
+  order   Int @default(0)
   // Optimistic locking version
-  version   Int      @default(1)
-  
+  version Int @default(1)
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project                Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   notificationUserStates NewsNotificationUserState[]
 
   @@index([projectId])
@@ -175,15 +175,15 @@ model ProjectNewsQuery {
 }
 
 model NewsNotificationUserState {
-  id String @id @default(uuid())
-  userId String @map("user_id")
-  queryId String @map("query_id")
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  queryId         String   @map("query_id")
   lastSentSavedAt DateTime @map("last_sent_saved_at")
-  lastSentNewsId String @map("last_sent_news_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  lastSentNewsId  String   @map("last_sent_news_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   query ProjectNewsQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
 
   @@unique([userId, queryId])
@@ -268,13 +268,13 @@ model Channel {
   version           Int         @default(1)
 
   // Whether channel is active for posting
-  isActive          Boolean     @default(true) @map("is_active")
-  createdAt         DateTime    @default(now()) @map("created_at")
-  updatedAt         DateTime    @updatedAt @map("updated_at")
+  isActive   Boolean   @default(true) @map("is_active")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
   // Timestamp when channel was archived
-  archivedAt        DateTime?   @map("archived_at")
+  archivedAt DateTime? @map("archived_at")
   // User ID who archived the channel
-  archivedBy        String?     @map("archived_by")
+  archivedBy String?   @map("archived_by")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   posts   Post[]
@@ -284,59 +284,59 @@ model Channel {
 }
 
 model Publication {
-  id                 String  @id @default(uuid())
-  projectId          String  @map("project_id")
+  id         String  @id @default(uuid())
+  projectId  String  @map("project_id")
   // ID of the news item from microservice if this publication was created from news
-  newsItemId         String? @map("news_item_id")
+  newsItemId String? @map("news_item_id")
 
   // User who created the publication (nullable for system-generated)
-  createdBy  String?   @map("created_by")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @default(now()) @map("updated_at")
+  createdBy           String?   @map("created_by")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
   // Timestamp when publication was archived
-  archivedAt DateTime? @map("archived_at")
+  archivedAt          DateTime? @map("archived_at")
   // User ID who archived the publication
-  archivedBy String?   @map("archived_by")
+  archivedBy          String?   @map("archived_by")
   // When the publication is scheduled to be published
-  scheduledAt   DateTime? @map("scheduled_at")
+  scheduledAt         DateTime? @map("scheduled_at")
   // Denormalized effective timestamp for chronology sorting (publishedAt > scheduledAt > createdAt)
-  effectiveAt   DateTime  @default(now()) @map("effective_at")
+  effectiveAt         DateTime  @default(now()) @map("effective_at")
   // Timestamp when processing started (to detect timeouts)
   processingStartedAt DateTime? @map("processing_started_at")
 
   // Type of post (POST, ARTICLE, VIDEO, etc.) - master type for distribution
-  postType      PostType   @default(POST) @map("post_type")
+  postType          PostType          @default(POST) @map("post_type")
   // Language of the publication (ru-RU, en-US, etc.)
-  language      String     @default("en-US")
+  language          String            @default("en-US")
   // Reference to the project template used for this publication
-  projectTemplateId String?  @map("project_template_id")
+  projectTemplateId String?           @map("project_template_id")
   // Publication status (user can select: DRAFT, READY; system sets: SCHEDULED, PROCESSING, PUBLISHED, PARTIAL, FAILED, EXPIRED)
-  status        PublicationStatus @default(DRAFT)
+  status            PublicationStatus @default(DRAFT)
   // Title for articles and social media posts where title is required. Even if not required, it's recommended to fill it for easier post identification in Gran Publicador
-  title         String?
+  title             String?
   // Description for SEO purposes and social media. Can be used when publishing to websites
-  description   String?
+  description       String?
   // Main content: post text, article body, or description for video/audio/documents. Should be filled for any publication type
-  content       String?
+  content           String?
   // Author's commentary for the news (published along with the content)
-  authorComment String?    @map("author_comment")
+  authorComment     String?           @map("author_comment")
   // Additional metadata stored as JSON
-  meta          Json
+  meta              Json
   // Content date set by the author (e.g., article date, event date). Not the publication/posting date
-  postDate      DateTime?  @map("post_date")
+  postDate          DateTime?         @map("post_date")
   // Internal note for author's reference only. Never published to social media
-  note          String?
+  note              String?
   // Optimistic locking version
-  version       Int        @default(1)
+  version           Int               @default(1)
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectTemplate ProjectTemplate? @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
-  creator User?    @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
-  posts   Post[]
-  media   PublicationMedia[]
-  contentItems PublicationContentItem[]
-  relationItems PublicationRelationItem[]
-  tagObjects    Tag[]
+  project         Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectTemplate ProjectTemplate?          @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
+  creator         User?                     @relation("PublicationCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  posts           Post[]
+  media           PublicationMedia[]
+  contentItems    PublicationContentItem[]
+  relationItems   PublicationRelationItem[]
+  tagObjects      Tag[]
 
   @@index([projectId, status])
   @@index([projectId, createdAt])
@@ -350,28 +350,28 @@ model Publication {
 }
 
 model ContentItem {
-  id        String   @id @default(uuid())
-  userId    String?  @map("user_id")
-  projectId String?  @map("project_id")
+  id        String  @id @default(uuid())
+  userId    String? @map("user_id")
+  projectId String? @map("project_id")
 
-  title     String?
-  note      String?
+  title String?
+  note  String?
 
-  text      String?  @db.Text
-  meta      Json     @default("{}")
+  text    String? @db.Text
+  meta    Json    @default("{}")
   // Optimistic locking version
-  version   Int      @default(1)
+  version Int     @default(1)
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
   archivedAt DateTime? @map("archived_at")
   archivedBy String?   @map("archived_by")
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  media ContentItemMedia[]
-  groups ContentItemGroup[]
+  media        ContentItemMedia[]
+  groups       ContentItemGroup[]
   publications PublicationContentItem[]
   tagObjects   Tag[]
 
@@ -384,11 +384,11 @@ model ContentItem {
 model ContentItemGroup {
   id            String   @id @default(uuid())
   contentItemId String   @map("content_item_id")
-  collectionId         String   @map("collection_id")
+  collectionId  String   @map("collection_id")
   createdAt     DateTime @default(now()) @map("created_at")
 
   contentItem ContentItem       @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  collection        ContentCollection  @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collection  ContentCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@unique([contentItemId, collectionId])
   @@index([contentItemId])
@@ -429,36 +429,38 @@ model PublicationContentItem {
 }
 
 model Post {
-  id            String    @id @default(uuid())
+  id                       String     @id @default(uuid())
   // Link to parent publication
-  publicationId String    @map("publication_id")
-  channelId     String    @map("channel_id")
+  publicationId            String     @map("publication_id")
+  channelId                String     @map("channel_id")
   // Social media platform type stored as string for flexibility
-  socialMedia   String    @map("social_media")
+  socialMedia              String     @map("social_media")
   // Post status for tracking publication success (PENDING, FAILED, PUBLISHED)
   // Note: Status is managed by the system only, not manually editable
-  status        PostStatus @default(PENDING)
+  status                   PostStatus @default(PENDING)
   // Error message if post failed
-  errorMessage  String?    @map("error_message")
+  errorMessage             String?    @map("error_message")
   // Data received after publication (usually url or message id). Not editable by user.
-  meta          Json
+  meta                     Json
   // Overwrite of publication content for this specific post
-  content       String?
+  content                  String?
   // Platform-specific options (e.g., disableNotification for Telegram)
-  platformOptions Json? @map("platform_options")
+  platformOptions          Json?      @map("platform_options")
   // Author signature content (markdown text copied from signature template at post creation)
-  authorSignature String? @map("author_signature") @db.Text
+  authorSignature          String?    @map("author_signature") @db.Text
   // Frozen snapshot of everything needed for publishing (body, media, version)
-  postingSnapshot     Json?      @map("posting_snapshot")
+  postingSnapshot          Json?      @map("posting_snapshot")
   // Timestamp when the posting snapshot was created
   postingSnapshotCreatedAt DateTime? @map("posting_snapshot_created_at")
+  // The fully prepared payload ready to be sent to the microservice
+  preparedPayload     Json?      @map("prepared_payload")
 
   // Overwrite of publication scheduledAt
-  scheduledAt   DateTime? @map("scheduled_at")
+  scheduledAt DateTime? @map("scheduled_at")
   // Actual timestamp when post was published to platform. Set by the publishing service only.
-  publishedAt   DateTime? @map("published_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @default(now()) @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -471,17 +473,17 @@ model Post {
 }
 
 model ProjectAuthorSignature {
-  id        String   @id @default(uuid())
-  projectId String   @map("project_id")
-  userId    String   @map("user_id")
+  id        String @id @default(uuid())
+  projectId String @map("project_id")
+  userId    String @map("user_id")
   // Display order set by user
-  order     Int      @default(0)
+  order     Int    @default(0)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
   variants ProjectAuthorSignatureVariant[]
 
   @@index([projectId, userId])
@@ -531,12 +533,12 @@ model Media {
 }
 
 model PublicationMedia {
-  id             String   @id @default(uuid())
-  publicationId  String   @map("publication_id")
-  mediaId        String?  @map("media_id")
-  order          Int      @default(0)
-  hasSpoiler     Boolean  @default(false) @map("has_spoiler")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id            String   @id @default(uuid())
+  publicationId String   @map("publication_id")
+  mediaId       String?  @map("media_id")
+  order         Int      @default(0)
+  hasSpoiler    Boolean  @default(false) @map("has_spoiler")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   media       Media?      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
@@ -547,15 +549,15 @@ model PublicationMedia {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String   @map("user_id")
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
   type      NotificationType
   title     String
   message   String
   // JSON metadata: { publicationId?, postId?, channelId?, projectId? }
   meta      Json
-  readAt    DateTime? @map("read_at")
-  createdAt DateTime @default(now()) @map("created_at")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -565,29 +567,29 @@ model Notification {
 }
 
 model LlmPromptTemplate {
-  id          String   @id @default(uuid())
+  id        String  @id @default(uuid())
   // User ID for personal templates, null for project templates
-  userId      String?  @map("user_id")
+  userId    String? @map("user_id")
   // Project ID for project templates, null for personal templates
-  projectId   String?  @map("project_id")
-  
+  projectId String? @map("project_id")
+
   name        String?
   description String?
   // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
-  category    String   @default("General")
+  category    String  @default("General")
   // The actual prompt template text
   prompt      String
   // Display order for UI
-  order       Int      @default(0)
+  order       Int     @default(0)
   // Whether the template is hidden from the main list
-  isHidden    Boolean  @default(false) @map("is_hidden")
-  
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  
+  isHidden    Boolean @default(false) @map("is_hidden")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+
   @@index([userId])
   @@index([projectId])
   @@map("llm_prompt_templates")
@@ -595,10 +597,10 @@ model LlmPromptTemplate {
 
 // Tracks which system prompt templates a user has hidden (per-user state)
 model LlmSystemPromptHidden {
-  id              String   @id @default(uuid())
-  userId          String   @map("user_id")
+  id               String @id @default(uuid())
+  userId           String @map("user_id")
   // Stable ID of the system template from the constants
-  systemTemplateId String  @map("system_template_id")
+  systemTemplateId String @map("system_template_id")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -610,13 +612,13 @@ model LlmSystemPromptHidden {
 }
 
 model PublicationRelationGroup {
-  id        String             @id @default(uuid())
-  projectId String             @map("project_id")
+  id        String            @id @default(uuid())
+  projectId String            @map("project_id")
   type      RelationGroupType
-  createdBy String?            @map("created_by")
-  createdAt DateTime           @default(now()) @map("created_at")
+  createdBy String?           @map("created_by")
+  createdAt DateTime          @default(now()) @map("created_at")
 
-  project Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   items   PublicationRelationItem[]
 
   @@index([projectId, type])
@@ -655,7 +657,7 @@ model ProjectTemplate {
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   publications Publication[]
 
   @@index([projectId])
@@ -663,12 +665,12 @@ model ProjectTemplate {
 }
 
 model Tag {
-  id        String   @id @default(uuid())
-  name      String
-  normalizedName String @map("normalized_name")
-  projectId String?  @map("project_id")
-  userId    String?  @map("user_id")
-  domain    TagDomain @default(PUBLICATIONS)
+  id             String    @id @default(uuid())
+  name           String
+  normalizedName String    @map("normalized_name")
+  projectId      String?   @map("project_id")
+  userId         String?   @map("user_id")
+  domain         TagDomain @default(PUBLICATIONS)
 
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -706,22 +708,22 @@ enum PostType {
 
 // Publication status enum - tracks the lifecycle of a publication
 enum PublicationStatus {
-  DRAFT      // Draft, may be partially filled or incomplete
-  READY      // Ready post, not published (prepared in advance or removed from SCHEDULED)
-  SCHEDULED  // Scheduled for future publication, date is set but not yet reached
+  DRAFT // Draft, may be partially filled or incomplete
+  READY // Ready post, not published (prepared in advance or removed from SCHEDULED)
+  SCHEDULED // Scheduled for future publication, date is set but not yet reached
   PROCESSING // Selected by publishing service and being processed
-  PUBLISHED  // All posts successfully published
-  PARTIAL    // Some posts published, some failed
-  FAILED     // All posts failed to publish
-  EXPIRED    // Publication missed the publishing service selection window
+  PUBLISHED // All posts successfully published
+  PARTIAL // Some posts published, some failed
+  FAILED // All posts failed to publish
+  EXPIRED // Publication missed the publishing service selection window
 }
 
 // Post status enum - tracks individual post publication status
 // Note: Post status is managed by the system only, not manually editable
 enum PostStatus {
-  PENDING    // Post has not yet been attempted to publish
-  FAILED     // Publication failed
-  PUBLISHED  // Post was successfully published to the channel
+  PENDING // Post has not yet been attempted to publish
+  FAILED // Publication failed
+  PUBLISHED // Post was successfully published to the channel
 }
 
 enum RelationGroupType {
@@ -730,10 +732,10 @@ enum RelationGroupType {
 }
 
 enum NotificationType {
-  PUBLICATION_FAILED     // Issue during publication (failed/partial)
-  PROJECT_INVITE        // Invitation to a project
-  SYSTEM                // System notification
-  NEW_NEWS              // New news matching project query
+  PUBLICATION_FAILED // Issue during publication (failed/partial)
+  PROJECT_INVITE // Invitation to a project
+  SYSTEM // System notification
+  NEW_NEWS // New news matching project query
 }
 
 enum MediaType {
@@ -745,7 +747,7 @@ enum MediaType {
 
 // Storage type enum - defines where the media file is physically stored
 enum StorageType {
-  FS       // File system (local or mounted S3)
+  FS // File system (local or mounted S3)
   TELEGRAM // Telegram servers (not stored locally)
 }
 
@@ -761,8 +763,8 @@ enum ContentCollectionType {
   UNSPLASH
 }
 
- enum ContentLibraryGroupType {
-   PERSONAL_USER
-   PROJECT_USER
-   PROJECT_SHARED
- }
+enum ContentLibraryGroupType {
+  PERSONAL_USER
+  PROJECT_USER
+  PROJECT_SHARED
+}

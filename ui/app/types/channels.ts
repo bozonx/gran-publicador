@@ -44,6 +44,14 @@ export interface ProjectTemplate {
   updatedAt: string;
 }
 
+export interface ProjectTemplateUpdateInput {
+  name?: string;
+  postType?: string | null;
+  language?: string | null;
+  template?: TemplateBlock[];
+  version?: number;
+}
+
 export interface Channel {
   id: string;
   projectId: string;
@@ -116,4 +124,5 @@ export interface ChannelsFilter {
   isActive?: boolean | null;
   search?: string;
   includeArchived?: boolean;
+}
 }

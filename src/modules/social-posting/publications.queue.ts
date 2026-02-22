@@ -1,7 +1,7 @@
 export const PUBLICATIONS_QUEUE = 'publications';
-export const PROCESS_PUBLICATION_JOB = 'process-publication';
+export const PROCESS_POST_JOB = 'process-post';
 
-export interface ProcessPublicationJobData {
-  publicationId: string;
+export interface ProcessPostJobData {
+  postId: string;
   force?: boolean;
 }

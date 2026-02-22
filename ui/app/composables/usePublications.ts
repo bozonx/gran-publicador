@@ -30,6 +30,7 @@ export interface Publication {
   postScheduledAt?: string | null;
   authorSignatureId?: string | null;
   projectTemplateId?: string | null;
+  version?: number;
 }
 
 function resolvePublicationTags(publication: PublicationWithRelations): string[] {
@@ -76,7 +77,9 @@ export interface PublicationCreateInput {
   projectTemplateId?: string | null;
 }
 
-export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {}
+export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {
+  version?: number;
+}
 
 export interface PublicationWithRelations extends Publication {
   tagObjects?: Array<{ id: string; name: string; normalizedName?: string }>;

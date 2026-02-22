@@ -17,6 +17,16 @@ export interface Project {
   };
 }
 
+export interface ProjectUpdateInput {
+  name?: string;
+  description?: string | null;
+  preferences?: {
+    mediaOptimization?: MediaOptimizationPreferences;
+    [key: string]: any;
+  };
+  version?: number;
+}
+
 export interface MediaOptimizationPreferences {
   stripMetadata: boolean;
   autoOrient: boolean;
