@@ -1,4 +1,4 @@
-import { Application, Sprite, Texture, CanvasSource } from 'pixi.js';
+import { Application, Sprite, Texture, CanvasSource, DOMAdapter, WebWorkerAdapter } from 'pixi.js';
 import type { Input, VideoSampleSink } from 'mediabunny';
 
 export interface CompositorClip {
@@ -40,6 +40,10 @@ export class VideoCompositor {
 
     this.width = width;
     this.height = height;
+
+    if (typeof window === 'undefined') {
+      DOMAdapter.set(WebWorkerAdapter);
+    }
 
     this.app = new Application();
 

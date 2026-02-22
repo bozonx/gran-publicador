@@ -26,9 +26,26 @@ useHead({
 })
 
 const newProjectName = ref('')
+const isStartingUp = ref(true)
 
-onMounted(() => {
-  workspaceStore.init()
+onMounted(async () => {
+  try {
+    await workspaceStore.init()
+
+    if (
+      workspaceStore.workspaceHandle &&
+      workspaceStore.userSettings.openBehavior === 'open_last_project' &&
+      workspaceStore.lastProjectName &&
+      workspaceStore.projects.includes(workspaceStore.lastProjectName)
+    ) {
+      await projectStore.openProject(workspaceStore.lastProjectName)
+      uiStore.restoreFileTreeStateOnce(workspaceStore.lastProjectName)
+      await timelineStore.loadTimeline()
+      void timelineStore.loadTimelineMetadata()
+    }
+  } finally {
+    isStartingUp.value = false
+  }
 })
 
 async function createNewProject() {
@@ -45,10 +62,21 @@ async function createNewProject() {
 
 <template>
   <div class="flex flex-col h-screen w-screen overflow-hidden bg-gray-950 text-gray-200">
+
+    <!-- Loading Screen -->
+    <div 
+      v-if="isStartingUp" 
+      class="flex flex-col items-center justify-center flex-1 bg-gray-950"
+    >
+      <UIcon name="i-heroicons-arrow-path" class="w-10 h-10 text-indigo-500 shrink-0 animate-spin" />
+      <span class="mt-4 text-gray-400 font-medium tracking-wide animate-pulse">
+        {{ t('common.loading', 'Loading...') }}
+      </span>
+    </div>
     
     <!-- Welcome / Select Folder Screen -->
     <div 
-      v-if="!workspaceStore.workspaceHandle" 
+      v-else-if="!workspaceStore.workspaceHandle" 
       class="flex flex-col items-center justify-center flex-1 bg-linear-to-br from-indigo-900 via-gray-900 to-black p-6"
     >
       <div class="max-w-md w-full text-center space-y-6 bg-gray-900/50 p-8 rounded-2xl backdrop-blur-sm border border-gray-700/50 shadow-2xl">

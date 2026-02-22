@@ -153,7 +153,7 @@ async function buildTimeline() {
       onExportProgress: () => {},
     })
 
-    const maxDuration = await client.loadTimeline(clips)
+    const maxDuration = await client.loadTimeline(JSON.parse(JSON.stringify(clips)))
 
     lastBuiltSourceSignature = clipSourceSignature.value
 
@@ -193,7 +193,7 @@ watch(clipLayoutSignature, () => {
   }
 
   renderQueue = renderQueue.then(async () => {
-    const maxDuration = await client.updateTimelineLayout(videoItems.value)
+    const maxDuration = await client.updateTimelineLayout(JSON.parse(JSON.stringify(videoItems.value)))
     timelineStore.duration = maxDuration
     await client.renderFrame(timelineStore.currentTime)
   })

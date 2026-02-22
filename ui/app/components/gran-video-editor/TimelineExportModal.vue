@@ -230,7 +230,7 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
     onExportProgress: (progress) => onProgress(progress),
   });
 
-  await client.exportTimeline(fileHandle, options, clips);
+  await client.exportTimeline(fileHandle, options, JSON.parse(JSON.stringify(clips)));
 }
 
 async function ensureExportDir(): Promise<FileSystemDirectoryHandle> {

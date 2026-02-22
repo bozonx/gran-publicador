@@ -99,6 +99,7 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
 
   const projects = ref<string[]>([]);
   const isLoading = ref(false);
+  const isInitializing = ref(true);
   const error = ref<string | null>(null);
 
   const lastProjectName = ref<string | null>(
@@ -444,11 +445,17 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
   }
 
   async function init() {
-    if (!isApiSupported) return;
+    if (!isApiSupported) {
+      isInitializing.value = false;
+      return;
+    }
 
     try {
       const handle = await getHandleFromIndexedDB();
-      if (!handle) return;
+      if (!handle) {
+        isInitializing.value = false;
+        return;
+      }
 
       const options = { mode: 'readwrite' };
       if ((await (handle as any).queryPermission(options)) === 'granted') {
@@ -456,6 +463,8 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
       }
     } catch (e) {
       console.warn('Failed to restore workspace handle:', e);
+    } finally {
+      isInitializing.value = false;
     }
   }
 
@@ -474,5 +483,6 @@ export const useGranVideoEditorWorkspaceStore = defineStore('granVideoEditorWork
     resetWorkspace,
     setupWorkspace,
     loadProjects,
+    isInitializing,
   };
 });
