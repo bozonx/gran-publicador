@@ -17,6 +17,9 @@ import { I18nService } from 'nestjs-i18n';
 import { request } from 'undici';
 import { MediaService } from '../media/media.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { PROCESS_POST_JOB, ProcessPostJobData, PUBLICATIONS_QUEUE } from './publications.queue.js';
 
 @Injectable()
 export class SocialPostingService {
@@ -32,6 +35,8 @@ export class SocialPostingService {
     private readonly notifications: NotificationsService,
     private readonly i18n: I18nService,
     private readonly mediaService: MediaService,
+    @InjectQueue(PUBLICATIONS_QUEUE)
+    private readonly publicationsQueue: Queue<ProcessPostJobData>,
   ) {
     const mediaConfig = this.configService.get<MediaConfig>('media')!;
     this.mediaStorageUrl = mediaConfig.serviceUrl || '';
@@ -134,14 +139,14 @@ export class SocialPostingService {
   }
 
   /**
-   * Publish all posts of a publication
+   * Enqueues all posts of a publication for processing
    */
-  async publishPublication(
+  async enqueuePublication(
     publicationId: string,
     options: { skipLock?: boolean; force?: boolean } = {},
   ): Promise<PublishResponseDto> {
     this.logger.log(
-      `[publishPublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}${options.force ? ' (force)' : ''}`,
+      `[enqueuePublication] Starting publication process for ID: ${publicationId}${options.skipLock ? ' (skipLock)' : ''}${options.force ? ' (force)' : ''}`,
     );
 
     const publication = await this.prisma.publication.findUnique({
@@ -160,12 +165,12 @@ export class SocialPostingService {
     });
 
     if (!publication) {
-      this.logger.error(`[publishPublication] Publication ${publicationId} not found`);
+      this.logger.error(`[enqueuePublication] Publication ${publicationId} not found`);
       throw new BadRequestException('Publication not found');
     }
 
     if (!this.hasContentOrMedia(publication.content, publication.media)) {
-      this.logger.warn(`[publishPublication] Publication ${publicationId} has no content or media`);
+      this.logger.warn(`[enqueuePublication] Publication ${publicationId} has no content or media`);
       throw new BadRequestException('Publication must have content or at least one media file');
     }
 
@@ -184,7 +189,7 @@ export class SocialPostingService {
 
       if (updateResult.count === 0) {
         this.logger.warn(
-          `[publishPublication] Publication ${publicationId} is already being processed or not found`,
+          `[enqueuePublication] Publication ${publicationId} is already being processed or not found`,
         );
         return {
           success: false,
@@ -200,98 +205,322 @@ export class SocialPostingService {
       }
     }
 
-    const results: Array<{
-      postId: string;
-      channelId: string;
-      channelName: string;
-      platform: string;
-      success: boolean;
-      url?: string;
-      error?: string;
-    }> = [];
+    const postsToProcess = publication.posts.filter(
+      post => post.status === PostStatus.PENDING || options.force,
+    );
 
-    // Reload with all posts to ensure we process everything (ignoring status in manual trigger)
-    const publicationWithPosts = await this.prisma.publication.findUnique({
-      where: { id: publicationId },
-      include: {
-        posts: {
-          include: {
-            channel: { include: { project: true } },
-          },
+    if (postsToProcess.length === 0) {
+      // Complete immediately if no posts to process
+      await this.checkAndUpdatePublicationStatus(publicationId);
+      return {
+        success: true,
+        message: 'No posts to publish',
+        data: {
+          publicationId,
+          status: PublicationStatus.PUBLISHED,
+          publishedCount: 0,
+          failedCount: 0,
+          results: [],
         },
-        media: {
-          include: { media: true },
-          orderBy: { order: 'asc' },
+      };
+    }
+
+    let enqueuedCount = 0;
+    for (const post of postsToProcess) {
+      try {
+        await this.preparePostPayload(post.id, options.force);
+        await this.publicationsQueue.add(
+          PROCESS_POST_JOB,
+          { postId: post.id, force: options.force },
+          {
+            jobId: `post-${post.id}-${Date.now()}`,
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+        );
+        enqueuedCount++;
+      } catch (error: any) {
+        this.logger.error(`Failed to prepare/enqueue post ${post.id}: ${error.message}`);
+        // Status is already set to FAILED by preparePostPayload
+      }
+    }
+
+    // If none enqueued, we should trigger completion check manually
+    if (enqueuedCount === 0) {
+      await this.checkAndUpdatePublicationStatus(publicationId);
+    }
+
+    return {
+      success: true,
+      message: `Enqueued ${enqueuedCount} posts for processing`,
+      data: {
+        publicationId,
+        status: PublicationStatus.PROCESSING,
+        publishedCount: 0,
+        failedCount: 0,
+        results: [],
+      },
+    };
+  }
+
+  /**
+   * Prepares payload for a single post and saves it to DB.
+   * Does NOT send the HTTP request.
+   */
+
+  /**
+   * Enqueues a single post for processing
+   */
+  async enqueuePost(
+    postId: string,
+    options: { force?: boolean } = {},
+  ): Promise<PublishResponseDto> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        channel: { include: { project: true } },
+        publication: {
+          include: {
+            media: { include: { media: true }, orderBy: { order: 'asc' } },
+          },
         },
       },
     });
 
-    if (!publicationWithPosts) {
-      throw new BadRequestException('Publication not found after lock');
+    if (!post) throw new BadRequestException('Post not found');
+
+    // Make sure the publication is marked as PROCESSING
+    await this.prisma.publication.updateMany({
+      where: {
+        id: post.publicationId,
+        status: { not: PublicationStatus.PROCESSING },
+      },
+      data: {
+        status: PublicationStatus.PROCESSING,
+        processingStartedAt: new Date(),
+      },
+    });
+
+    try {
+      await this.preparePostPayload(post.id, options.force);
+      await this.publicationsQueue.add(
+        PROCESS_POST_JOB,
+        { postId: post.id, force: options.force },
+        {
+          jobId: `post-${post.id}-${Date.now()}`,
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+
+      return {
+        success: true,
+        message: 'Post enqueued for processing',
+        data: {
+          postId,
+          status: PostStatus.PENDING, // It's pending until worker picks it up
+        },
+      };
+    } catch (error: any) {
+      await this.checkAndUpdatePublicationStatus(post.publicationId);
+      throw error;
     }
+  }
 
-    for (const post of publicationWithPosts.posts) {
-      // Filter posts that need publishing:
-      // 1. Status PENDING (unless forced)
-      if (post.status !== PostStatus.PENDING && !options.force) {
-        this.logger.debug(`[publishPublication] Skipping post ${post.id} (Status: ${post.status})`);
-        continue;
+  async preparePostPayload(postId: string, force: boolean = false): Promise<void> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        channel: { include: { project: true } },
+        publication: {
+          include: {
+            media: { include: { media: true }, orderBy: { order: 'asc' } },
+          },
+        },
+      },
+    });
+
+    if (!post) throw new Error(`Post ${postId} not found`);
+
+    try {
+      const {
+        targetChannelId,
+        apiKey,
+        error: prepError,
+      } = await this.prepareChannelForPosting(post.channel, { ignoreState: force });
+      if (prepError) throw new Error(prepError);
+
+      const snapshot = post.postingSnapshot as any;
+      if (!snapshot) {
+        throw new Error(`Post ${post.id} has no posting snapshot.`);
       }
 
-      if (this.shutdownService.isShutdownInProgress()) {
-        this.logger.warn(
-          `[publishPublication] Shutdown in progress, aborting remaining posts for publication ${publicationId}`,
-        );
-        results.push({
-          postId: post.id,
-          channelId: post.channelId,
-          channelName: post.channel.name,
-          platform: post.channel.socialMedia,
-          success: false,
-          error: 'Publication aborted due to system shutdown',
-        });
-        continue;
-      }
+      const request = SocialPostingRequestFormatter.prepareRequest({
+        post,
+        channel: post.channel,
+        publication: post.publication,
+        apiKey,
+        targetChannelId,
+        mediaStorageUrl: this.mediaStorageUrl,
+        publicMediaBaseUrl: this.frontendUrl ? `${this.frontendUrl}/api/v1` : undefined,
+        mediaService: this.mediaService,
+        snapshot,
+      });
 
-      try {
-        const result = await this.publishSinglePost(post, post.channel, publicationWithPosts, {
-          force: options.force,
-        });
-        this.logger.log(
-          `[publishPublication] Post ${post.id} publication result: ${result.success ? 'SUCCESS' : 'FAILED'}${result.error ? ` (${result.error})` : ''}`,
-        );
-        results.push({
-          postId: post.id,
-          channelId: post.channelId,
-          channelName: post.channel.name,
-          platform: post.channel.socialMedia,
-          success: result.success,
-          url: result.url,
-          error: result.error,
-        });
-      } catch (error: any) {
-        this.logger.error(
-          `[publishPublication] Error publishing post ${post.id}: ${error.message}`,
-          error.stack,
-        );
-        results.push({
-          postId: post.id,
-          channelId: post.channelId,
-          channelName: post.channel.name,
-          platform: post.channel.socialMedia,
-          success: false,
-          error: error.message,
-        });
-      }
+      await this.prisma.post.update({
+        where: { id: postId },
+        data: {
+          preparedPayload: request as any,
+          errorMessage: null,
+        },
+      });
+    } catch (error: any) {
+      this.logger.error(`[preparePostPayload] Failed for post ${postId}: ${error.message}`);
+      await this.prisma.post.update({
+        where: { id: postId },
+        data: {
+          status: PostStatus.FAILED,
+          errorMessage: `Preparation failed: ${error.message}`,
+        },
+      });
+      throw error;
     }
+  }
 
-    const successCount = results.filter(r => r.success).length;
+  /**
+   * Executes a prepared post. Called ONLY by the worker.
+   */
+  async executePreparedPost(
+    postId: string,
+  ): Promise<{ success: boolean; error?: string; url?: string }> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+    });
+
+    if (!post) throw new Error(`Post ${postId} not found`);
+    if (!post.preparedPayload) throw new Error(`Post ${postId} has no preparedPayload`);
+
+    const logPrefix = `[executePreparedPost][Post:${post.id}]`;
+
+    try {
+      this.logger.log(`${logPrefix} Sending request to microservice...`);
+      const response = await this.sendRequest<PostResponseDto>('post', post.preparedPayload);
+
+      if (response.success && response.data) {
+        let publishedAt = new Date();
+        if (response.data.publishedAt) {
+          const parsed = new Date(response.data.publishedAt);
+          if (!isNaN(parsed.getTime())) publishedAt = parsed;
+        }
+
+        const meta = (post.meta as any) || {};
+        await this.prisma.post.update({
+          where: { id: post.id },
+          data: {
+            status: PostStatus.PUBLISHED,
+            publishedAt,
+            meta: this.sanitizeJson({
+              ...meta,
+              attempts: [
+                ...(meta.attempts || []),
+                { timestamp: new Date().toISOString(), success: true, response: response.data },
+              ],
+            }),
+            errorMessage: null,
+            // Clear payload after successful sending to save space? Optional.
+            // preparedPayload: null,
+          },
+        });
+
+        await this.refreshPublicationEffectiveAt(post.publicationId, publishedAt);
+        return { success: true, url: response.data.url };
+      } else {
+        const platformError = response as any;
+        const message = Array.isArray(platformError.error?.message)
+          ? platformError.error.message.join(', ')
+          : platformError.error?.message || 'Unknown error from microservice';
+
+        await this.prisma.post.update({
+          where: { id: post.id },
+          data: {
+            status: PostStatus.FAILED,
+            errorMessage: message,
+            meta: this.sanitizeJson({
+              ...((post.meta as any) || {}),
+              attempts: [
+                ...((post.meta as any)?.attempts || []),
+                {
+                  timestamp: new Date().toISOString(),
+                  success: false,
+                  response: platformError.error || platformError,
+                },
+              ],
+            }),
+          },
+        });
+        return { success: false, error: message };
+      }
+    } catch (error: any) {
+      this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
+      await this.prisma.post.update({
+        where: { id: post.id },
+        data: {
+          status: PostStatus.FAILED,
+          errorMessage: error.message,
+          meta: this.sanitizeJson({
+            ...((post.meta as any) || {}),
+            attempts: [
+              ...((post.meta as any)?.attempts || []),
+              {
+                timestamp: new Date().toISOString(),
+                success: false,
+                response: { code: 'INTERNAL_ERROR', message: error.message },
+              },
+            ],
+          }),
+        },
+      });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Checks if all posts for a publication are processed, and updates the publication status.
+   * If finished, sends notifications.
+   */
+  async checkAndUpdatePublicationStatus(publicationId: string): Promise<void> {
+    const publication = await this.prisma.publication.findUnique({
+      where: { id: publicationId },
+      include: { posts: { include: { channel: true } } },
+    });
+
+    if (!publication) return;
+
+    const allPosts = publication.posts;
+    const isFinished = allPosts.every(
+      p => p.status === PostStatus.PUBLISHED || p.status === PostStatus.FAILED,
+    );
+
+    if (!isFinished) return; // Still processing
+
+    const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
+    const failedCount = allPosts.length - successCount;
+
     const finalStatus =
-      successCount === results.length
+      successCount === allPosts.length && allPosts.length > 0
         ? PublicationStatus.PUBLISHED
         : successCount > 0
           ? PublicationStatus.PARTIAL
           : PublicationStatus.FAILED;
+
+    const results = allPosts.map(p => ({
+      postId: p.id,
+      channelId: p.channelId,
+      channelName: p.channel.name,
+      platform: p.channel.socialMedia,
+      success: p.status === PostStatus.PUBLISHED,
+      error: p.errorMessage,
+    }));
 
     await this.prisma.publication.update({
       where: { id: publicationId },
@@ -302,22 +531,18 @@ export class SocialPostingService {
           ...((publication.meta as any) || {}),
           attempts: [
             ...((publication.meta as any)?.attempts || []),
-            {
-              timestamp: new Date().toISOString(),
-              successCount,
-              totalCount: results.length,
-            },
+            { timestamp: new Date().toISOString(), successCount, totalCount: allPosts.length },
           ],
           lastResult: {
             timestamp: new Date().toISOString(),
             successCount,
-            totalCount: results.length,
+            totalCount: allPosts.length,
           },
         }),
       },
     });
 
-    // Notify creator about failed or partial publication
+    // Notify creator
     if (
       (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
       publication.createdBy
@@ -347,331 +572,28 @@ export class SocialPostingService {
             ? 'notifications.PUBLICATION_FAILED_TITLE'
             : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
 
-        const title = this.i18n.t(titleKey, { lang });
-        const message = this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
-          lang,
-          args: {
-            title:
-              publication.title ||
-              (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
-            finalStatus:
-              finalStatus === PublicationStatus.FAILED ? 'failed' : 'was only partially published',
-            detailMessage,
-          },
-        });
-
         await this.notifications.create({
           userId: publication.createdBy,
           type: NotificationType.PUBLICATION_FAILED,
-          title,
-          message,
+          title: this.i18n.t(titleKey, { lang }),
+          message: this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
+            lang,
+            args: {
+              title:
+                publication.title ||
+                (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
+              finalStatus:
+                finalStatus === PublicationStatus.FAILED
+                  ? 'failed'
+                  : 'was only partially published',
+              detailMessage,
+            },
+          }),
           meta: { publicationId: publication.id, projectId: publication.projectId },
         });
       } catch (error: any) {
         this.logger.error(`Failed to send publication notification: ${error.message}`);
       }
-    }
-
-    return {
-      success: successCount === results.length && results.length > 0,
-      message:
-        results.length === 0
-          ? 'No posts to publish'
-          : successCount === results.length
-            ? 'Success'
-            : successCount > 0
-              ? 'Partial success'
-              : 'All posts failed',
-      data: {
-        publicationId,
-        status: finalStatus,
-        publishedCount: successCount,
-        failedCount: results.length - successCount,
-        results,
-      },
-    };
-  }
-
-  async publishPost(postId: string): Promise<PublishResponseDto> {
-    const post = await this.prisma.post.findUnique({
-      where: { id: postId },
-      include: {
-        channel: { include: { project: true } },
-        publication: {
-          include: {
-            media: { include: { media: true }, orderBy: { order: 'asc' } },
-          },
-        },
-      },
-    });
-
-    if (!post) throw new BadRequestException('Post not found');
-
-    // For single post we still want to make sure the publication is not locked by scheduler
-    const updateResult = await this.prisma.publication.updateMany({
-      where: {
-        id: post.publicationId,
-        status: { not: PublicationStatus.PROCESSING },
-      },
-      data: {
-        status: PublicationStatus.PROCESSING,
-        processingStartedAt: new Date(),
-      },
-    });
-
-    if (updateResult.count === 0) {
-      throw new BadRequestException('Publication is already being processed');
-    }
-
-    try {
-      const result = await this.publishSinglePost(
-        post,
-        post.channel,
-        post.publication,
-        // Since publishPost is typically manual, we might assume force?
-        // Or we should update the controller to pass force.
-        // For now, let's keep it consistent: single post publish via API usually implies manual intent,
-        // but let's default to false unless we change the signature of publishPost too.
-        // Actually, looking at the code, publishPost doesn't take options.
-        // However, user requirement "manual press on button... should be permitted" refers to the UI action which calls publishPublication usually?
-        // Let's assume publishPost is also manual.
-        { force: true }, // Assume manual single post execution implies force/user intent
-      );
-
-      const allPosts = await this.prisma.post.findMany({
-        where: { publicationId: post.publicationId },
-      });
-
-      const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
-      const finalStatus =
-        successCount === allPosts.length
-          ? PublicationStatus.PUBLISHED
-          : successCount > 0
-            ? PublicationStatus.PARTIAL
-            : PublicationStatus.FAILED;
-
-      const lastResult = {
-        timestamp: new Date().toISOString(),
-        successCount,
-        totalCount: allPosts.length,
-      };
-
-      await this.prisma.publication.update({
-        where: { id: post.publicationId },
-        data: {
-          status: finalStatus,
-          processingStartedAt: null,
-          meta: this.sanitizeJson({
-            ...((post.publication.meta as any) || {}),
-            attempts: [...((post.publication.meta as any)?.attempts || []), lastResult],
-            lastResult,
-          }),
-        },
-      });
-
-      // Notify creator about failed or partial publication
-      if (
-        (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
-        post.publication.createdBy
-      ) {
-        try {
-          const user = await this.prisma.user.findUnique({
-            where: { id: post.publication.createdBy },
-            select: { uiLanguage: true },
-          });
-          const lang = user?.uiLanguage || 'en-US';
-
-          const statusIcon = result.success ? '✅' : '❌';
-          const statusText = result.success ? 'Success' : 'Failed';
-
-          const titleKey =
-            finalStatus === PublicationStatus.FAILED
-              ? 'notifications.PUBLICATION_FAILED_TITLE'
-              : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
-
-          const title = this.i18n.t(titleKey, { lang });
-          const message = this.i18n.t('notifications.PUBLICATION_FAILED_SINGLE_MESSAGE', {
-            lang,
-            args: {
-              title:
-                post.publication.title ||
-                (post.publication.content ? post.publication.content.substring(0, 30) : 'Untitled'),
-              finalStatus:
-                finalStatus === PublicationStatus.FAILED
-                  ? 'failed'
-                  : 'was only partially published',
-              statusIcon,
-              channelName: post.channel.name,
-              platform: post.channel.socialMedia,
-              statusText,
-              error: result.error ? ` (${result.error})` : '',
-            },
-          });
-
-          await this.notifications.create({
-            userId: post.publication.createdBy,
-            type: NotificationType.PUBLICATION_FAILED,
-            title,
-            message,
-            meta: { publicationId: post.publicationId, projectId: post.publication.projectId },
-          });
-        } catch (error: any) {
-          this.logger.error(`Failed to send publication notification: ${error.message}`);
-        }
-      }
-
-      return {
-        success: result.success,
-        message: result.success ? 'Success' : result.error || 'Failed',
-        data: {
-          postId,
-          status: result.success ? PostStatus.PUBLISHED : PostStatus.FAILED,
-        },
-      };
-    } catch (error: any) {
-      await this.prisma.publication.update({
-        where: { id: post.publicationId },
-        data: { processingStartedAt: null },
-      });
-      throw error;
-    }
-  }
-
-  private async publishSinglePost(
-    post: any,
-    channel: any,
-    publication: any,
-    options: { force?: boolean } = {},
-  ): Promise<{ success: boolean; error?: string; url?: string }> {
-    const logPrefix = `[publishSinglePost][Post:${post.id}]`;
-
-    try {
-      const {
-        targetChannelId,
-        apiKey,
-        error: prepError,
-      } = await this.prepareChannelForPosting(channel, { ignoreState: options.force });
-      if (prepError) throw new Error(prepError);
-
-      // Posting snapshot must exist — it is built when publication moves to READY/SCHEDULED
-      const snapshot = post.postingSnapshot as
-        | import('./interfaces/posting-snapshot.interface.js').PostingSnapshot
-        | null;
-      if (!snapshot) {
-        throw new Error(
-          `Post ${post.id} has no posting snapshot. Cannot publish without a frozen snapshot.`,
-        );
-      }
-
-      const request = SocialPostingRequestFormatter.prepareRequest({
-        post,
-        channel,
-        publication,
-        apiKey,
-        targetChannelId,
-        mediaStorageUrl: this.mediaStorageUrl,
-        publicMediaBaseUrl: this.frontendUrl ? `${this.frontendUrl}/api/v1` : undefined,
-        mediaService: this.mediaService,
-        snapshot,
-      });
-
-      this.logger.log(`${logPrefix} Sending request to microservice...`);
-
-      const response = await this.sendRequest<PostResponseDto>('post', request);
-
-      if (response.success && response.data) {
-        // Validate publishedAt
-        let publishedAt: Date;
-        try {
-          publishedAt = new Date(response.data.publishedAt);
-          if (isNaN(publishedAt.getTime())) {
-            throw new Error('Invalid date');
-          }
-        } catch (error) {
-          this.logger.warn(`Invalid publishedAt from microservice, using current time`);
-          publishedAt = new Date();
-        }
-
-        // Save response in meta.response as requested
-        const meta = post.meta || {};
-        await this.prisma.post.update({
-          where: { id: post.id },
-          data: {
-            status: PostStatus.PUBLISHED,
-            publishedAt,
-            meta: this.sanitizeJson({
-              ...meta,
-              attempts: [
-                ...(meta.attempts || []),
-                {
-                  timestamp: new Date().toISOString(),
-                  success: true,
-                  response: response.data,
-                },
-              ],
-            }),
-            errorMessage: null,
-          },
-        });
-
-        await this.refreshPublicationEffectiveAt(post.publicationId, publishedAt);
-        return { success: true, url: response.data.url };
-      } else {
-        const platformError = response;
-        const meta = post.meta || {};
-        const platformErrorMessage = platformError.error?.message;
-        const message = Array.isArray(platformErrorMessage)
-          ? platformErrorMessage.join(', ')
-          : platformErrorMessage || 'Unknown error from microservice';
-
-        await this.prisma.post.update({
-          where: { id: post.id },
-          data: {
-            status: PostStatus.FAILED,
-            errorMessage: message,
-            meta: this.sanitizeJson({
-              ...meta,
-              attempts: [
-                ...(meta.attempts || []),
-                {
-                  timestamp: new Date().toISOString(),
-                  success: false,
-                  response: platformError.error || platformError,
-                },
-              ],
-            }),
-          },
-        });
-        return { success: false, error: message };
-      }
-    } catch (error: any) {
-      this.logger.error(`${logPrefix} Unexpected error: ${error.message}`);
-      const meta = post.meta || {};
-      const message = error.message;
-
-      await this.prisma.post.update({
-        where: { id: post.id },
-        data: {
-          status: PostStatus.FAILED,
-          errorMessage: message,
-          meta: this.sanitizeJson({
-            ...meta,
-            attempts: [
-              ...(meta.attempts || []),
-              {
-                timestamp: new Date().toISOString(),
-                success: false,
-                response: {
-                  code: 'INTERNAL_ERROR',
-                  message: message,
-                  details: { stack: error.stack },
-                },
-              },
-            ],
-          }),
-        },
-      });
-      return { success: false, error: message };
     }
   }
 
@@ -715,9 +637,6 @@ export class SocialPostingService {
     }
   }
 
-  /**
-   * Helper to validate channel and resolve platform params
-   */
   private async prepareChannelForPosting(
     channel: any,
     options: { ignoreState?: boolean } = {},
@@ -753,7 +672,6 @@ export class SocialPostingService {
   } {
     const errors: string[] = [];
 
-    // State checks - can be ignored if forced (user manual action)
     if (!options.ignoreState) {
       if (!channel.isActive) errors.push('Channel is not active');
       if (channel.archivedAt) errors.push('Channel is archived');
@@ -776,10 +694,6 @@ export class SocialPostingService {
     return Boolean(content?.trim()) || media.length > 0;
   }
 
-  /**
-   * Deeply sanitizes an object to ensure it only contains JSON-compatible data.
-   * Removes functions and ensures class instances are converted to plain objects.
-   */
   private sanitizeJson(obj: any): any {
     if (!obj) return obj;
     try {

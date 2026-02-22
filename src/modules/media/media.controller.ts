@@ -336,7 +336,7 @@ export class MediaController {
 
     stream.once('error', err => {
       this.logger.error(
-        `Media stream error: id="${id}", status=${status}, range="${range || ''}", requestId="${requestId || ''}": ${(err as Error).message}`,
+        `Media stream error: id="${id}", status=${status}, range="${range || ''}", requestId="${requestId || ''}": ${err.message}`,
       );
     });
 
@@ -393,7 +393,7 @@ export class MediaController {
 
     stream.once('error', err => {
       this.logger.error(
-        `Thumbnail stream error: id="${id}", status=${status}, requestId="${requestId || ''}": ${(err as Error).message}`,
+        `Thumbnail stream error: id="${id}", status=${status}, requestId="${requestId || ''}": ${err.message}`,
       );
     });
 

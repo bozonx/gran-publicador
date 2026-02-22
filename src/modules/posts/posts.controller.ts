@@ -220,6 +220,6 @@ export class PostsController {
       }
     }
 
-    return this.socialPostingService.publishPost(id);
+    return this.socialPostingService.enqueuePost(id, { force: true });
   }
 }

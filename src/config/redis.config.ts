@@ -42,8 +42,6 @@ export class RedisConfig {
   @Min(0)
   public ttlMs: number = DEFAULT_REDIS_TTL_MS;
 
-
-
   /**
    * Redis key prefix.
    * Defined by REDIS_KEY_PREFIX environment variable.

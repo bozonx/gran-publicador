@@ -1,17 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { PostStatus, PublicationStatus, NotificationType } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { AppConfig } from '../../config/app.config.js';
 import { RedisService } from '../../common/redis/redis.service.js';
-import {
-  PUBLICATIONS_QUEUE,
-  ProcessPublicationJobData,
-  PROCESS_PUBLICATION_JOB,
-} from './publications.queue.js';
+import { SocialPostingService } from './social-posting.service.js';
 
 export interface PublicationSchedulerRunResult {
   skipped: boolean;
@@ -28,11 +22,10 @@ export class PublicationSchedulerService {
 
   constructor(
     private readonly prisma: PrismaService,
-    @InjectQueue(PUBLICATIONS_QUEUE)
-    private readonly publicationsQueue: Queue<ProcessPublicationJobData>,
     private readonly configService: ConfigService,
     private readonly notifications: NotificationsService,
     private readonly redisService: RedisService,
+    private readonly socialPostingService: SocialPostingService,
   ) {}
 
   public async runNow(): Promise<PublicationSchedulerRunResult> {
@@ -218,19 +211,12 @@ export class PublicationSchedulerService {
 
       if (updateResult.count === 1) {
         this.logger.log(`Queueing publication ${publicationId} for processing`);
-        // Push to BullMQ queue instead of executing synchronously
-        await this.publicationsQueue.add(
-          PROCESS_PUBLICATION_JOB,
-          {
-            publicationId,
-            force: false,
-          },
-          {
-            jobId: `publication-${publicationId}-${Date.now()}`,
-            removeOnComplete: true,
-            removeOnFail: false,
-          },
-        );
+
+        await this.socialPostingService.enqueuePublication(publicationId, {
+          skipLock: true,
+          force: false,
+        });
+
         return true;
       }
 

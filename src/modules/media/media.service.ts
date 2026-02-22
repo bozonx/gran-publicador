@@ -301,7 +301,7 @@ export class MediaService {
     const existingMeta = this.parseMeta(media.meta);
     const existingOptimize = existingMeta.optimizationParams || {};
 
-    let effectiveOptimize = optimize || {};
+    const effectiveOptimize = optimize || {};
 
     // Combine existing optimization params with new ones, prioritizing new ones
     // specifically for lossless and stripMetadata as requested

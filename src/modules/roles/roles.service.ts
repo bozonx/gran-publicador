@@ -250,7 +250,7 @@ export class RolesService {
 
     return {
       ...updated,
-      permissions: updated.permissions as any,
+      permissions: updated.permissions,
     };
   }
 

@@ -368,7 +368,7 @@ export class PublicationsController {
       );
     }
 
-    return this.socialPostingService.publishPublication(id, { force });
+    return this.socialPostingService.enqueuePublication(id, { force });
   }
 
   /**

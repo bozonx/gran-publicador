@@ -89,14 +89,14 @@ describe('TelegramBotUpdate', () => {
   it('creates content item for text message and replies', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
@@ -108,7 +108,7 @@ describe('TelegramBotUpdate', () => {
     });
 
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -134,14 +134,14 @@ describe('TelegramBotUpdate', () => {
     });
 
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
@@ -153,7 +153,7 @@ describe('TelegramBotUpdate', () => {
     });
 
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -182,14 +182,14 @@ describe('TelegramBotUpdate', () => {
   it('handles /start: creates user and replies with welcome + start_message', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
@@ -211,14 +211,14 @@ describe('TelegramBotUpdate', () => {
     const deps = createDeps();
 
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx1 = createCtx({
@@ -231,7 +231,7 @@ describe('TelegramBotUpdate', () => {
     });
 
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -260,7 +260,7 @@ describe('TelegramBotUpdate', () => {
 
     deps.botApi.sendMessage.mockClear();
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -273,14 +273,14 @@ describe('TelegramBotUpdate', () => {
   it('rejects unsupported message type', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
@@ -292,7 +292,7 @@ describe('TelegramBotUpdate', () => {
     });
 
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -313,14 +313,14 @@ describe('TelegramBotUpdate', () => {
     deps.prisma.contentItem.findFirst.mockResolvedValueOnce({ id: 'ciExisting' });
 
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
@@ -332,7 +332,7 @@ describe('TelegramBotUpdate', () => {
     });
 
     await update.handleQueuedMessage({
-      botApi: deps.botApi as any,
+      botApi: deps.botApi,
       lockKey: 'lock',
       telegramUserId: 100,
       chatId: 200,
@@ -346,14 +346,14 @@ describe('TelegramBotUpdate', () => {
   it('enqueues a job on onMessage', async () => {
     const deps = createDeps();
     const update = new TelegramBotUpdate(
-      deps.telegramMessagesQueue as any,
+      deps.telegramMessagesQueue,
       deps.usersService,
       deps.prisma,
       deps.mediaService,
       deps.sttService,
       deps.i18n,
       deps.configService,
-      deps.redisService as any,
+      deps.redisService,
     );
 
     const ctx = createCtx({
