@@ -39,9 +39,19 @@ export function getWorkerClient(): { client: VideoCoreWorkerAPI; worker: Worker 
     get(_, method: string) {
       if (method === 'initCompositor') {
         return async (canvas: OffscreenCanvas, width: number, height: number, bgColor: string) => {
-          workerInstance!.postMessage({ type: 'initCanvas', canvas, width, height, bgColor }, [canvas]);
-          // Wait for a brief moment to ensure worker processes message
-          await new Promise(r => setTimeout(r, 50));
+          return new Promise<void>((resolve, reject) => {
+            const handler = (msg: MessageEvent) => {
+              if (msg.data && msg.data.type === 'canvasInitialized') {
+                workerInstance!.removeEventListener('message', handler);
+                resolve();
+              } else if (msg.data && msg.data.type === 'canvasInitError') {
+                workerInstance!.removeEventListener('message', handler);
+                reject(new Error(msg.data.error));
+              }
+            };
+            workerInstance!.addEventListener('message', handler);
+            workerInstance!.postMessage({ type: 'initCanvas', canvas, width, height, bgColor }, [canvas]);
+          });
         };
       }
       return async (...args: any[]) => {

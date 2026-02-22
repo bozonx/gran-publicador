@@ -1,3 +1,8 @@
+import './worker-polyfill';
+
+import { DOMAdapter, WebWorkerAdapter } from 'pixi.js';
+DOMAdapter.set(WebWorkerAdapter);
+
 import { createChannel } from 'bidc';
 import type { VideoCoreHostAPI } from '../utils/video-editor/worker-client';
 import type { VideoCoreWorkerAPI } from '../utils/video-editor/worker-rpc';
@@ -190,7 +195,7 @@ const api: any = {
 
       let audioSource: any = null;
       if (audioData) {
-        audioSource = new AudioBufferSource(audioData, {
+        audioSource = new (AudioBufferSource as any)(audioData, {
           codec: options.audioCodec || 'aac',
           bitrate: options.audioBitrate,
           numberOfChannels: audioData.numberOfChannels,
@@ -231,7 +236,13 @@ const api: any = {
   }
 };
 
-const channel = createChannel();
+// Create a pseudo-target to bypass bidc's internal context checks when 'window' is mocked
+const pseudoTarget = {
+  postMessage: (message: any, transfer?: any[]) => {
+    self.postMessage(message, transfer as any);
+  }
+};
+const channel = createChannel(pseudoTarget as any);
 
 hostClient = new Proxy({}, {
   get(_, method: string) {
@@ -250,10 +261,16 @@ channel.receive(async (data: any) => {
 
 self.addEventListener('message', async (e: any) => {
   if (e.data && e.data.type === 'initCanvas') {
-    if (!compositor) {
-      compositor = new VideoCompositor();
+    try {
+      if (!compositor) {
+        compositor = new VideoCompositor();
+      }
+      await compositor.init(e.data.width, e.data.height, e.data.bgColor, true);
+      compositor.canvas = e.data.canvas;
+      self.postMessage({ type: 'canvasInitialized' });
+    } catch (err: any) {
+      console.error('[Worker] initCanvas failed', err);
+      self.postMessage({ type: 'canvasInitError', error: err.message });
     }
-    await compositor.init(e.data.width, e.data.height, e.data.bgColor, true);
-    compositor.canvas = e.data.canvas;
   }
 });

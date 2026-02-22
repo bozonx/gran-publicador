@@ -1471,6 +1471,50 @@
     "yamlError": "Ошибка синтаксиса YAML"
   },
   "videoEditor": {
+    "settings": {
+      "title": "Настройки редактора",
+      "userSection": "Пользовательские настройки",
+      "workspaceSection": "Настройки рабочей области",
+      "openBehavior": "При открытии редактора",
+      "openBehaviorHelp": "Определяет, что происходит после открытия рабочей области",
+      "openLastProject": "Открыть последний проект",
+      "showProjectPicker": "Показать выбор проекта",
+      "proxyLimit": "Лимит хранилища прокси (ГБ)",
+      "proxyLimitHelp": "Общий лимит для всех прокси-файлов в этой рабочей области",
+      "defaultProjectWidth": "Ширина проекта по умолчанию",
+      "defaultProjectHeight": "Высота проекта по умолчанию",
+      "defaultProjectFps": "FPS проекта по умолчанию",
+      "workspaceSavedNote": "Сохранено в .gran/editor.settings.json"
+    },
+    "projectSettings": {
+      "note": "Настройки сохраняются в .gran/project.settings.json",
+      "export": "Экспорт",
+      "exportWidth": "Ширина",
+      "exportHeight": "Высота",
+      "exportFps": "FPS",
+      "proxy": "Прокси",
+      "proxyHeight": "Высота"
+    },
+    "fileManager": {
+      "title": "Файлы",
+      "empty": "В этом проекте нет файлов",
+      "unsupported": "API доступа к файловой системе не поддерживается в этом браузере",
+      "tabs": {
+        "project": "Проект",
+        "files": "Файлы",
+        "effects": "Эффекты"
+      },
+      "actions": {
+        "createFolder": "Создать папку",
+        "uploadFiles": "Загрузить файлы",
+        "createTimeline": "Создать таймлайн",
+        "dropFilesHere": "Отпустите файлы здесь"
+      },
+      "info": {
+        "title": "Информация о файле",
+        "metadata": "Метаданные"
+      }
+    },
     "export": {
       "title": "Экспорт видео",
       "filename": "Имя файла",
@@ -1498,22 +1542,7 @@
       "phaseUploading": "Загрузка...",
       "phaseSaving": "Сохранение в библиотеку...",
       "successMessage": "Видео экспортировано и сохранено в библиотеку контента",
-      "errorMessage": "Ошибка экспорта",
-      "fileManager": {
-        "title": "Файлы",
-        "empty": "В этом проекте нет файлов",
-        "unsupported": "API доступа к файловой системе не поддерживается в этом браузере",
-        "tabs": {
-          "files": "Файлы",
-          "effects": "Эффекты"
-        },
-        "actions": {
-          "createFolder": "Создать папку",
-          "uploadFiles": "Загрузить файлы",
-          "createTimeline": "Создать таймлайн",
-          "dropFilesHere": "Отпустите файлы здесь"
-        }
-      }
+      "errorMessage": "Ошибка экспорта"
     },
     "support": {
       "title": "Поддержка браузером",
@@ -1521,6 +1550,47 @@
       "partial": "Ваш браузер имеет ограниченную поддержку. Экспорт в некоторых форматах может быть недоступен (например, отсутствует AAC или H.264).",
       "none": "Ваш браузер не поддерживает WebCodecs. Редактирование и экспорт видео невозможны. Пожалуйста, используйте современный браузер (Chrome, Edge).",
       "formatError": "Неподдерживаемый формат: {type}. Редактор требует MP4 (H.264/H.265) в качестве источника. Экспорт в WebM доступен после загрузки."
+    }
+  },
+  "granVideoEditor": {
+    "welcome": {
+      "selectFolder": "Выберите папку рабочей области на вашем компьютере. В этой папке будут храниться все ваши файлы проектов, медиа-прокси и кэш.",
+      "openWorkspace": "Выбрать папку рабочей области"
+    },
+    "fileManager": {
+      "unsupported": "API доступа к файловой системе не поддерживается в этом браузере"
+    },
+    "export": {
+      "destination": "Место сохранения: export/"
+    },
+    "projects": {
+      "title": "Проекты",
+      "changeWorkspace": "Сменить рабочую область",
+      "continueWorking": "Продолжить работу",
+      "openLast": "Открыть проект",
+      "newProject": "Новый проект",
+      "projectNamePlaceholder": "Название проекта"
+    },
+    "preview": {
+      "title": "Предпросмотр",
+      "noFile": "Файл не выбран",
+      "unsupported": "Формат не поддерживается"
+    },
+    "monitor": {
+      "title": "Монитор",
+      "empty": "Клип не выбран",
+      "loadError": "Ошибка загрузки таймлайна",
+      "rewind": "Отмотать назад",
+      "play": "Воспроизвести"
+    },
+    "timeline": {
+      "rewind": "В начало",
+      "pause": "Пауза",
+      "play": "Воспроизвести",
+      "stop": "Стоп",
+      "zoom": "Масштаб",
+      "dropClip": "Перетащите клип сюда",
+      "clipAdded": "Клип добавлен"
     }
   }
 }
