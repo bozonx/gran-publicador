@@ -78,8 +78,9 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
       );
     }
     const redisUrl = config.REDIS_URL;
-    if (!redisUrl || typeof redisUrl !== 'string') {
-      throw new Error('REDIS_URL environment variable is not set');
+    const upstashRestUrl = config.UPSTASH_REDIS_REST_URL;
+    if ((!redisUrl || typeof redisUrl !== 'string') && (!upstashRestUrl || typeof upstashRestUrl !== 'string')) {
+      throw new Error('Either REDIS_URL or UPSTASH_REDIS_REST_URL environment variable must be set');
     }
   }
 
