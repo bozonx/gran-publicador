@@ -42,7 +42,7 @@ export type SaveStatus = 'saved' | 'saving' | 'error' | 'unsaved';
 
 export interface AutosaveOptions<T> {
   // Function to save data
-  saveFn: (data: T) => Promise<void | SaveResult>;
+  saveFn: (data: T, signal?: AbortSignal) => Promise<void | SaveResult>;
 
   // Data to watch for changes
   data: Ref<T | null>;

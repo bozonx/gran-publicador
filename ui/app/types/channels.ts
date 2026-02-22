@@ -125,4 +125,3 @@ export interface ChannelsFilter {
   search?: string;
   includeArchived?: boolean;
 }
-}
