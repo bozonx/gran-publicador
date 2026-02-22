@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/index.js';
 
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
@@ -294,18 +299,34 @@ export class ChannelsService {
       await this.validateChannelTemplateReferences(channel.projectId, data.preferences);
     }
 
-    return this.prisma.channel.update({
+    const updateData: any = {
+      name: data.name,
+      description: data.description,
+      channelIdentifier: data.channelIdentifier,
+      credentials: data.credentials ? (data.credentials as Prisma.InputJsonValue) : undefined,
+      preferences: data.preferences ? (data.preferences as Prisma.InputJsonValue) : undefined,
+      isActive: data.isActive,
+      tags: data.tags,
+      language: data.language,
+    };
+
+    if (data.version !== undefined) {
+      updateData.version = { increment: 1 };
+      const { count } = await this.prisma.channel.updateMany({
+        where: { id, version: data.version },
+        data: updateData,
+      });
+      if (count === 0) {
+        throw new ConflictException(
+          'Данные канала были изменены в другой вкладке. Обновите страницу.',
+        );
+      }
+      return this.prisma.channel.findUnique({ where: { id } });
+    }
+
+    return await this.prisma.channel.update({
       where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        channelIdentifier: data.channelIdentifier,
-        credentials: data.credentials ? (data.credentials as Prisma.InputJsonValue) : undefined,
-        preferences: data.preferences ? (data.preferences as Prisma.InputJsonValue) : undefined,
-        isActive: data.isActive,
-        tags: data.tags,
-        language: data.language,
-      },
+      data: updateData,
     });
   }
 

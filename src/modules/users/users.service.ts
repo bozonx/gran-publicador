@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, type User } from '../../generated/prisma/index.js';
 
@@ -321,7 +321,21 @@ export class UsersService {
       updateData.preferences = JSON.parse(JSON.stringify(newPreferences));
     }
 
-    return this.prisma.user.update({
+    if ('version' in data && typeof data.version === 'number') {
+      updateData.version = { increment: 1 };
+      const { count } = await this.prisma.user.updateMany({
+        where: { id: userId, version: data.version },
+        data: updateData,
+      });
+      if (count === 0) {
+        throw new ConflictException(
+          'Данные пользователя были изменены в другой вкладке. Обновите страницу.',
+        );
+      }
+      return this.prisma.user.findUnique({ where: { id: userId } }) as Promise<User>;
+    }
+
+    return await this.prisma.user.update({
       where: { id: userId },
       data: updateData,
     });

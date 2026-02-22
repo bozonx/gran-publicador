@@ -37,6 +37,8 @@ model User {
   uiLanguage       String   @default("en-US") @map("ui_language")
   // User preferences stored as JSON
   preferences      Json
+  // Optimistic locking version
+  version          Int      @default(1)
 
   ownedProjects  Project[]       @relation("ProjectOwner")
   projectMembers ProjectMember[]
@@ -91,6 +93,8 @@ model Project {
   archivedBy  String?   @map("archived_by")
   // Project preferences stored as JSON
   preferences Json
+  // Optimistic locking version
+  version     Int      @default(1)
 
   owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members      ProjectMember[]
@@ -123,6 +127,8 @@ model ContentCollection {
 
   order     Int     @default(0)
   config    Json
+  // Optimistic locking version
+  version   Int     @default(1)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -154,6 +160,8 @@ model ProjectNewsQuery {
   lastCheckedAt         DateTime? @map("last_checked_at")
   
   order     Int      @default(0)
+  // Optimistic locking version
+  version   Int      @default(1)
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -254,6 +262,8 @@ model Channel {
   preferences       Json
   // Tags for navigation and publication orientation
   tags              String?
+  // Optimistic locking version
+  version           Int         @default(1)
 
   // Whether channel is active for posting
   isActive          Boolean     @default(true) @map("is_active")
@@ -314,6 +324,8 @@ model Publication {
   postDate      DateTime?  @map("post_date")
   // Internal note for author's reference only. Never published to social media
   note          String?
+  // Optimistic locking version
+  version       Int        @default(1)
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   projectTemplate ProjectTemplate? @relation(fields: [projectTemplateId], references: [id], onDelete: SetNull)
@@ -345,6 +357,8 @@ model ContentItem {
 
   text      String?  @db.Text
   meta      Json     @default("{}")
+  // Optimistic locking version
+  version   Int      @default(1)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -634,6 +648,8 @@ model ProjectTemplate {
   language  String?   @map("language")
   // Array of TemplateBlock objects
   template  Json
+  // Optimistic locking version
+  version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

@@ -6,6 +6,7 @@ import {
   IsString,
   MaxLength,
   ValidateNested,
+  IsInt,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
@@ -58,4 +59,8 @@ export class UpdateChannelDto {
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_TAGS_LENGTH)
   public tags?: string;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

@@ -1,4 +1,4 @@
-import { IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, MaxLength, ValidateNested, IsObject, IsInt } from 'class-validator';
 import { Type } from 'class-transformer';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 import { ProjectPreferencesDto } from '../../../common/dto/json-objects.dto.js';
@@ -22,4 +22,8 @@ export class UpdateProjectDto {
   @ValidateNested()
   @Type(() => ProjectPreferencesDto)
   public preferences?: ProjectPreferencesDto;
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }

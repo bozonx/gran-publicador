@@ -1,5 +1,5 @@
 import { Exclude, Expose, Transform } from 'class-transformer';
-import { IsBoolean, IsString, IsOptional } from 'class-validator';
+import { IsBoolean, IsString, IsOptional, IsArray, IsInt } from 'class-validator';
 
 export class UserDto {
   @Expose()
@@ -99,15 +99,24 @@ export class UpdateUserProfileDto {
   @IsOptional()
   public isUiLanguageAuto?: boolean;
 
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   public projectOrder?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   public newsQueryOrder?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public contentLibraryCollectionOrder?: any;
+  public contentLibraryCollectionOrder?: string[];
+
+  @IsInt()
+  @IsOptional()
+  public version?: number;
 }
 
 export class BanUserDto {

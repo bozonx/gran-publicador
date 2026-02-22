@@ -1,4 +1,10 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { request } from 'undici';
 import { NewsConfig } from '../../config/news.config.js';
@@ -499,9 +505,31 @@ export class ProjectsService {
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
-    return this.prisma.project.update({
+    const updateData: any = {
+      ...data,
+      preferences: data.preferences ? (data.preferences as any) : undefined,
+    };
+
+    if (data.version !== undefined) {
+      updateData.version = { increment: 1 };
+
+      const { count } = await this.prisma.project.updateMany({
+        where: { id: projectId, version: data.version },
+        data: updateData,
+      });
+
+      if (count === 0) {
+        throw new ConflictException(
+          'Данные проекта были изменены в другой вкладке. Обновите страницу.',
+        );
+      }
+
+      return this.prisma.project.findUnique({ where: { id: projectId } });
+    }
+
+    return await this.prisma.project.update({
       where: { id: projectId },
-      data: { ...data, preferences: data.preferences ? (data.preferences as any) : undefined },
+      data: updateData,
     });
   }
 
