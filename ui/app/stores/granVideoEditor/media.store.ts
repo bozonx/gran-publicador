@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 import { useGranVideoEditorWorkspaceStore } from './workspace.store';
 import { useGranVideoEditorProjectStore } from './project.store';
-import { getWorkerClient } from '../../utils/video-editor/worker-client';
+import { getExportWorkerClient } from '../../utils/video-editor/worker-client';
 
 export interface MediaMetadata {
   source: {
@@ -42,7 +42,9 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
 
   async function ensureCacheDir(): Promise<FileSystemDirectoryHandle | null> {
     if (!workspaceStore.workspaceHandle || !projectStore.currentProjectName) return null;
-    const cacheDir = await workspaceStore.workspaceHandle.getDirectoryHandle('cache', { create: true });
+    const cacheDir = await workspaceStore.workspaceHandle.getDirectoryHandle('cache', {
+      create: true,
+    });
     return await cacheDir.getDirectoryHandle(projectStore.currentProjectName, { create: true });
   }
 
@@ -51,8 +53,6 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
     if (!projectCacheDir) return null;
     return await projectCacheDir.getDirectoryHandle('files-meta', { create: true });
   }
-
-
 
   async function getOrFetchMetadataByPath(path: string, options?: { forceRefresh?: boolean }) {
     const handle = await projectStore.getFileHandleByPath(path);
@@ -94,7 +94,7 @@ export const useGranVideoEditorMediaStore = defineStore('granVideoEditorMedia', 
     }
 
     try {
-      const { client } = getWorkerClient();
+      const { client } = getExportWorkerClient();
       const meta = await client.extractMetadata(fileHandle);
 
       if (meta) {

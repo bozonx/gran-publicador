@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useGranVideoEditorWorkspaceStore } from '~/stores/granVideoEditor/workspace.store'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
-import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
+import { getExportWorkerClient, setExportHostApi } from '~/utils/video-editor/worker-client'
 import type { TimelineTrackItem } from '~/timeline/types'
 import MediaEncodingSettings, { type FormatOption } from '~/components/media/MediaEncodingSettings.vue'
 import {
@@ -263,9 +263,9 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
   const clips = toWorkerTimelineClips(track?.items ?? [])
   if (!clips.length) throw new Error('Timeline is empty')
 
-  const { client } = getWorkerClient();
+  const { client } = getExportWorkerClient();
 
-  setHostApi({
+  setExportHostApi({
     getFileHandleByPath: async (path) => projectStore.getFileHandleByPath(path),
     onExportProgress: (progress) => onProgress(progress),
   });

@@ -2,7 +2,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
-import { getWorkerClient, setHostApi } from '~/utils/video-editor/worker-client'
+import { getPreviewWorkerClient, setPreviewHostApi } from '~/utils/video-editor/worker-client'
 import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 
 interface WorkerTimelineClip {
@@ -134,7 +134,7 @@ let renderLoopInFlight = false
 let latestRenderTimeUs: number | null = null
 let isUnmounted = false
 
-const { client } = getWorkerClient()
+const { client } = getPreviewWorkerClient()
 
 function scheduleRender(timeUs: number) {
   if (isUnmounted) return
@@ -221,7 +221,7 @@ async function buildTimeline() {
 
     console.log('[Monitor] VideoCompositor initialized canvas via worker', exportWidth.value, exportHeight.value)
 
-    setHostApi({
+    setPreviewHostApi({
       getFileHandleByPath: async (path) => projectStore.getFileHandleByPath(path),
       onExportProgress: () => {},
     })
