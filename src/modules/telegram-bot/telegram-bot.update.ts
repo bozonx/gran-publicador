@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Context } from 'grammy';
 import { I18nService } from 'nestjs-i18n';
 import { UsersService } from '../users/users.service.js';
@@ -7,28 +8,34 @@ import { MediaService } from '../media/media.service.js';
 import { extractMessageContent, formatSource } from './telegram-content.helper.js';
 import { SttService } from '../stt/stt.service.js';
 import { AppConfig } from '../../config/app.config.js';
-import PQueue from 'p-queue';
 import { StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
 import { Readable } from 'node:stream';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
+import { TELEGRAM_MESSAGES_QUEUE, TELEGRAM_PROCESS_MESSAGE_JOB } from './telegram-bot.queue.js';
+import type { Queue } from 'bullmq';
+import type { TelegramProcessMessageJobData } from './telegram-message.processor.js';
+import type { Api } from 'grammy';
+import { RedisService } from '../../common/redis/redis.service.js';
 
 const MAX_TITLE_LENGTH = 80;
 
 @Injectable()
 export class TelegramBotUpdate {
   private readonly logger = new Logger(TelegramBotUpdate.name);
-  private readonly userQueues = new Map<number, PQueue>();
   private readonly miniAppBaseUrl?: string;
 
   constructor(
+    @InjectQueue(TELEGRAM_MESSAGES_QUEUE)
+    private readonly telegramMessagesQueue: Queue,
     private readonly usersService: UsersService,
     private readonly prisma: PrismaService,
     private readonly mediaService: MediaService,
     private readonly sttService: SttService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {
     const appConfig = this.configService.get<AppConfig>('app')!;
     this.miniAppBaseUrl = appConfig.telegramMiniAppUrl;
@@ -136,29 +143,52 @@ export class TelegramBotUpdate {
       return;
     }
 
-    const queue = this.getQueueForUser(from.id);
-    await queue
-      .add(() => this.processMessage(ctx, message))
-      .catch(async error => {
-        this.logger.error(
-          `Failed to process message ${message.message_id} for user ${from.id}: ${error instanceof Error ? error.message : String(error)}`,
-          error instanceof Error ? error.stack : undefined,
-        );
-
-        await ctx
-          .reply(String(this.i18n.t('telegram.error_internal', { lang: fallbackLang })))
-          .catch(() => undefined);
-      });
+    await this.telegramMessagesQueue.add(
+      TELEGRAM_PROCESS_MESSAGE_JOB,
+      {
+        telegramUserId: from.id,
+        chatId: message.chat.id,
+        message: message as Message,
+      } satisfies TelegramProcessMessageJobData,
+      {
+        jobId: `telegram:${from.id}:${message.chat.id}:${message.message_id}`,
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true,
+      },
+    );
   }
 
-  /**
-   * Get or create a queue for a user
-   */
-  private getQueueForUser(userId: number): PQueue {
-    if (!this.userQueues.has(userId)) {
-      this.userQueues.set(userId, new PQueue({ concurrency: 1 }));
+  public async handleQueuedMessage(options: {
+    botApi: Api;
+    lockKey: string;
+    telegramUserId: number;
+    chatId: number;
+    message: Message;
+  }): Promise<void> {
+    const { botApi, lockKey, telegramUserId, chatId, message } = options;
+
+    const lockToken = await this.redisService.acquireLock(lockKey, 2 * 60 * 1000);
+    if (!lockToken) {
+      throw new Error('Telegram user lock not acquired');
     }
-    return this.userQueues.get(userId)!;
+
+    try {
+      const ctxLike: any = {
+        from: message.from ?? { id: telegramUserId, language_code: 'en-US' },
+        chat: message.chat,
+        message,
+        api: botApi,
+        reply: (text: string, extra?: any) => botApi.sendMessage(chatId, text, extra),
+      };
+
+      await this.processMessage(ctxLike as Context, message);
+    } finally {
+      await this.redisService.releaseLock(lockKey, lockToken);
+    }
   }
 
   private async processMessage(ctx: Context, message: Message): Promise<void> {
