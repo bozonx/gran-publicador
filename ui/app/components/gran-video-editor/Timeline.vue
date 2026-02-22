@@ -18,8 +18,11 @@ const draggingTrackId = ref<string | null>(null)
 const draggingMode = ref<'move' | 'trim_start' | 'trim_end' | null>(null)
 const dragAnchorClientX = ref(0)
 const dragAnchorStartUs = ref(0)
-const dragAnchorDurationUs = ref(0)
 const hasPendingTimelinePersist = ref(false)
+const lastDragClientX = ref(0)
+const pendingDragClientX = ref<number | null>(null)
+
+let dragRafId: number | null = null
 
 function timeUsToPx(timeUs: number) {
   return (timeUs / 1e6) * PX_PER_SECOND
@@ -68,6 +71,7 @@ function startMoveItem(e: MouseEvent, trackId: string, itemId: string, startUs: 
   draggingTrackId.value = trackId
   draggingItemId.value = itemId
   dragAnchorClientX.value = e.clientX
+  lastDragClientX.value = e.clientX
   dragAnchorStartUs.value = startUs
 
   window.addEventListener('mousemove', onGlobalMouseMove)
@@ -76,7 +80,7 @@ function startMoveItem(e: MouseEvent, trackId: string, itemId: string, startUs: 
 
 function startTrimItem(
   e: MouseEvent,
-  input: { trackId: string; itemId: string; edge: 'start' | 'end'; startUs: number; durationUs: number },
+  input: { trackId: string; itemId: string; edge: 'start' | 'end'; startUs: number },
 ) {
   if (e.button !== 0) return
   e.preventDefault()
@@ -86,11 +90,71 @@ function startTrimItem(
   draggingTrackId.value = input.trackId
   draggingItemId.value = input.itemId
   dragAnchorClientX.value = e.clientX
+  lastDragClientX.value = e.clientX
   dragAnchorStartUs.value = input.startUs
-  dragAnchorDurationUs.value = input.durationUs
 
   window.addEventListener('mousemove', onGlobalMouseMove)
   window.addEventListener('mouseup', onGlobalMouseUp)
+}
+
+function applyDragFromPendingClientX() {
+  const mode = draggingMode.value
+  const trackId = draggingTrackId.value
+  const itemId = draggingItemId.value
+  const clientX = pendingDragClientX.value
+
+  pendingDragClientX.value = null
+  dragRafId = null
+
+  if (!mode || !trackId || !itemId || clientX === null) return
+
+  if (mode === 'move') {
+    const dxPx = clientX - dragAnchorClientX.value
+    const deltaUs = pxToDeltaUs(dxPx)
+    const startUs = Math.max(0, dragAnchorStartUs.value + deltaUs)
+    try {
+      timelineStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs }, { saveMode: 'none' })
+      hasPendingTimelinePersist.value = true
+    } catch {
+    }
+    return
+  }
+
+  const stepDxPx = clientX - lastDragClientX.value
+  const stepDeltaUs = pxToDeltaUs(stepDxPx)
+  lastDragClientX.value = clientX
+
+  if (stepDeltaUs === 0) return
+
+  if (mode === 'trim_start') {
+    try {
+      timelineStore.applyTimeline(
+        { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs: stepDeltaUs },
+        { saveMode: 'none' },
+      )
+      hasPendingTimelinePersist.value = true
+    } catch {
+    }
+    return
+  }
+
+  if (mode === 'trim_end') {
+    try {
+      timelineStore.applyTimeline(
+        { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs: stepDeltaUs },
+        { saveMode: 'none' },
+      )
+      hasPendingTimelinePersist.value = true
+    } catch {
+    }
+  }
+}
+
+function scheduleDragApply() {
+  if (dragRafId !== null) return
+  dragRafId = requestAnimationFrame(() => {
+    applyDragFromPendingClientX()
+  })
 }
 
 function onGlobalMouseMove(e: MouseEvent) {
@@ -108,44 +172,17 @@ function onGlobalMouseMove(e: MouseEvent) {
   const itemId = draggingItemId.value
   if (!mode || !trackId || !itemId) return
 
-  const dxPx = e.clientX - dragAnchorClientX.value
-  const deltaUs = pxToDeltaUs(dxPx)
-
-  if (mode === 'move') {
-    const startUs = Math.max(0, dragAnchorStartUs.value + deltaUs)
-    try {
-      timelineStore.applyTimeline({ type: 'move_item', trackId, itemId, startUs }, { saveMode: 'none' })
-      hasPendingTimelinePersist.value = true
-    } catch {
-    }
-    return
-  }
-
-  if (mode === 'trim_start') {
-    try {
-      timelineStore.applyTimeline(
-        { type: 'trim_item', trackId, itemId, edge: 'start', deltaUs },
-        { saveMode: 'none' },
-      )
-      hasPendingTimelinePersist.value = true
-    } catch {
-    }
-    return
-  }
-
-  if (mode === 'trim_end') {
-    try {
-      timelineStore.applyTimeline(
-        { type: 'trim_item', trackId, itemId, edge: 'end', deltaUs },
-        { saveMode: 'none' },
-      )
-      hasPendingTimelinePersist.value = true
-    } catch {
-    }
-  }
+  pendingDragClientX.value = e.clientX
+  scheduleDragApply()
 }
 
 function onGlobalMouseUp() {
+  if (dragRafId !== null) {
+    cancelAnimationFrame(dragRafId)
+    dragRafId = null
+  }
+  applyDragFromPendingClientX()
+
   if (hasPendingTimelinePersist.value) {
     void timelineStore.requestTimelineSave({ immediate: true })
     hasPendingTimelinePersist.value = false
@@ -155,12 +192,17 @@ function onGlobalMouseUp() {
   draggingMode.value = null
   draggingItemId.value = null
   draggingTrackId.value = null
+  pendingDragClientX.value = null
 
   window.removeEventListener('mousemove', onGlobalMouseMove)
   window.removeEventListener('mouseup', onGlobalMouseUp)
 }
 
 onBeforeUnmount(() => {
+  if (dragRafId !== null) {
+    cancelAnimationFrame(dragRafId)
+    dragRafId = null
+  }
   window.removeEventListener('mousemove', onGlobalMouseMove)
   window.removeEventListener('mouseup', onGlobalMouseUp)
 })
@@ -305,13 +347,13 @@ function stop() {
               <div
                 v-if="item.kind === 'clip'"
                 class="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
-                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'start', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'start', startUs: item.timelineRange.startUs })"
               />
               <span class="truncate" :title="item.kind === 'clip' ? item.name : 'gap'">{{ item.kind === 'clip' ? item.name : 'gap' }}</span>
               <div
                 v-if="item.kind === 'clip'"
                 class="absolute right-0 top-0 bottom-0 w-1.5 cursor-ew-resize bg-white/30 hover:bg-white/50"
-                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'end', startUs: item.timelineRange.startUs, durationUs: item.timelineRange.durationUs })"
+                @mousedown="startTrimItem($event, { trackId: item.trackId, itemId: item.id, edge: 'end', startUs: item.timelineRange.startUs })"
               />
             </div>
           </div>

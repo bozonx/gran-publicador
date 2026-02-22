@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-import { useGranVideoEditorMediaStore } from '~/stores/granVideoEditor/media.store'
 import { useGranVideoEditorProjectStore } from '~/stores/granVideoEditor/project.store'
 import { useGranVideoEditorTimelineStore } from '~/stores/granVideoEditor/timeline.store'
 import { VideoCompositor } from '~/utils/video-editor/VideoCompositor'
@@ -9,10 +8,23 @@ import type { TimelineTrack, TimelineTrackItem } from '~/timeline/types'
 const { t } = useI18n()
 const projectStore = useGranVideoEditorProjectStore()
 const timelineStore = useGranVideoEditorTimelineStore()
-const mediaStore = useGranVideoEditorMediaStore()
 
 const videoTrack = computed(() => (timelineStore.timelineDoc?.tracks as TimelineTrack[] | undefined)?.find((track: TimelineTrack) => track.kind === 'video') ?? null)
 const videoItems = computed(() => (videoTrack.value?.items ?? []).filter((it: TimelineTrackItem) => it.kind === 'clip'))
+const clipSourceSignature = computed(() =>
+  videoItems.value
+    .map(item => `${item.id}|${item.kind === 'clip' ? item.source.path : ''}`)
+    .join(';'),
+)
+const clipLayoutSignature = computed(() =>
+  videoItems.value
+    .map(item =>
+      item.kind === 'clip'
+        ? `${item.id}|${item.timelineRange.startUs}|${item.timelineRange.durationUs}|${item.sourceRange.startUs}|${item.sourceRange.durationUs}`
+        : `${item.id}|${item.timelineRange.startUs}|${item.timelineRange.durationUs}`,
+    )
+    .join(';'),
+)
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const viewportEl = ref<HTMLDivElement | null>(null)
@@ -69,6 +81,7 @@ function getCanvasInnerStyle() {
 
 let viewportResizeObserver: ResizeObserver | null = null
 let buildRequestId = 0
+let lastBuiltSourceSignature = ''
 
 const compositor = new VideoCompositor()
 
@@ -125,6 +138,8 @@ async function buildTimeline() {
       return await projectStore.getFileHandleByPath(path)
     })
 
+    lastBuiltSourceSignature = clipSourceSignature.value
+
     timelineStore.duration = maxDuration
     console.log('[Monitor] Timeline duration:', maxDuration)
 
@@ -148,10 +163,22 @@ async function buildTimeline() {
   }
 }
 
-// Watch global store timelineClips changes and rebuild timeline
-watch(() => timelineStore.timelineDoc, () => {
+watch(clipSourceSignature, () => {
   buildTimeline()
-}, { deep: true })
+})
+
+watch(clipLayoutSignature, () => {
+  if (!compositor.app || isLoading.value) {
+    return
+  }
+  if (clipSourceSignature.value !== lastBuiltSourceSignature) {
+    return
+  }
+
+  const maxDuration = compositor.updateTimelineLayout(videoItems.value)
+  timelineStore.duration = maxDuration
+  renderQueue = renderQueue.then(() => compositor.renderFrame(timelineStore.currentTime))
+})
 
 watch(
   () => [projectStore.projectSettings.export.width, projectStore.projectSettings.export.height],

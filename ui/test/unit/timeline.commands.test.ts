@@ -98,4 +98,44 @@ describe('timeline/commands', () => {
     expect(clip.timelineRange.startUs).toBe(0);
     expect(clip.timelineRange.durationUs).toBe(2_000_000);
   });
+
+  it('keeps clip id stable after move and trim operations', () => {
+    const doc = createDefaultTimelineDocument({ id: 'd1', name: 'Demo', fps: 25 });
+    const vTrackId = doc.tracks.find(t => t.kind === 'video')!.id;
+
+    const added = applyTimelineCommand(doc, {
+      type: 'add_clip_to_track',
+      trackId: vTrackId,
+      name: 'A',
+      path: 'sources/video/a.mp4',
+      durationUs: 3_000_000,
+      sourceDurationUs: 3_000_000,
+    });
+
+    const trackAfterAdd = added.next.tracks.find(t => t.id === vTrackId)!;
+    const originalId = trackAfterAdd.items[0]!.id;
+
+    const moved = applyTimelineCommand(added.next, {
+      type: 'move_item',
+      trackId: vTrackId,
+      itemId: originalId,
+      startUs: 500_000,
+    });
+
+    const trackAfterMove = moved.next.tracks.find(t => t.id === vTrackId)!;
+    const movedItem = trackAfterMove.items.find(item => item.id === originalId);
+    expect(movedItem).toBeDefined();
+
+    const trimmed = applyTimelineCommand(moved.next, {
+      type: 'trim_item',
+      trackId: vTrackId,
+      itemId: originalId,
+      edge: 'end',
+      deltaUs: -500_000,
+    });
+
+    const trackAfterTrim = trimmed.next.tracks.find(t => t.id === vTrackId)!;
+    const trimmedItem = trackAfterTrim.items.find(item => item.id === originalId);
+    expect(trimmedItem).toBeDefined();
+  });
 });

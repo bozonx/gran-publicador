@@ -68,7 +68,11 @@ function getTrackById(doc: TimelineDocument, trackId: string): TimelineTrack {
 }
 
 function nextItemId(trackId: string, prefix: string): string {
-  return `${prefix}_${trackId}_${Math.random().toString(36).slice(2, 10)}`;
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj && typeof cryptoObj.randomUUID === 'function') {
+    return `${prefix}_${trackId}_${cryptoObj.randomUUID()}`;
+  }
+  return `${prefix}_${trackId}_${Date.now().toString(36)}`;
 }
 
 function computeTrackEndUs(track: TimelineTrack): number {

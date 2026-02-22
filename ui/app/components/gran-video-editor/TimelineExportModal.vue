@@ -28,6 +28,8 @@ interface ExportOptions {
   fps: number
 }
 
+const EXPORT_FRAME_YIELD_INTERVAL = 12
+
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
@@ -281,7 +283,10 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
 
     // Pass writable directly to StreamTarget
     const writable = await (fileHandle as any).createWritable()
-    const target = new StreamTarget(writable)
+    const target = new StreamTarget(writable, {
+      chunked: true,
+      chunkSize: 16 * 1024 * 1024,
+    })
     const output = new Output({ target, format })
     
     // We pass the compositor tracking canvas
@@ -324,6 +329,12 @@ async function exportTimelineToFile(options: ExportOptions, fileHandle: FileSyst
       
       currentTimeUs += dtUs
       onProgress(Math.min(100, Math.round(((frameNum + 1) / totalFrames) * 100)))
+
+      if ((frameNum + 1) % EXPORT_FRAME_YIELD_INTERVAL === 0) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 0)
+        })
+      }
     }
 
     if ('close' in videoSource) (videoSource as any).close()

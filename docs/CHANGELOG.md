@@ -32,11 +32,23 @@ All notable changes to this project will be documented in this file.
   - Timeline drag operations (move/trim) now update store state without writing on every mousemove; file save is flushed on mouse release.
   - Added project-relative timeline path handling so active timeline file can live in nested folders.
   - File Manager now opens `.otio` files on click by switching active timeline path and loading timeline document.
+- **Gran Video Editor: timeline/monitor/compositor performance and semantics**:
+  - Timeline clip IDs are now generated via `crypto.randomUUID()` (with fallback), replacing `Math.random()`-based IDs.
+  - Timeline drag mutations are now batched to animation frames, reducing reactive churn during move/trim operations.
+  - Monitor no longer relies on deep watch of the whole timeline document; it now uses narrow clip source/layout signatures.
+  - Monitor applies incremental compositor layout updates for move/trim changes without full timeline rebuild.
+  - `VideoCompositor` now keeps stable clip resources by item ID and updates clip timing/source ranges incrementally.
+  - `VideoCompositor` now respects timeline semantics (`timelineRange` + `sourceRange`) when reading frame timestamps.
+  - `VideoCompositor` no longer allocates export-sized per-clip canvases; backing canvases are resized lazily to frame size.
+  - `VideoCompositor` initialization now resets previous renderer state to avoid retained Pixi resources across rebuilds.
 
 ### Fixed
 - **Gran Video Editor: OTIO roundtrip metadata fidelity**:
   - Clip/gap stable IDs are now persisted in OTIO metadata (`metadata.gran.id`) and restored on parse.
   - Explicit timeline position (`timelineRange.startUs`) is now persisted per item (`metadata.gran.timelineStartUs`) and restored from OTIO instead of implicit sequential reconstruction.
+- **Gran Video Editor export loop stability**:
+  - Export writes now use `StreamTarget` chunked mode for more predictable streaming writes to File System Access API.
+  - Export frame loop now yields periodically to reduce long main-thread monopolization on large timelines.
 
 ### Added
 - **Telegram post option: caption above media**: added support for Telegram Bot API option `show_caption_above_media` (sent via `options` object to the social-media microservice).
