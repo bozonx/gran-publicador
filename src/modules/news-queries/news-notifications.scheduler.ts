@@ -276,13 +276,20 @@ export class NewsNotificationsScheduler {
     let newestItemEver: any = null;
 
     while (hasMore) {
+      let mode = settings.mode;
+      if (!mode || !['text', 'vector', 'hybrid'].includes(mode)) {
+        mode = 'hybrid';
+      }
+
       const searchParams: any = {
         q: settings.q || '',
-        mode: settings.mode,
+        mode,
         lang: settings.lang,
-        sourceTags: settings.sourceTags,
+        sourceTags: Array.isArray(settings.sourceTags)
+          ? settings.sourceTags.join(',')
+          : settings.sourceTags,
         source: settings.source,
-        sources: settings.sources,
+        sources: Array.isArray(settings.sources) ? settings.sources.join(',') : settings.sources,
         minScore: settings.minScore,
         limit,
         orderBy: 'savedAt',
@@ -314,15 +321,10 @@ export class NewsNotificationsScheduler {
 
           const itemId = item._id || item.id;
 
-          // If the item is older than the last sent item, skip it
           if (itemSavedAt < existingState.lastSentSavedAt) return false;
 
-          // If it has the exact same time, make sure it's not the same ID
           if (itemSavedAt.getTime() === existingState.lastSentSavedAt.getTime()) {
-            // In a strict mode, we might just reject it to be safe if IDs don't match,
-            // but let's at least reject the exact same ID
             if (itemId === existingState.lastSentNewsId) return false;
-            // To be absolutely safe against loops with same timestamp, we skip <= lastSentSavedAt
             return false;
           }
 
