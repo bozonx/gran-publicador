@@ -309,7 +309,7 @@ async function main() {
   console.log('  Generating content collections...');
   const contentCollections = [
     {
-      id: 'collection10000-0000-4000-8000-000000000001',
+      id: '10000000-0000-4000-8000-000000000001',
       type: 'GROUP',
       title: 'Common Assets',
       projectId: projectData[0].id,
@@ -317,7 +317,7 @@ async function main() {
       config: {},
     },
     {
-      id: 'collection10000-0000-4000-8000-000000000002',
+      id: '10000000-0000-4000-8000-000000000002',
       type: 'SAVED_VIEW',
       title: 'Recent Images',
       projectId: projectData[0].id,
@@ -525,7 +525,7 @@ async function main() {
   console.log('  Generating project templates...');
   const projectTemplates = [
     {
-      id: 'pt-00000000-0000-4000-8000-000000000001',
+      id: '20000000-0000-4000-8000-000000000001',
       projectId: projectData[0].id,
       name: 'Standard Tech Article',
       postType: PostType.ARTICLE,
@@ -538,7 +538,7 @@ async function main() {
       ],
     },
     {
-      id: 'pt-00000000-0000-4000-8000-000000000002',
+      id: '20000000-0000-4000-8000-000000000002',
       projectId: projectData[0].id,
       name: 'Quick News Post',
       postType: PostType.NEWS,
@@ -621,7 +621,7 @@ async function main() {
       postType: PostType.ARTICLE,
       postDate: new Date(2025, 0, 1),
       language: 'ru-RU',
-      projectTemplateId: 'pt-00000000-0000-4000-8000-000000000001',
+      projectTemplateId: '20000000-0000-4000-8000-000000000001',
       meta: {},
     },
     {
@@ -1064,7 +1064,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Draft Idea: Nuxt 5 Predictions',
       _tags: ['nuxt', 'future', 'speculation'],
-      _groupId: 'collection10000-0000-4000-8000-000000000001',
+      _groupId: '10000000-0000-4000-8000-000000000001',
       note: 'Just some random thoughts',
       text: 'Nuxt 5 might introduce native AI integration...',
       meta: {},
@@ -1076,7 +1076,7 @@ async function main() {
       projectId: projectData[0].id,
       title: 'Cool Image for Post',
       _tags: ['image', 'asset'],
-      _groupId: 'collection10000-0000-4000-8000-000000000001',
+      _groupId: '10000000-0000-4000-8000-000000000001',
       note: 'To be used in upcoming posts',
       text: null,
       meta: {},

@@ -180,6 +180,9 @@ export class UsersService {
       }),
     ]);
   }
+
+  /**
+   * Find all users with pagination and filtering.
    * Returns users with their statistics (projects count, posts count).
    */
   public async findAll(options: {

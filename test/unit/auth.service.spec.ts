@@ -1,6 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { AuthService } from '../../src/modules/auth/auth.service.js';
 import { UsersService } from '../../src/modules/users/users.service.js';
+import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
@@ -16,7 +17,16 @@ describe('AuthService (unit)', () => {
   const mockUsersService = {
     findOrCreateTelegramUser: jest.fn() as any,
     findById: jest.fn() as any,
-    updateHashedRefreshToken: jest.fn() as any,
+  };
+
+  const mockPrismaService = {
+    userSession: {
+      create: jest.fn() as any,
+      findUnique: jest.fn() as any,
+      update: jest.fn() as any,
+      delete: jest.fn() as any,
+      deleteMany: jest.fn() as any,
+    },
   };
 
   const mockJwtService = {
@@ -46,6 +56,7 @@ describe('AuthService (unit)', () => {
       providers: [
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
+        { provide: PrismaService, useValue: mockPrismaService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -106,7 +117,7 @@ describe('AuthService (unit)', () => {
       mockJwtService.signAsync
         .mockResolvedValueOnce('mock.access.token')
         .mockResolvedValueOnce('mock.refresh.token');
-      mockUsersService.updateHashedRefreshToken.mockResolvedValue(undefined);
+      mockPrismaService.userSession.create.mockResolvedValue(undefined);
 
       const result = await service.loginWithTelegram(initData);
 
@@ -123,7 +134,7 @@ describe('AuthService (unit)', () => {
         avatarUrl: 'http://example.com/photo.jpg',
       });
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
-      expect(mockUsersService.updateHashedRefreshToken).toHaveBeenCalled();
+      expect(mockPrismaService.userSession.create).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if hash is invalid', async () => {
@@ -197,35 +208,33 @@ describe('AuthService (unit)', () => {
   describe('refreshTokens', () => {
     it('should issue new tokens when refresh token is valid and matches stored hash', async () => {
       mockJwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
-      mockUsersService.findById.mockResolvedValue({
-        id: 'user-1',
-        telegramId: 1n,
-        telegramUsername: 'u',
-        hashedRefreshToken: 'hashed',
-        deletedAt: null,
-      });
-
       const { createHash } = await import('node:crypto');
       const hashed = createHash('sha256').update('refresh.token').digest('hex');
-      mockUsersService.findById.mockResolvedValue({
-        id: 'user-1',
-        telegramId: 1n,
-        telegramUsername: 'u',
+
+      mockPrismaService.userSession.findUnique.mockResolvedValue({
+        id: 'session-1',
+        userId: 'user-1',
         hashedRefreshToken: hashed,
-        deletedAt: null,
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        user: {
+          id: 'user-1',
+          telegramId: 1n,
+          telegramUsername: 'u',
+          deletedAt: null,
+        },
       });
 
       mockJwtService.signAsync
         .mockResolvedValueOnce('new.access')
         .mockResolvedValueOnce('new.refresh');
-      mockUsersService.updateHashedRefreshToken.mockResolvedValue(undefined);
+      mockPrismaService.userSession.update.mockResolvedValue(undefined);
 
       const result = await service.refreshTokens('refresh.token');
 
       expect(result.accessToken).toBe('new.access');
       expect(result.refreshToken).toBe('new.refresh');
       expect(mockJwtService.verifyAsync).toHaveBeenCalled();
-      expect(mockUsersService.updateHashedRefreshToken).toHaveBeenCalled();
+      expect(mockPrismaService.userSession.update).toHaveBeenCalled();
     });
 
     it('should throw if refresh token is invalid', async () => {

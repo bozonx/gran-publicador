@@ -58,8 +58,8 @@ export class AuthController {
   @Post('logout')
   @UseGuards(AuthGuard(JWT_STRATEGY))
   @HttpCode(HttpStatus.NO_CONTENT)
-  public async logout(@Req() req: AuthenticatedRequest) {
-    await this.authService.logout(req.user.sub);
+  public async logout(@Req() req: AuthenticatedRequest, @Body() dto: RefreshTokenDto) {
+    await this.authService.logout(req.user.sub, dto.refreshToken);
   }
 
   /**

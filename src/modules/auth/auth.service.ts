@@ -7,6 +7,7 @@ import { plainToInstance } from 'class-transformer';
 
 import { UserDto } from '../users/dto/user.dto.js';
 import { UsersService } from '../users/users.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthResponseDto, TelegramWidgetLoginDto } from './dto/index.js';
 
 /**
@@ -36,6 +37,7 @@ export class AuthService {
     private jwtService: JwtService,
     private configService: ConfigService,
     private usersService: UsersService,
+    private prisma: PrismaService,
   ) {
     const token = this.configService.get<string>('app.telegramBotToken');
     if (!token) {
@@ -95,7 +97,7 @@ export class AuthService {
       user.telegramId?.toString(),
       user.telegramUsername,
     );
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.createSession(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
@@ -145,7 +147,7 @@ export class AuthService {
       user.telegramId?.toString(),
       user.telegramUsername,
     );
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.createSession(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
@@ -280,7 +282,7 @@ export class AuthService {
       user.telegramId?.toString(),
       user.telegramUsername,
     );
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    await this.createSession(user.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
@@ -313,32 +315,76 @@ export class AuthService {
       throw new ForbiddenException('Access Denied (Invalid refresh token)');
     }
 
-    const user = await this.usersService.findById(userId);
-    if (!user?.hashedRefreshToken || user.deletedAt)
-      throw new ForbiddenException('Access Denied (Invalid user or account deleted)');
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
 
-    const isMatch = await this.verifyRefreshToken(user.hashedRefreshToken, refreshToken);
-    if (!isMatch) throw new ForbiddenException('Access Denied (Refresh token mismatch)');
+    const session = await this.prisma.userSession.findUnique({
+      where: { hashedRefreshToken: refreshTokenHash },
+      include: { user: true },
+    });
+
+    if (!session || session.userId !== userId) {
+      throw new ForbiddenException('Access Denied (Invalid refresh token)');
+    }
+
+    if (session.expiresAt.getTime() <= Date.now()) {
+      await this.prisma.userSession.delete({ where: { id: session.id } });
+      throw new ForbiddenException('Access Denied (Refresh token expired)');
+    }
+
+    if (session.user.deletedAt) {
+      throw new ForbiddenException('Access Denied (Invalid user or account deleted)');
+    }
 
     const tokens = await this.getTokens(
-      user.id,
-      user.telegramId?.toString(),
-      user.telegramUsername,
+      session.user.id,
+      session.user.telegramId?.toString(),
+      session.user.telegramUsername,
     );
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+
+    await this.rotateSession(session.id, tokens.refreshToken);
 
     return plainToInstance(
       AuthResponseDto,
       {
         ...tokens,
-        user: user,
+        user: session.user,
       },
       { excludeExtraneousValues: true },
     );
   }
 
-  public async logout(userId: string) {
-    return this.usersService.updateHashedRefreshToken(userId, null);
+  public async logout(userId: string, refreshToken: string): Promise<void> {
+    const secret = this.configService.get<string>('app.jwtSecret');
+    if (!secret) {
+      throw new UnauthorizedException('JWT secret is not configured');
+    }
+
+    let tokenUserId: string;
+    try {
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret,
+      });
+
+      if (!payload?.sub || typeof payload.sub !== 'string') {
+        throw new ForbiddenException('Access Denied (Invalid refresh token payload)');
+      }
+
+      tokenUserId = payload.sub;
+    } catch {
+      throw new ForbiddenException('Access Denied (Invalid refresh token)');
+    }
+
+    if (tokenUserId !== userId) {
+      throw new ForbiddenException('Access Denied');
+    }
+
+    const refreshTokenHash = this.hashRefreshToken(refreshToken);
+    await this.prisma.userSession.deleteMany({
+      where: {
+        userId,
+        hashedRefreshToken: refreshTokenHash,
+      },
+    });
   }
 
   private async getTokens(userId: string, telegramId?: string, username?: string | null) {
@@ -365,13 +411,33 @@ export class AuthService {
     };
   }
 
-  private async updateRefreshToken(userId: string, refreshToken: string) {
-    const hash = createHash('sha256').update(refreshToken).digest('hex');
-    await this.usersService.updateHashedRefreshToken(userId, hash);
+  private hashRefreshToken(refreshToken: string): string {
+    return createHash('sha256').update(refreshToken).digest('hex');
   }
 
-  private async verifyRefreshToken(hashedToken: string, providedToken: string) {
-    const hash = createHash('sha256').update(providedToken).digest('hex');
-    return hash === hashedToken;
+  private getRefreshTokenExpiresAt(): Date {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    return expiresAt;
+  }
+
+  private async createSession(userId: string, refreshToken: string): Promise<void> {
+    await this.prisma.userSession.create({
+      data: {
+        userId,
+        hashedRefreshToken: this.hashRefreshToken(refreshToken),
+        expiresAt: this.getRefreshTokenExpiresAt(),
+      },
+    });
+  }
+
+  private async rotateSession(sessionId: string, refreshToken: string): Promise<void> {
+    await this.prisma.userSession.update({
+      where: { id: sessionId },
+      data: {
+        hashedRefreshToken: this.hashRefreshToken(refreshToken),
+        expiresAt: this.getRefreshTokenExpiresAt(),
+      },
+    });
   }
 }
