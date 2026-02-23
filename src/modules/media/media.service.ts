@@ -480,9 +480,7 @@ export class MediaService {
       compression = undefined;
     }
 
-    const metaHeader: Record<string, string> = {
-      appId: config.appId,
-    };
+    const metaHeader: Record<string, string> = {};
     if (userId) {
       metaHeader.userId = userId;
     }
@@ -491,7 +489,7 @@ export class MediaService {
     }
 
     this.logger.debug(
-      `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", appId="${config.appId}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
+      `Uploading file to storage: filename="${filename}", mimetype="${mimetype}", optimize=${compression ? JSON.stringify(compression) : 'none'}`,
     );
 
     try {
@@ -561,7 +559,7 @@ export class MediaService {
     }
 
     try {
-      const body: Record<string, any> = { url, appId: config.appId };
+      const body: Record<string, any> = { url };
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;

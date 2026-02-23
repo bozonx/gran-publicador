@@ -17,12 +17,6 @@ export class MediaConfig {
   @IsUrl({ require_tld: false })
   public serviceUrl?: string;
 
-  /**
-   * Application ID used to group files.
-   */
-  @IsString()
-  @IsOptional()
-  public appId: string = 'gran-publicador';
 
   /**
    * API Token for Bearer authorization (optional).
@@ -150,7 +144,6 @@ export default registerAs('media', (): MediaConfig => {
 
   const rawConfig: any = {
     serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
-    appId: process.env.MEDIA_STORAGE_APP_ID,
     apiToken: process.env.MEDIA_STORAGE_API_TOKEN,
     timeoutSecs: process.env.MEDIA_STORAGE_TIMEOUT_SECS
       ? parseInt(process.env.MEDIA_STORAGE_TIMEOUT_SECS, 10)
