@@ -46,7 +46,8 @@ jobs:
         run: pnpm --filter ui generate
         env:
           NUXT_APP_BASE_URL: /
-          NUXT_PUBLIC_API_BASE: https://gran-p-api.p-libereco.org
+          # NUXT_PUBLIC_API_BASE: https://gran-p-api.p-libereco.org
+          NUXT_PUBLIC_API_BASE: https://gran-publicador.onrender.com
 
       - name: Create 404.html fallback
         run: cp ui/.output/public/index.html ui/.output/public/404.html
