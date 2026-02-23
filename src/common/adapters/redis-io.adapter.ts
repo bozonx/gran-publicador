@@ -51,7 +51,6 @@ export class RedisIoAdapter extends IoAdapter {
   async connectToRedis(): Promise<void> {
     const config = this.configService.get<RedisConfig>('redis')!;
 
-
     const isUpstash = config.url.includes('upstash.io');
     const redisOptions: any = {};
     if (isUpstash) {

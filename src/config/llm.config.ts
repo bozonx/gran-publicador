@@ -66,13 +66,13 @@ export class LlmConfig {
   public retryDelay?: number;
 
   /**
-   * Request timeout in seconds.
-   * Defined by FREE_LLM_ROUTER_TIMEOUT_SECS environment variable.
+   * Single request timeout in seconds.
+   * Defined by LLM_REQUEST_TIMEOUT_SECS environment variable.
    */
   @IsOptional()
   @IsInt()
   @Min(1)
-  public timeoutSecs?: number;
+  public requestTimeoutSecs?: number;
 
   /**
    * Fallback provider.
@@ -142,8 +142,8 @@ export default registerAs('llm', (): LlmConfig => {
     retryDelay: process.env.FREE_LLM_ROUTER_RETRY_DELAY
       ? parseInt(process.env.FREE_LLM_ROUTER_RETRY_DELAY, 10)
       : undefined,
-    timeoutSecs: process.env.FREE_LLM_ROUTER_TIMEOUT_SECS
-      ? parseInt(process.env.FREE_LLM_ROUTER_TIMEOUT_SECS, 10)
+    requestTimeoutSecs: process.env.LLM_REQUEST_TIMEOUT_SECS
+      ? parseInt(process.env.LLM_REQUEST_TIMEOUT_SECS, 10)
       : undefined,
     fallbackProvider: process.env.FREE_LLM_ROUTER_FALLBACK_PROVIDER,
     fallbackModel: process.env.FREE_LLM_ROUTER_FALLBACK_MODEL,

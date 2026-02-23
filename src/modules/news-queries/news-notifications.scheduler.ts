@@ -304,11 +304,7 @@ export class NewsNotificationsScheduler {
         searchParams.savedFrom = cutoffDate.toISOString();
       }
 
-      const results = (await this.projectsService.searchNews(
-        query.projectId,
-        userId,
-        searchParams,
-      )) as any;
+      const results = await this.projectsService.searchNews(query.projectId, userId, searchParams);
       const items = results.items || (Array.isArray(results) ? results : []);
 
       if (items.length > 0) {

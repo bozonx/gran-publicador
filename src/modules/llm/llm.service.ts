@@ -70,7 +70,7 @@ export class LlmService {
   }
 
   private getRequestTimeoutMs(): number {
-    return (this.config.timeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000;
+    return (this.config.requestTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000;
   }
 
   private async callLlmRouter(
@@ -279,7 +279,7 @@ export class LlmService {
         max_model_switches: this.config.maxModelSwitches,
         max_same_model_retries: this.config.maxSameModelRetries,
         retry_delay: this.config.retryDelay,
-        timeout_secs: this.config.timeoutSecs,
+        timeout_secs: this.config.requestTimeoutSecs,
         fallback_provider: this.config.fallbackProvider,
         fallback_model: this.config.fallbackModel,
         min_context_size: this.config.minContextSize,
@@ -343,7 +343,7 @@ export class LlmService {
         max_model_switches: this.config.maxModelSwitches,
         max_same_model_retries: this.config.maxSameModelRetries,
         retry_delay: this.config.retryDelay,
-        timeout_secs: this.config.timeoutSecs,
+        timeout_secs: this.config.requestTimeoutSecs,
         fallback_provider: this.config.fallbackProvider,
         fallback_model: this.config.fallbackModel,
         min_context_size: this.config.minContextSize,
@@ -403,7 +403,7 @@ export class LlmService {
         max_model_switches: this.config.maxModelSwitches,
         max_same_model_retries: this.config.maxSameModelRetries,
         retry_delay: this.config.retryDelay,
-        timeout_secs: this.config.timeoutSecs,
+        timeout_secs: this.config.requestTimeoutSecs,
         fallback_provider: this.config.fallbackProvider,
         fallback_model: this.config.fallbackModel,
         min_context_size: this.config.minContextSize,

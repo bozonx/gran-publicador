@@ -114,7 +114,9 @@ export class SessionsService {
     });
   }
 
-  private async issueTokens(input: IssueTokensInput & { sessionId: string }): Promise<IssuedTokens> {
+  private async issueTokens(
+    input: IssueTokensInput & { sessionId: string },
+  ): Promise<IssuedTokens> {
     const secret = this.configService.get<string>('app.jwtSecret');
     if (!secret) {
       throw new UnauthorizedException('JWT secret is not configured');
@@ -149,7 +151,9 @@ export class SessionsService {
     return { accessToken, refreshToken };
   }
 
-  private async verifyRefreshToken(refreshToken: string): Promise<{ sub: string; tokenType?: JwtTokenType; jti?: string }> {
+  private async verifyRefreshToken(
+    refreshToken: string,
+  ): Promise<{ sub: string; tokenType?: JwtTokenType; jti?: string }> {
     const secret = this.configService.get<string>('app.jwtSecret');
     if (!secret) {
       throw new UnauthorizedException('JWT secret is not configured');

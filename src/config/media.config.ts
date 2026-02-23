@@ -17,7 +17,6 @@ export class MediaConfig {
   @IsUrl({ require_tld: false })
   public serviceUrl?: string;
 
-
   /**
    * API Token for Bearer authorization (optional).
    */
@@ -27,11 +26,12 @@ export class MediaConfig {
 
   /**
    * Request timeout in seconds.
+   * Default: 60
    */
   @IsOptional()
   @IsInt()
   @Min(1)
-  public timeoutSecs: number = 60;
+  public requestTimeoutSecs: number = 60;
 
   /**
    * Maximum allowed file size in MB.
@@ -91,7 +91,6 @@ export class MediaConfig {
   @IsIn(['4:2:0', '4:4:4'])
   public imageOptimizationChromaSubsampling: MediaImageOptimizationChromaSubsampling = '4:2:0';
 
-
   /**
    * Strip metadata from optimized images.
    */
@@ -140,8 +139,8 @@ export default registerAs('media', (): MediaConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.MEDIA_STORAGE_SERVICE_URL,
     apiToken: process.env.MEDIA_STORAGE_API_TOKEN,
-    timeoutSecs: process.env.MEDIA_STORAGE_TIMEOUT_SECS
-      ? parseInt(process.env.MEDIA_STORAGE_TIMEOUT_SECS, 10)
+    requestTimeoutSecs: process.env.MEDIA_REQUEST_TIMEOUT_SECS
+      ? parseInt(process.env.MEDIA_REQUEST_TIMEOUT_SECS, 10)
       : undefined,
     maxFileSizeMb: process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB
       ? parseInt(process.env.MEDIA_STORAGE_MAX_FILE_SIZE_MB, 10)

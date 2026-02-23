@@ -53,7 +53,6 @@ export class TranslateTextDto {
   @IsString()
   model?: string;
 
-
   /**
    * Per-request override for maximum allowed input text length (characters).
    * Range: 100-10000000. If omitted or 0, uses config default.
@@ -63,7 +62,6 @@ export class TranslateTextDto {
   @Min(100)
   @Max(VALIDATION_LIMITS.MAX_TRANSLATE_TEXT_LENGTH)
   maxTextLength?: number;
-
 
   /**
    * Per-request override for text chunk limit (characters).

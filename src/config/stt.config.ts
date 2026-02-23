@@ -24,13 +24,13 @@ export class SttConfig {
   public apiToken?: string;
 
   /**
-   * Request timeout in milliseconds.
-   * Defined by STT_TIMEOUT_MS environment variable.
+   * Single request timeout in seconds.
+   * Defined by STT_REQUEST_TIMEOUT_SECS environment variable.
    */
   @IsOptional()
   @IsInt()
   @Min(1)
-  public timeoutMs?: number = 600000;
+  public requestTimeoutSecs?: number = 600000;
 
   /**
    * Maximum allowed audio file size in bytes.
@@ -67,7 +67,9 @@ export default registerAs('stt', (): SttConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.STT_SERVICE_URL,
     apiToken: process.env.STT_SERVICE_API_TOKEN,
-    timeoutMs: process.env.STT_TIMEOUT_MS ? parseInt(process.env.STT_TIMEOUT_MS, 10) : undefined,
+    requestTimeoutSecs: process.env.STT_REQUEST_TIMEOUT_SECS
+      ? parseInt(process.env.STT_REQUEST_TIMEOUT_SECS, 10)
+      : undefined,
     maxFileSize: process.env.STT_MAX_FILE_SIZE
       ? parseInt(process.env.STT_MAX_FILE_SIZE, 10)
       : undefined,

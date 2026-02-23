@@ -16,8 +16,12 @@ import type { Readable } from 'stream';
 @Injectable()
 export class SttService {
   private readonly logger = new Logger(SttService.name);
+  private readonly defaultRequestTimeoutSecs: number;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) {
+    this.defaultRequestTimeoutSecs =
+      this.configService.get<SttConfig>('stt')!.requestTimeoutSecs ?? 600;
+  }
 
   private isConnectionError(error: unknown): boolean {
     const err = error as { code?: string; cause?: { code?: string } };
@@ -37,6 +41,10 @@ export class SttService {
       err?.code === 'UND_ERR_HEADERS_TIMEOUT' ||
       err?.code === 'UND_ERR_BODY_TIMEOUT'
     );
+  }
+
+  private getRequestTimeoutMs(): number {
+    return this.defaultRequestTimeoutSecs * 1000;
   }
 
   /**
@@ -158,8 +166,8 @@ export class SttService {
       const response = await request(`${config.serviceUrl}/transcribe/stream`, {
         method: 'POST',
         body: params.file as any,
-        headersTimeout: config?.timeoutMs || 600000,
-        bodyTimeout: config?.timeoutMs || 600000,
+        headersTimeout: this.getRequestTimeoutMs(),
+        bodyTimeout: this.getRequestTimeoutMs(),
         headers,
       });
 

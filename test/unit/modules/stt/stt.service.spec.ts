@@ -27,7 +27,7 @@ describe('SttService', () => {
     sttConfig = {
       serviceUrl: 'http://stt-gateway/api/v1',
       apiToken: 'test-token',
-      timeoutMs: 300000,
+      requestTimeoutSecs: 600,
       maxFileSize: 10 * 1024 * 1024,
       defaultProvider: 'assemblyai',
       defaultModels: 'universal-2',

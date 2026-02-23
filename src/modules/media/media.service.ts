@@ -523,7 +523,7 @@ export class MediaService {
           ...headers,
           ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
         },
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) {
@@ -573,7 +573,7 @@ export class MediaService {
           ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
         },
         body: JSON.stringify(body),
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) {
@@ -614,7 +614,7 @@ export class MediaService {
           ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
         },
         body: JSON.stringify(this.normalizeCompressionOptions(optimize)),
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400) {
@@ -643,7 +643,7 @@ export class MediaService {
       await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'DELETE',
         headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
       });
     } catch (error) {
       this.logger.error(
@@ -666,7 +666,7 @@ export class MediaService {
       const response = await request(`${config.serviceUrl}/files/${fileId}/download`, {
         method: 'GET',
         headers: reqHeaders,
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: config.requestTimeoutSecs * 1000,
         bodyTimeout: 0,
       });
 
@@ -715,7 +715,7 @@ export class MediaService {
         {
           method: 'GET',
           headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
-          headersTimeout: (config.timeoutSecs || 60) * 1000,
+          headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
           bodyTimeout: 0,
         },
       );
@@ -750,7 +750,7 @@ export class MediaService {
       const response = await request(`${config.serviceUrl}/files/${fileId}`, {
         method: 'GET',
         headers: config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : undefined,
-        headersTimeout: (config.timeoutSecs || 60) * 1000,
+        headersTimeout: (config.requestTimeoutSecs || 60) * 1000,
       });
 
       if (response.statusCode >= 400)
@@ -838,7 +838,8 @@ export class MediaService {
           `Retrieving file from Telegram: ${fileId} (attempt ${attempt}/${maxAttempts})`,
         );
 
-        const timeoutMs = (this.config.timeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
+        const timeoutMs =
+          (this.config.requestTimeoutSecs || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
         const getFileUrl = `https://api.telegram.org/bot${telegramBotToken}/getFile?file_id=${encodeURIComponent(fileId)}`;
         const getFileResponse = await request(getFileUrl, {

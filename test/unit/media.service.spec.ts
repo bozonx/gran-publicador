@@ -49,7 +49,7 @@ describe('MediaService (unit)', () => {
   const mockMediaConfig = {
     serviceUrl: 'http://localhost:8083/api/v1',
     appId: 'gran-publicador',
-    timeoutSecs: 5,
+    requestTimeoutSecs: 5,
     maxFileSizeMb: 10,
     thumbnailQuality: 75,
     imageOptimizationEnabled: true,
@@ -344,7 +344,8 @@ describe('MediaService (unit)', () => {
           height: 30,
           mimeType: 'image/jpeg',
           checksum: 'hash',
-          url: 'http://storage/file',
+          serviceUrl: 'http://media-storage/api/v1',
+          requestTimeoutSecs: 60,
         });
 
       client

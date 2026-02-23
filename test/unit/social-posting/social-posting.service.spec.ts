@@ -27,8 +27,7 @@ describe('SocialPostingService', () => {
       if (key === 'socialPosting') {
         return {
           serviceUrl: 'http://test-service/api/v1',
-          requestTimeoutSecs: 60,
-          serviceRequestTimeoutSecs: 30,
+          requestTimeoutSecs: 30,
         };
       }
       if (key === 'http') {
@@ -48,7 +47,7 @@ describe('SocialPostingService', () => {
         return {
           serviceUrl: 'http://media-storage/api/v1',
           appId: 'gran-publicador',
-          timeoutSecs: 60,
+          requestTimeoutSecs: 60,
         };
       }
       return null;

@@ -605,8 +605,7 @@ export class SocialPostingService {
     const url = `${baseUrl}/${endpoint}`;
 
     const timeout =
-      (this.socialPostingConfig.serviceRequestTimeoutSecs || 30) * 1000 ||
-      DEFAULT_MICROSERVICE_TIMEOUT_MS;
+      (this.socialPostingConfig.requestTimeoutSecs || 30) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
     try {
       const headers: Record<string, string> = {

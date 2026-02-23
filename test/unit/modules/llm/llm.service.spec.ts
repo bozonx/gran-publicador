@@ -15,7 +15,7 @@ describe('LlmService', () => {
     defaultTags: ['test'],
     defaultType: 'fast',
     maxModelSwitches: 3,
-    timeoutSecs: 60,
+    requestTimeoutSecs: 60,
   };
 
   beforeAll(() => {

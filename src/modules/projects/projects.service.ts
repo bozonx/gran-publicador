@@ -887,7 +887,7 @@ export class ProjectsService {
         throw new Error(`News microservice error: ${statusCode}`);
       }
 
-      const result = JSON.parse(responseText || '{}') as any;
+      const result = JSON.parse(responseText || '{}');
       this.logger.debug(
         `Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`,
       );
