@@ -11,6 +11,8 @@ RUN corepack enable
 # 1. Install dependencies
 COPY pnpm-lock.yaml package.json pnpm-workspace.yaml ./
 COPY ui/package.json ./ui/package.json
+COPY packages/shared/package.json ./packages/shared/package.json
+COPY patches ./patches
 RUN pnpm install --frozen-lockfile
 
 # 2. Copy source code (needed for prisma config and build context)
