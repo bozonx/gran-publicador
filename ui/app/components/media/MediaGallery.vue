@@ -490,16 +490,19 @@ function handleDragStart() {
 function handleNativeDragStart(event: DragEvent, media?: MediaItem) {
   if (!media) return
   try {
-    const url = getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt)
+    const url = getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt, true)
     const absoluteUrl = new URL(url, window.location.origin).href
     const mime = media.mimeType || 'application/octet-stream'
     const filename = media.filename || 'file'
 
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'copy'
+    }
     // Chrome/Edge on Windows and Mac
     event.dataTransfer?.setData('DownloadURL', `${mime}:${filename}:${absoluteUrl}`)
     
     // Linux/KDE fallback (often creates a shortcut or prompts to download)
-    event.dataTransfer?.setData('text/uri-list', absoluteUrl)
+    event.dataTransfer?.setData('text/uri-list', `${absoluteUrl}\r\n`)
     event.dataTransfer?.setData('text/plain', absoluteUrl)
   } catch (error) {
     console.error('Failed to set drag data', error)

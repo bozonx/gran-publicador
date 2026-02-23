@@ -117,13 +117,16 @@ function handleClick() {
 
 function handleDragStart(event: DragEvent) {
   try {
-    const url = getMediaFileUrl(props.media.id, authStore.accessToken || undefined, props.media.updatedAt)
+    const url = getMediaFileUrl(props.media.id, authStore.accessToken || undefined, props.media.updatedAt, true)
     const absoluteUrl = new URL(url, window.location.origin).href
     const mime = props.media.mimeType || 'application/octet-stream'
     const filename = props.media.filename || 'file'
 
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'copy'
+    }
     event.dataTransfer?.setData('DownloadURL', `${mime}:${filename}:${absoluteUrl}`)
-    event.dataTransfer?.setData('text/uri-list', absoluteUrl)
+    event.dataTransfer?.setData('text/uri-list', `${absoluteUrl}\r\n`)
     event.dataTransfer?.setData('text/plain', absoluteUrl)
   } catch (error) {
     console.error('Failed to set DownloadURL', error)
