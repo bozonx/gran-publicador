@@ -110,9 +110,12 @@ watch(() => url.value, async (newUrl) => {
   }
 })
 
+const step = ref(1)
+
 // Also watch isOpen, in case URL was set before opening
 watch(isOpen, async (open) => {
   if (open) {
+    step.value = 1
     console.log('Modal opened with props:', { 
       url: url.value, 
       sourceNewsItem: props.sourceNewsItem,
@@ -197,6 +200,11 @@ async function fetchData(targetUrl: string) {
 async function handleNext() {
   if (!scrapedData.value) return
   
+  if (step.value === 1 && isGeneralNewsPage.value) {
+    step.value = 2
+    return
+  }
+
   isCreating.value = true
   
   try {
@@ -366,16 +374,7 @@ function handleUseNewsData(clearError = true) {
         </div>
 
         <!-- Success Content / Fallback Data -->
-        <div v-if="scrapedData" class="space-y-6">
-           <!-- Project selection (only on general news page) -->
-           <UFormField v-if="isGeneralNewsPage" :label="t('publication.select_project')">
-              <CommonProjectSelect
-                v-model="selectedProjectId"
-                :extra-options="extraProjectOptions"
-                class="w-full"
-                :placeholder="t('publication.select_project')"
-              />
-           </UFormField>
+        <div v-if="scrapedData && step === 1" class="space-y-6">
 
            <!-- Premium News Preview Card -->
            <div class="overflow-hidden rounded-2xl border border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
@@ -449,6 +448,47 @@ function handleUseNewsData(clearError = true) {
            </div>
         </div>
 
+        <!-- Step 2: Project Selection -->
+        <div v-if="step === 2" class="space-y-8 py-4">
+          <div class="space-y-2">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+              {{ t('publication.select_project') }}
+            </h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              {{ t('publication.select_project_description') || 'Выберите проект, в котором будет создана публикация' }}
+            </p>
+          </div>
+
+          <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <UFormField :label="t('publication.project')">
+              <CommonProjectSelect
+                v-model="selectedProjectId"
+                :extra-options="extraProjectOptions"
+                class="w-full"
+                :placeholder="t('publication.select_project')"
+              />
+            </UFormField>
+
+            <div v-if="selectedProject" class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+              <div class="w-12 h-12 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                <UIcon name="i-heroicons-briefcase" class="w-6 h-6" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ selectedProject.name }}</p>
+                <p v-if="selectedProject.description" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ selectedProject.description }}</p>
+              </div>
+            </div>
+            <div v-else class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 opacity-60">
+              <div class="w-12 h-12 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
+                <UIcon name="i-heroicons-user" class="w-6 h-6" />
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ t('publication.personal_draft') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('publication.personal_draft_description') || 'No specific project linked' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- No data found anywhere state -->
         <div v-else-if="!isLoading && !error" class="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -462,8 +502,26 @@ function handleUseNewsData(clearError = true) {
       <UButton color="neutral" variant="ghost" @click="isOpen = false">
         {{ t('common.cancel') }}
       </UButton>
-      <UButton color="primary" :disabled="!scrapedData" :loading="isCreating" @click="handleNext">
-        {{ t('common.next') }}
+      
+      <div class="flex-1"></div>
+
+      <UButton 
+        v-if="step === 2" 
+        color="neutral" 
+        variant="soft" 
+        @click="step = 1"
+        :disabled="isCreating"
+      >
+        {{ t('common.back') }}
+      </UButton>
+
+      <UButton 
+        color="primary" 
+        :disabled="!scrapedData" 
+        :loading="isCreating" 
+        @click="handleNext"
+      >
+        {{ step === 1 && isGeneralNewsPage ? t('common.next') : (isCreating ? t('common.creating') : t('common.create')) }}
       </UButton>
     </template>
   </AppModal>

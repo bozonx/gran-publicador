@@ -375,6 +375,7 @@
     "saveSuccess": "Saved successfully",
     "saved": "Saved",
     "saving": "Saving...",
+    "creating": "Creating...",
     "search": "Search",
     "select": "Select",
     "selectAll": "Select All",
@@ -1216,6 +1217,7 @@
     "noReadyPublicationsDescription": "No ready publications found",
     "personalPublications": "Private publications",
     "personal_draft": "Personal draft",
+    "personal_draft_description": "Personal draft (outside projects)",
     "personal_draft_short": "Personal",
     "postsInChannels": "Posts in Channels",
     "processed": "Processed",
@@ -1236,6 +1238,7 @@
     "selectProject": "Select Project",
     "select_channels": "Select Channels",
     "select_project": "Select Project",
+    "select_project_description": "Select the project where the publication will be created",
     "select_project_first": "Select a project first",
     "sort": {
       "byPublished": "By Published",

@@ -376,6 +376,7 @@
     "saveSuccess": "Успешно сохранено",
     "saved": "Сохранено",
     "saving": "Сохранение...",
+    "creating": "Создание...",
     "search": "Поиск",
     "select": "Выбрать",
     "selectAll": "Выбрать все",
@@ -1218,6 +1219,7 @@
     "noReadyPublicationsDescription": "Готовых публикаций не найдено",
     "personalPublications": "Личные публикации",
     "personal_draft": "Личный черновик",
+    "personal_draft_description": "Личный черновик (вне проектов)",
     "personal_draft_short": "Личное",
     "postsInChannels": "Посты в каналах",
     "processed": "Обработано",
@@ -1238,6 +1240,7 @@
     "selectProject": "Выбрать проект",
     "select_channels": "Выберите каналы",
     "select_project": "Выберите проект",
+    "select_project_description": "Выберите проект, в котором будет создана публикация",
     "select_project_first": "Сначала выберите проект",
     "sort": {
       "byPublished": "По опубликованным",
