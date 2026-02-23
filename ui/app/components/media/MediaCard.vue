@@ -61,7 +61,7 @@ const previewUrl = computed(() => {
   const version = props.media.updatedAt
 
   if (props.media.type === 'IMAGE') {
-    if (props.media.storageType === 'FS') {
+    if (props.media.storageType === 'STORAGE') {
       return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined, version)
     }
     return getMediaFileUrl(props.media.id, authStore.accessToken || undefined, version)
@@ -73,7 +73,7 @@ const previewUrl = computed(() => {
 const previewSrcset = computed(() => {
   if (!shouldShowPreview.value) return null
   if (props.media.type !== 'IMAGE') return null
-  if (props.media.storageType !== 'FS') return null
+  if (props.media.storageType !== 'STORAGE') return null
 
   const token = authStore.accessToken || undefined
   const version = props.media.updatedAt

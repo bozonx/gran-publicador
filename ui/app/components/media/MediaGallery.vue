@@ -11,7 +11,7 @@ import { useAutosave } from '~/composables/useAutosave'
 interface MediaItem {
   id: string
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
-  storageType: 'TELEGRAM' | 'FS'
+  storageType: 'TELEGRAM' | 'STORAGE'
   storagePath: string
   filename?: string
   alt?: string
@@ -563,12 +563,12 @@ function closeMediaModal() {
 function handleEditMedia() {
   if (!selectedMedia.value) return
   const isIMAGE = (selectedMedia.value.type || '').toUpperCase() === 'IMAGE'
-  const isEditableStorage = ['FS', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
+  const isEditableStorage = ['STORAGE', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
 
   if (!isIMAGE || !isEditableStorage) {
     toast.add({
       title: t('common.error'),
-      description: t('media.editOnlyFSOrTelegramImages', 'Only local or Telegram images can be edited'),
+      description: t('media.editOnlyStorageOrTelegramImages', 'Only local or Telegram images can be edited'),
       color: 'error',
     })
     return
@@ -586,12 +586,12 @@ function handleEditMedia() {
 function handleEditVideo() {
   if (!selectedMedia.value) return
   const isVIDEO = (selectedMedia.value.type || '').toUpperCase() === 'VIDEO'
-  const isEditableStorage = ['FS', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
+  const isEditableStorage = ['STORAGE', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
 
   if (!isVIDEO || !isEditableStorage) {
     toast.add({
       title: t('common.error'),
-      description: t('media.editOnlyFSOrTelegramVideos', 'Only local or Telegram videos can be edited'),
+      description: t('media.editOnlyStorageOrTelegramVideos', 'Only local or Telegram videos can be edited'),
       color: 'error',
     })
     return
@@ -1164,7 +1164,7 @@ const mediaValidation = computed(() => {
   >
     <template #header-right>
       <UButton
-        v-if="editable && selectedMedia?.type === 'IMAGE' && (selectedMedia?.storageType === 'FS' || selectedMedia?.storageType === 'TELEGRAM')"
+        v-if="editable && selectedMedia?.type === 'IMAGE' && (selectedMedia?.storageType === 'STORAGE' || selectedMedia?.storageType === 'TELEGRAM')"
         icon="i-heroicons-pencil-square"
         variant="ghost"
         color="neutral"
@@ -1174,7 +1174,7 @@ const mediaValidation = computed(() => {
         {{ t('common.edit', 'Edit') }}
       </UButton>
       <UButton
-        v-if="editable && selectedMedia?.type === 'VIDEO' && (selectedMedia?.storageType === 'FS' || selectedMedia?.storageType === 'TELEGRAM')"
+        v-if="editable && selectedMedia?.type === 'VIDEO' && (selectedMedia?.storageType === 'STORAGE' || selectedMedia?.storageType === 'TELEGRAM')"
         icon="i-heroicons-film"
         variant="ghost"
         color="neutral"

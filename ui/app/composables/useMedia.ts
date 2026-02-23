@@ -12,7 +12,7 @@ export interface MediaThumbData {
 export interface MediaItemLike {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | string;
-  storageType?: 'TELEGRAM' | 'FS' | string;
+  storageType?: 'TELEGRAM' | 'STORAGE' | string;
   storagePath: string;
   filename?: string;
   mimeType?: string;
@@ -23,7 +23,7 @@ export interface MediaItemLike {
 export interface MediaItem {
   id: string;
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
-  storageType: 'TELEGRAM' | 'FS';
+  storageType: 'TELEGRAM' | 'STORAGE';
   storagePath: string;
   filename?: string;
   alt?: string;
@@ -40,7 +40,7 @@ export interface MediaItem {
 export interface CreateMediaInput {
   id?: string;
   type?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
-  storageType?: 'TELEGRAM' | 'FS';
+  storageType?: 'TELEGRAM' | 'STORAGE';
   storagePath?: string;
   filename?: string;
   alt?: string;
@@ -105,7 +105,7 @@ export function useMedia() {
     error.value = null;
     try {
       const media = await api.get<MediaItem>(`/media/${id}`);
-      if (media && media.storageType === 'FS') {
+      if (media && media.storageType === 'STORAGE') {
         try {
           // Fetch additional info from media storage microservice via proxy
           const fullInfo = await api.get<any>(`/media/${id}/info`);
@@ -485,7 +485,7 @@ export function getMediaThumbData(media: MediaItemLike, token?: string): MediaTh
   }
 
   if (type === 'IMAGE') {
-    if (storageType === 'FS') {
+    if (storageType === 'STORAGE') {
       const src = getThumbnailUrl(media.id, 400, 400, token);
       const srcset = `${src} 1x, ${getThumbnailUrl(media.id, 800, 800, token)} 2x`;
       return {

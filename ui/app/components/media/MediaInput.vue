@@ -78,7 +78,7 @@ function addMedia() {
 
   const newMedia: CreateMediaInput = {
     type: mediaType.value,
-    storageType: sourceType.value === 'TELEGRAM' ? 'TELEGRAM' : 'FS', // URL downloads result in FS storage
+    storageType: sourceType.value === 'TELEGRAM' ? 'TELEGRAM' : 'STORAGE', // URL downloads result in STORAGE storage
     storagePath: sourceInput.value.trim(),
     filename: filenameInput.value.trim() || undefined,
   }

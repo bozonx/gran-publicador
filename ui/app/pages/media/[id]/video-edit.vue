@@ -41,7 +41,7 @@ function onEditorClose() {
     </div>
 
     <div
-      v-else-if="media.type !== 'VIDEO' || (media.storageType !== 'FS' && media.storageType !== 'TELEGRAM')"
+      v-else-if="media.type !== 'VIDEO' || (media.storageType !== 'STORAGE' && media.storageType !== 'TELEGRAM')"
       class="text-gray-400 text-sm"
     >
       This media cannot be edited.
