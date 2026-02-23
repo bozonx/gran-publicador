@@ -5,14 +5,13 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException } from '@nestjs/common';
-import { createHmac } from 'node:crypto';
 import { jest } from '@jest/globals';
+import { TelegramMiniAppAuthProvider } from '../../src/modules/auth/providers/telegram-mini-app-auth.provider.js';
+import { TelegramWidgetAuthProvider } from '../../src/modules/auth/providers/telegram-widget-auth.provider.js';
 
 describe('AuthService (unit)', () => {
   let service: AuthService;
   let moduleRef: TestingModule;
-
-  const mockBotToken = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11';
 
   const mockUsersService = {
     findOrCreateTelegramUser: jest.fn() as any,
@@ -35,15 +34,12 @@ describe('AuthService (unit)', () => {
     verifyAsync: jest.fn() as any,
   };
 
+  const mockTelegramMiniAppAuthProvider = {
+    validateInitData: jest.fn() as any,
+  };
+
   const mockConfigService = {
     get: jest.fn((key: string) => {
-      if (
-        key === 'AUTH_TELEGRAM_BOT_TOKEN' ||
-        key === 'TELEGRAM_BOT_TOKEN' ||
-        key === 'app.telegramBotToken'
-      ) {
-        return mockBotToken;
-      }
       if (key === 'app.jwtSecret') {
         return 'test_jwt_secret_test_jwt_secret_test_jwt_secret';
       }
@@ -59,6 +55,8 @@ describe('AuthService (unit)', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: TelegramMiniAppAuthProvider, useValue: mockTelegramMiniAppAuthProvider },
+        { provide: TelegramWidgetAuthProvider, useValue: { validateWidgetData: jest.fn() as any } },
       ],
     }).compile();
 
@@ -73,36 +71,9 @@ describe('AuthService (unit)', () => {
     jest.clearAllMocks();
   });
 
-  // Helper to generate valid Telegram Init Data
-  function generateValidInitData(user: object) {
-    const userStr = JSON.stringify(user);
-    const params = {
-      auth_date: Math.floor(Date.now() / 1000).toString(),
-      user: userStr,
-    };
-
-    const dataCheckString = Object.entries(params)
-      .map(([key, value]) => `${key}=${value}`)
-      .sort()
-      .join('\n');
-
-    const secretKey = createHmac('sha256', 'WebAppData').update(mockBotToken).digest();
-    const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-    return new URLSearchParams({ ...params, hash }).toString();
-  }
-
   describe('loginWithTelegram', () => {
-    const telegramUser = {
-      id: 123456789,
-      first_name: 'John',
-      last_name: 'Doe',
-      username: 'johndoe',
-      photo_url: 'http://example.com/photo.jpg',
-    };
-
     it('should successfully authenticate with valid initData', async () => {
-      const initData = generateValidInitData(telegramUser);
+      const initData = 'initData';
       const mockUser = {
         id: 'user-uuid',
         firstName: 'John',
@@ -113,6 +84,14 @@ describe('AuthService (unit)', () => {
         updatedAt: new Date(),
       };
 
+      mockTelegramMiniAppAuthProvider.validateInitData.mockReturnValue({
+        telegramId: 123456789n,
+        username: 'johndoe',
+        firstName: 'John',
+        lastName: 'Doe',
+        avatarUrl: 'http://example.com/photo.jpg',
+        languageCode: 'en',
+      });
       mockUsersService.findOrCreateTelegramUser.mockResolvedValue(mockUser);
       mockJwtService.signAsync
         .mockResolvedValueOnce('mock.access.token')
@@ -126,57 +105,28 @@ describe('AuthService (unit)', () => {
       expect(result.refreshToken).toBe('mock.refresh.token');
       expect(result.user).toBeDefined();
       expect(result.user.id).toBe(mockUser.id);
+      expect(mockTelegramMiniAppAuthProvider.validateInitData).toHaveBeenCalledWith(initData);
       expect(mockUsersService.findOrCreateTelegramUser).toHaveBeenCalledWith({
         telegramId: 123456789n,
         username: 'johndoe',
         firstName: 'John',
         lastName: 'Doe',
         avatarUrl: 'http://example.com/photo.jpg',
+        languageCode: 'en',
       });
       expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
       expect(mockPrismaService.userSession.create).toHaveBeenCalled();
     });
 
     it('should throw UnauthorizedException if hash is invalid', async () => {
-      const authDate = Math.floor(Date.now() / 1000);
-      const initData = `user=%7B%22id%22%3A123%7D&hash=invalid_hash&auth_date=${String(authDate)}`;
+      mockTelegramMiniAppAuthProvider.validateInitData.mockImplementation(() => {
+        throw new Error('Invalid Telegram init data');
+      });
 
-      await expect(service.loginWithTelegram(initData)).rejects.toThrow(UnauthorizedException);
-      expect(mockUsersService.findOrCreateTelegramUser).not.toHaveBeenCalled();
-    });
-
-    it('should throw UnauthorizedException if auth_date is expired', async () => {
-      // Date older than 24h
-      const expiredDate = Math.floor(Date.now() / 1000) - 100000;
-      const params = {
-        auth_date: expiredDate.toString(),
-        user: JSON.stringify(telegramUser),
-      };
-
-      const dataCheckString = Object.entries(params)
-        .map(([key, value]) => `${key}=${value}`)
-        .sort()
-        .join('\n');
-
-      const secretKey = createHmac('sha256', 'WebAppData').update(mockBotToken).digest();
-      const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-      const initData = new URLSearchParams({ ...params, hash }).toString();
-
-      await expect(service.loginWithTelegram(initData)).rejects.toThrow(
-        'Invalid Telegram init data',
+      await expect(service.loginWithTelegram('bad-init-data')).rejects.toThrow(
+        UnauthorizedException,
       );
-    });
-
-    it('should throw UnauthorizedException if user data is missing', async () => {
-      // Generate hash for data without user field but with fresh date
-      const authDate = Math.floor(Date.now() / 1000).toString();
-      const _params = { auth_date: authDate };
-      const dataCheckString = `auth_date=${authDate}`;
-      const secretKey = createHmac('sha256', 'WebAppData').update(mockBotToken).digest();
-      const hash = createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-      const initData = `auth_date=${authDate}&hash=${hash}`;
-
-      await expect(service.loginWithTelegram(initData)).rejects.toThrow('User data missing');
+      expect(mockUsersService.findOrCreateTelegramUser).not.toHaveBeenCalled();
     });
   });
 

@@ -1,4 +1,4 @@
-import { createHash, createHmac } from 'node:crypto';
+import { createHash } from 'node:crypto';
 
 import { ForbiddenException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -9,20 +9,7 @@ import { UserDto } from '../users/dto/user.dto.js';
 import { UsersService } from '../users/users.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuthResponseDto, TelegramWidgetLoginDto } from './dto/index.js';
-
-/**
- * Interface representing the structure of a Telegram user object received in initData.
- */
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  language_code?: string;
-  auth_date: number;
-  hash: string;
-}
+import { TelegramMiniAppAuthProvider, TelegramWidgetAuthProvider } from './providers/index.js';
 
 /**
  * Service responsible for authentication logic.
@@ -30,7 +17,6 @@ interface TelegramUser {
  */
 @Injectable()
 export class AuthService {
-  private readonly botToken: string;
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -38,13 +24,9 @@ export class AuthService {
     private configService: ConfigService,
     private usersService: UsersService,
     private prisma: PrismaService,
-  ) {
-    const token = this.configService.get<string>('app.telegramBotToken');
-    if (!token) {
-      throw new Error('Telegram Bot Token is not defined in config (app.telegramBotToken)');
-    }
-    this.botToken = token;
-  }
+    private telegramMiniAppAuthProvider: TelegramMiniAppAuthProvider,
+    private telegramWidgetAuthProvider: TelegramWidgetAuthProvider,
+  ) {}
 
   /**
    * Authenticate a user via Telegram Mini App init data.
@@ -55,33 +37,21 @@ export class AuthService {
    * @throws UnauthorizedException if data validation fails or user is missing.
    */
   public async loginWithTelegram(initData: string): Promise<AuthResponseDto> {
-    const isValid = this.validateTelegramInitData(initData);
-    if (!isValid) {
-      this.logger.warn('Invalid Telegram init data');
-      throw new UnauthorizedException('Invalid Telegram init data');
-    }
-
-    const searchParams = new URLSearchParams(initData);
-    const userStr = searchParams.get('user');
-    if (!userStr) {
-      throw new UnauthorizedException('User data missing in Telegram init data');
-    }
-
-    let tgUser: TelegramUser;
+    let profile;
     try {
-      tgUser = JSON.parse(userStr) as TelegramUser;
-    } catch (error) {
-      this.logger.error('Failed to parse Telegram user data', error);
-      throw new UnauthorizedException('Invalid user data format');
+      profile = this.telegramMiniAppAuthProvider.validateInitData(initData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UnauthorizedException(message);
     }
 
     const user = await this.usersService.findOrCreateTelegramUser({
-      telegramId: BigInt(tgUser.id),
-      username: tgUser.username,
-      firstName: tgUser.first_name,
-      lastName: tgUser.last_name,
-      avatarUrl: tgUser.photo_url,
-      languageCode: tgUser.language_code,
+      telegramId: profile.telegramId,
+      username: profile.username,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      avatarUrl: profile.avatarUrl,
+      languageCode: profile.languageCode,
     });
 
     if (user.isBanned) {
@@ -120,18 +90,20 @@ export class AuthService {
   public async loginWithTelegramWidget(
     widgetData: TelegramWidgetLoginDto,
   ): Promise<AuthResponseDto> {
-    const isValid = this.validateTelegramWidgetData(widgetData);
-    if (!isValid) {
-      this.logger.warn('Invalid Telegram widget data');
-      throw new UnauthorizedException('Invalid Telegram widget data');
+    let profile;
+    try {
+      profile = this.telegramWidgetAuthProvider.validateWidgetData(widgetData);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UnauthorizedException(message);
     }
 
     const user = await this.usersService.findOrCreateTelegramUser({
-      telegramId: BigInt(widgetData.id),
-      username: widgetData.username,
-      firstName: widgetData.first_name,
-      lastName: widgetData.last_name,
-      avatarUrl: widgetData.photo_url,
+      telegramId: profile.telegramId,
+      username: profile.username,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      avatarUrl: profile.avatarUrl,
     });
 
     if (user.isBanned) {
@@ -157,99 +129,6 @@ export class AuthService {
       },
       { excludeExtraneousValues: true },
     );
-  }
-
-  /**
-   * Validate the integrity of data received from Telegram Login Widget.
-   * Implements the HMAC-SHA256 signature verification described in Telegram documentation.
-   *
-   * @param data - The data object to validate.
-   * @returns true if the signature is valid and not expired, false otherwise.
-   */
-  private validateTelegramWidgetData(data: TelegramWidgetLoginDto): boolean {
-    const { hash, ...rest } = data;
-
-    const now = Math.floor(Date.now() / 1000);
-
-    // Validate auth_date type and range
-    if (typeof data.auth_date !== 'number' || data.auth_date < 0) {
-      this.logger.warn('Invalid auth_date value');
-      return false;
-    }
-
-    // Prevent future dates (allow 5min clock skew)
-    if (data.auth_date > now + 300) {
-      this.logger.warn('auth_date is in the future');
-      return false;
-    }
-
-    // Check if auth_date is older than 24 hours
-    if (now - data.auth_date > 86400) {
-      this.logger.warn('Telegram widget data expired');
-      return false;
-    }
-
-    const dataCheckArr = Object.entries(rest)
-      .filter(([_, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => `${key}=${value}`)
-      .sort()
-      .join('\n');
-
-    const secretKey = createHash('sha256').update(this.botToken).digest();
-    const calculatedHash = createHmac('sha256', secretKey).update(dataCheckArr).digest('hex');
-
-    return calculatedHash === hash;
-  }
-
-  /**
-   * Validate the integrity of data received from Telegram.
-   * Implements the HMAC-SHA256 signature verification described in Telegram documentation.
-   *
-   * @param initData - The raw query string to validate.
-   * @returns true if the signature is valid, false otherwise.
-   */
-  private validateTelegramInitData(initData: string): boolean {
-    const urlParams = new URLSearchParams(initData);
-    const hash = urlParams.get('hash');
-    const authDate = urlParams.get('auth_date');
-
-    if (!authDate) {
-      this.logger.warn('Telegram init data missing auth_date');
-      return false;
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    const authDateNum = Number(authDate);
-
-    // Validate auth_date range
-    if (isNaN(authDateNum) || authDateNum < 0) {
-      this.logger.warn('Invalid auth_date value');
-      return false;
-    }
-
-    // Prevent future dates (allow 5min clock skew)
-    if (authDateNum > now + 300) {
-      this.logger.warn('auth_date is in the future');
-      return false;
-    }
-
-    // Check if auth_date is older than 24 hours
-    if (now - authDateNum > 86400) {
-      this.logger.warn('Telegram init data expired');
-      return false;
-    }
-
-    urlParams.delete('hash');
-
-    const params = Array.from(urlParams.entries())
-      .map(([key, value]) => `${key}=${value}`)
-      .sort()
-      .join('\n');
-
-    const secretKey = createHmac('sha256', 'WebAppData').update(this.botToken).digest();
-    const calculatedHash = createHmac('sha256', secretKey).update(params).digest('hex');
-
-    return calculatedHash === hash;
   }
 
   public async getProfile(userId: string): Promise<UserDto> {
