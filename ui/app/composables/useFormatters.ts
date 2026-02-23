@@ -33,6 +33,23 @@ export function useFormatters() {
   }
 
   /**
+   * Format date with time including seconds
+   */
+  function formatDateWithSeconds(date: string | null | undefined): string {
+    if (!date) return '—'
+    const dObj = new Date(date)
+    if (isNaN(dObj.getTime())) return '—'
+    return d(dObj, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  }
+
+  /**
    * Truncate text content, stripping HTML tags
    */
   function truncateContent(
@@ -76,6 +93,7 @@ export function useFormatters() {
   return {
     formatDateShort,
     formatDateWithTime,
+    formatDateWithSeconds,
     truncateContent,
     formatNumber,
     getPublicationDisplayTitle,

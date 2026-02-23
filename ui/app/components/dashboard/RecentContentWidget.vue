@@ -6,6 +6,7 @@ import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 
 const { t } = useI18n()
+const { formatDateWithSeconds } = useFormatters()
 const api = useApi()
 const router = useRouter()
 const toast = useToast()
@@ -171,7 +172,7 @@ onMounted(() => {
       
       <template #footer>
         <div class="flex justify-between items-center w-full">
-           <div class="text-xs text-gray-500 flex gap-2">
+           <div class="text-xs text-gray-400 dark:text-gray-500 flex flex-col sm:flex-row sm:items-center gap-2">
               <UButton
                 size="xs"
                 color="neutral"
@@ -181,6 +182,9 @@ onMounted(() => {
               >
                 {{ t('contentLibrary.actions.createPublication') }}
               </UButton>
+              <div v-if="activeItem?.createdAt" class="sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-2">
+                {{ t('common.createdAt') }}: {{ formatDateWithSeconds(activeItem.createdAt) }}
+              </div>
            </div>
            <UButton 
             color="primary" 

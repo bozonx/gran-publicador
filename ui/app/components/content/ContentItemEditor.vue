@@ -20,6 +20,7 @@ interface ContentItem {
   text?: string | null
   meta?: Record<string, unknown>
   media?: ContentItemMediaLink[]
+  createdAt?: string | Date
   groups?: Array<{
     collectionId: string
     collection: {

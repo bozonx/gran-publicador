@@ -77,6 +77,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { formatDateWithSeconds } = useFormatters()
 
 
 const handleClosePublicationPreviewModal = () => {
@@ -172,7 +173,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
       
       <template #footer>
         <div class="flex justify-between items-center w-full">
-           <div class="text-xs text-gray-500 flex gap-2">
+           <div class="text-xs text-gray-400 dark:text-gray-500 flex flex-col sm:flex-row sm:items-center gap-2">
               <UButton
                 size="xs"
                 color="neutral"
@@ -182,6 +183,9 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
               >
                 {{ t('contentLibrary.actions.createPublication') }}
               </UButton>
+              <div v-if="activeItem?.createdAt" class="sm:border-l sm:border-gray-200 dark:sm:border-gray-700 sm:pl-2">
+                {{ t('common.createdAt') }}: {{ formatDateWithSeconds(activeItem.createdAt) }}
+              </div>
            </div>
            <UButton 
             color="primary" 
