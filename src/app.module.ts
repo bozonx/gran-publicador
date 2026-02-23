@@ -72,12 +72,6 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
 
   // Redis is required in all non-test environments.
   if ((config.NODE_ENV ?? 'development') !== 'test') {
-    const redisEnabled = config.REDIS_ENABLED;
-    if (redisEnabled === 'false') {
-      throw new Error(
-        'REDIS_ENABLED must not be false. Redis is required in non-test environments',
-      );
-    }
     const redisUrl = config.REDIS_URL;
     if (!redisUrl || typeof redisUrl !== 'string') {
       throw new Error('REDIS_URL environment variable is not set');
@@ -215,10 +209,6 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         const config = configService.get<RedisConfig>('redis')!;
         const appConfig = configService.get<AppConfig>('app')!;
 
-        if (!config.enabled) {
-          throw new Error('Redis is disabled in configuration, but it is required.');
-        }
-
         const isUpstash = config.url.includes('upstash.io');
         const socketOptions: any = { connectTimeout: 5000 };
         if (isUpstash) {
@@ -241,10 +231,6 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const config = configService.get<RedisConfig>('redis')!;
-
-        if (!config.enabled) {
-          throw new Error('Redis is disabled in configuration, but it is required for BullMQ.');
-        }
 
         const isUpstash = config.url.includes('upstash.io');
         const redisOptions: any = {
