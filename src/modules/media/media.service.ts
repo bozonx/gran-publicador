@@ -799,7 +799,7 @@ export class MediaService {
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
-    if (media.storageType === StorageType.FS)
+    if (media.storageType === StorageType.STORAGE)
       return this.getThumbnailStream(media.storagePath, width, height, quality, fit);
     else if (media.storageType === StorageType.TELEGRAM) {
       const thumbnailFileId = media.meta.telegram?.thumbnailFileId;

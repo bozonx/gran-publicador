@@ -281,7 +281,7 @@ export class MediaController {
     // Create the media record with fileId from Media Storage
     return this.mediaService.create({
       type: getMediaTypeFromMime(metadata.mimeType),
-      storageType: StorageType.FS,
+      storageType: StorageType.STORAGE,
       storagePath: fileId, // Store Media Storage fileId
       filename,
       mimeType: metadata.mimeType,
