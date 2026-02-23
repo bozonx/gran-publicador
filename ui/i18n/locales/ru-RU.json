@@ -1407,7 +1407,11 @@
     "uiLanguageAutoWithLabel": "Язык интерфейса автоматически ({lang})",
     "uiLanguageHelp": "Язык интерфейса приложения",
     "uiLanguageReturnAuto": "Вернуть автоматический режим",
-    "uiLanguageSelect": "Выбор языка интерфейса"
+    "uiLanguageSelect": "Выбор языка интерфейса",
+    "videoAutoplay": "Автовоспроизведение видео",
+    "videoAutoplayHelp": "Автоматически запускать видео при открытии предпросмотра медиа",
+    "appSettings": "Настройки приложения",
+    "preferencesUpdated": "Настройки обновлены"
   },
   "socialMedia": {
     "facebook": "Facebook",

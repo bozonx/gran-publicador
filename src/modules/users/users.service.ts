@@ -291,6 +291,7 @@ export class UsersService {
       projectOrder?: string[];
       newsQueryOrder?: string[];
       contentLibraryCollectionOrder?: any;
+      videoAutoplay?: boolean;
     },
   ): Promise<User> {
     const updateData: Prisma.UserUpdateInput = {};
@@ -305,7 +306,8 @@ export class UsersService {
       data.isUiLanguageAuto !== undefined ||
       data.projectOrder !== undefined ||
       data.newsQueryOrder !== undefined ||
-      data.contentLibraryCollectionOrder !== undefined
+      data.contentLibraryCollectionOrder !== undefined ||
+      data.videoAutoplay !== undefined
     ) {
       // Get current preferences to merge
       const user = await this.prisma.user.findUnique({
@@ -321,6 +323,8 @@ export class UsersService {
       if (data.newsQueryOrder !== undefined) newPreferences.newsQueryOrder = data.newsQueryOrder;
       if (data.contentLibraryCollectionOrder !== undefined)
         newPreferences.contentLibraryCollectionOrder = data.contentLibraryCollectionOrder;
+      if (data.videoAutoplay !== undefined)
+        newPreferences.videoAutoplay = data.videoAutoplay;
 
       updateData.preferences = JSON.parse(JSON.stringify(newPreferences));
     }

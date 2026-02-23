@@ -19,6 +19,7 @@ const { t } = useI18n()
     </div>
 
     <SettingsProfile />
+    <SettingsApp />
     <SettingsLlmPromptTemplates />
     <SettingsNotifications />
     <SettingsLanguage />

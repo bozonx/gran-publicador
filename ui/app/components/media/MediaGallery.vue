@@ -1221,7 +1221,7 @@ const mediaValidation = computed(() => {
               <div v-else-if="selectedMedia.type === 'VIDEO'" class="w-full h-full flex items-center justify-center relative group">
                 <video
                   controls
-                  autoplay
+                  :autoplay="authStore.user?.videoAutoplay !== false"
                   class="max-w-full max-h-full"
                   :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
                 >
@@ -1258,7 +1258,7 @@ const mediaValidation = computed(() => {
                     <!-- HTML5 Audio -->
                     <audio
                         controls
-                        autoplay
+                        :autoplay="authStore.user?.videoAutoplay !== false"
                         class="w-full mt-2"
                         :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
                     >

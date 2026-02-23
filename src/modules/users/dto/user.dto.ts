@@ -69,6 +69,13 @@ export class UserDto {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public contentLibraryCollectionOrder!: any;
 
+  @Expose()
+  @Transform(({ obj }) => {
+    const prefs = obj.preferences || {};
+    return prefs.videoAutoplay !== false;
+  })
+  public videoAutoplay!: boolean;
+
   @Exclude({ toPlainOnly: true })
   public preferences!: any; // Internal use
 }
@@ -113,6 +120,10 @@ export class UpdateUserProfileDto {
   @IsString({ each: true })
   @IsOptional()
   public contentLibraryCollectionOrder?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  public videoAutoplay?: boolean;
 
   @IsInt()
   @IsOptional()
