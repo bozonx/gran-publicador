@@ -22,18 +22,18 @@ export class RedisConfig {
   /**
    * Redis key prefix.
    * Defined by REDIS_KEY_PREFIX environment variable.
-   * Default: undefined (no prefix)
+   * Default: 'gran-p:'
    */
   @IsOptional()
   @IsString()
-  public keyPrefix?: string;
+  public keyPrefix?: string = 'gran-p:';
 }
 
 export default registerAs('redis', (): RedisConfig => {
   const config = plainToClass(RedisConfig, {
     url: process.env.REDIS_URL || 'redis://localhost:6379/0',
     ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
-    keyPrefix: process.env.REDIS_KEY_PREFIX || undefined,
+    keyPrefix: process.env.REDIS_KEY_PREFIX || 'gran-p:',
   });
 
   return config;
