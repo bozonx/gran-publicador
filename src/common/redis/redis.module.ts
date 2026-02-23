@@ -15,9 +15,6 @@ import { RedisService } from './redis.service.js';
         const config = configService.get<RedisConfig>('redis')!;
         const logger = new Logger(RedisModule.name);
 
-        if (!config.enabled) {
-          return null;
-        }
 
         try {
           const isUpstash = config.url.includes('upstash.io');

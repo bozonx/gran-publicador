@@ -53,15 +53,6 @@ export class TranslateTextDto {
   @IsString()
   model?: string;
 
-  /**
-   * Per-request timeout for a single provider attempt (seconds).
-   * Range: 1-600. If omitted or 0, uses config default.
-   */
-  @IsOptional()
-  @IsNumber()
-  @Min(1)
-  @Max(600)
-  timeoutSec?: number;
 
   /**
    * Per-request override for maximum allowed input text length (characters).
@@ -73,35 +64,6 @@ export class TranslateTextDto {
   @Max(VALIDATION_LIMITS.MAX_TRANSLATE_TEXT_LENGTH)
   maxTextLength?: number;
 
-  /**
-   * Per-request override for maximum number of retry attempts.
-   * Range: 0-30. If omitted or 0, uses config default.
-   */
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(30)
-  retryMaxAttempts?: number;
-
-  /**
-   * Per-request override for initial backoff delay between retry attempts (milliseconds).
-   * Range: 0-600000. If omitted or 0, uses config default.
-   */
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(600000)
-  retryInitialDelayMs?: number;
-
-  /**
-   * Per-request override for maximum backoff delay between retry attempts (milliseconds).
-   * Range: 0-600000. If omitted or 0, uses config default.
-   */
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(600000)
-  retryMaxDelayMs?: number;
 
   /**
    * Per-request override for text chunk limit (characters).

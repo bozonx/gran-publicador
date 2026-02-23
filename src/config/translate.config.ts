@@ -39,16 +39,6 @@ export class TranslateConfig {
   @IsString()
   public defaultModel?: string;
 
-  /**
-   * Request timeout in seconds.
-   * Defined by TRANSLATE_TIMEOUT_SEC environment variable.
-   * Range: 1-600 seconds.
-   */
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(600)
-  public timeoutSec?: number;
 
   /**
    * Maximum allowed input text length.
@@ -61,38 +51,6 @@ export class TranslateConfig {
   @Max(10000000)
   public maxTextLength?: number;
 
-  /**
-   * Maximum retry attempts.
-   * Defined by TRANSLATE_RETRY_MAX_ATTEMPTS environment variable.
-   * Range: 0-30.
-   */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(30)
-  public retryMaxAttempts?: number;
-
-  /**
-   * Initial retry delay in milliseconds.
-   * Defined by TRANSLATE_RETRY_INITIAL_DELAY_MS environment variable.
-   * Range: 0-600000 ms.
-   */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(600000)
-  public retryInitialDelayMs?: number;
-
-  /**
-   * Maximum retry delay in milliseconds.
-   * Defined by TRANSLATE_RETRY_MAX_DELAY_MS environment variable.
-   * Range: 0-600000 ms.
-   */
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(600000)
-  public retryMaxDelayMs?: number;
 }
 
 export default registerAs('translate', (): TranslateConfig => {
@@ -101,20 +59,8 @@ export default registerAs('translate', (): TranslateConfig => {
     apiToken: process.env.TRANSLATE_SERVICE_API_TOKEN,
     defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER,
     defaultModel: process.env.TRANSLATE_DEFAULT_MODEL,
-    timeoutSec: process.env.TRANSLATE_TIMEOUT_SEC
-      ? parseInt(process.env.TRANSLATE_TIMEOUT_SEC, 10)
-      : undefined,
     maxTextLength: process.env.TRANSLATE_MAX_TEXT_LENGTH
       ? parseInt(process.env.TRANSLATE_MAX_TEXT_LENGTH, 10)
-      : undefined,
-    retryMaxAttempts: process.env.TRANSLATE_RETRY_MAX_ATTEMPTS
-      ? parseInt(process.env.TRANSLATE_RETRY_MAX_ATTEMPTS, 10)
-      : undefined,
-    retryInitialDelayMs: process.env.TRANSLATE_RETRY_INITIAL_DELAY_MS
-      ? parseInt(process.env.TRANSLATE_RETRY_INITIAL_DELAY_MS, 10)
-      : undefined,
-    retryMaxDelayMs: process.env.TRANSLATE_RETRY_MAX_DELAY_MS
-      ? parseInt(process.env.TRANSLATE_RETRY_MAX_DELAY_MS, 10)
       : undefined,
   };
 

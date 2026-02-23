@@ -59,11 +59,7 @@ export class TranslateService {
       sourceLang: dto.sourceLang,
       provider: dto.provider || this.config.defaultProvider,
       model: dto.model || this.config.defaultModel,
-      timeoutSec: dto.timeoutSec || this.config.timeoutSec,
       maxTextLength: dto.maxTextLength || this.config.maxTextLength,
-      retryMaxAttempts: dto.retryMaxAttempts ?? this.config.retryMaxAttempts,
-      retryInitialDelayMs: dto.retryInitialDelayMs ?? this.config.retryInitialDelayMs,
-      retryMaxDelayMs: dto.retryMaxDelayMs ?? this.config.retryMaxDelayMs,
       maxChunkLength: dto.maxChunkLength,
       splitter: dto.splitter,
     };
@@ -79,7 +75,8 @@ export class TranslateService {
     this.logger.debug(`Request body: ${JSON.stringify(requestBody, null, 2)}`);
 
     try {
-      const timeoutMs = (dto.timeoutSec || this.config.timeoutSec || 50) * 1000;
+      const microserviceTimeout = this.configService.get<number>('app.microserviceRequestTimeoutSeconds') || 30;
+      const timeoutMs = microserviceTimeout * 1000;
 
       const data = await this.sendRequestWithRetry<TranslateResponseDto>(
         url,
