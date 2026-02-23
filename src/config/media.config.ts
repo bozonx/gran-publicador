@@ -91,11 +91,6 @@ export class MediaConfig {
   @IsIn(['4:2:0', '4:4:4'])
   public imageOptimizationChromaSubsampling: MediaImageOptimizationChromaSubsampling = '4:2:0';
 
-  /**
-   * Forced lossless mode for optimized images.
-   */
-  @IsBoolean()
-  public imageOptimizationLossless: boolean = false;
 
   /**
    * Strip metadata from optimized images.
@@ -166,7 +161,6 @@ export default registerAs('media', (): MediaConfig => {
       ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY, 10)
       : undefined,
     imageOptimizationChromaSubsampling: process.env.MEDIA_IMAGE_OPTIMIZATION_CHROMA_SUBSAMPLING,
-    imageOptimizationLossless: parseBoolean(process.env.MEDIA_IMAGE_OPTIMIZATION_LOSSLESS),
     imageOptimizationStripMetadata: parseBoolean(
       process.env.MEDIA_IMAGE_OPTIMIZATION_STRIP_METADATA,
     ),

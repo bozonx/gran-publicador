@@ -255,7 +255,7 @@ export class MediaService {
       quality: normalized.quality ?? mediaConfig.imageOptimizationQuality,
       chromaSubsampling:
         normalized.chromaSubsampling ?? mediaConfig.imageOptimizationChromaSubsampling,
-      lossless: normalized.lossless ?? mediaConfig.imageOptimizationLossless,
+      lossless: normalized.lossless ?? false,
       stripMetadata: normalized.stripMetadata ?? mediaConfig.imageOptimizationStripMetadata,
       autoOrient: normalized.autoOrient ?? mediaConfig.imageOptimizationAutoOrient,
       flatten:
