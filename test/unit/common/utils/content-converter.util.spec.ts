@@ -10,10 +10,10 @@ describe('ContentConverter', () => {
       expect(ContentConverter.telegramToMd(text, entities)).toBe('**hello** world');
     });
 
-    it('should ignore underline and keep plain text', () => {
+    it('should convert underline to <u>', () => {
       const text = 'hello world';
       const entities: any[] = [{ type: 'underline', offset: 0, length: 5 }];
-      expect(ContentConverter.telegramToMd(text, entities)).toBe('hello world');
+      expect(ContentConverter.telegramToMd(text, entities)).toBe('<u>hello</u> world');
     });
 
     it('should convert spoiler to ||', () => {

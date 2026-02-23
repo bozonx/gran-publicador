@@ -317,7 +317,7 @@ describe('MediaService (unit)', () => {
     });
   });
 
-  describe('replaceFsMediaFile', () => {
+  describe('replaceMediaFile', () => {
     it('should replace FS file, update DB meta, and delete old storage file', async () => {
       const mediaId = 'media-1';
       const oldStoragePath = 'old-file-id';
@@ -377,7 +377,7 @@ describe('MediaService (unit)', () => {
         updatedAt: new Date(),
       });
 
-      const result = await service.replaceFsMediaFile(
+      const result = await service.replaceMediaFile(
         mediaId,
         Readable.from([Buffer.from('data')]),
         'new.jpg',
@@ -401,7 +401,7 @@ describe('MediaService (unit)', () => {
       });
 
       await expect(
-        service.replaceFsMediaFile(
+        service.replaceMediaFile(
           'media-1',
           Readable.from([Buffer.from('data')]),
           'new.txt',
@@ -411,16 +411,16 @@ describe('MediaService (unit)', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw for non-FS media', async () => {
+    it('should throw for unsupported storage type', async () => {
       mockPrismaService.media.findUnique.mockResolvedValue({
         id: 'media-1',
-        storageType: StorageType.TELEGRAM,
-        storagePath: 'tg-file-id',
+        storageType: 'URL' as any,
+        storagePath: 'http://example.com/image.jpg',
         meta: {},
       });
 
       await expect(
-        service.replaceFsMediaFile(
+        service.replaceMediaFile(
           'media-1',
           Readable.from([Buffer.from('data')]),
           'new.jpg',

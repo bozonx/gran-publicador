@@ -5,9 +5,11 @@ import { PrismaService } from '../../../src/modules/prisma/prisma.service.js';
 import { ShutdownService } from '../../../src/common/services/shutdown.service.js';
 import { PostStatus } from '../../../src/generated/prisma/index.js';
 import { NotificationsService } from '../../../src/modules/notifications/notifications.service.js';
-import { jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';
 import { MediaService } from '../../../src/modules/media/media.service.js';
+import { getQueueToken } from '@nestjs/bullmq';
+import { PUBLICATIONS_QUEUE } from '../../../src/modules/social-posting/publications.queue.js';
 
 import { I18nService } from 'nestjs-i18n';
 
@@ -75,6 +77,10 @@ describe('SocialPostingService', () => {
     generatePublicToken: jest.fn().mockReturnValue('mock-token'),
   };
 
+  const mockQueue = {
+    add: jest.fn() as any,
+  };
+
   beforeAll(() => {
     originalDispatcher = getGlobalDispatcher();
     mockAgent = new MockAgent();
@@ -96,6 +102,7 @@ describe('SocialPostingService', () => {
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: I18nService, useValue: mockI18nService },
         { provide: MediaService, useValue: mockMediaService },
+        { provide: getQueueToken(PUBLICATIONS_QUEUE), useValue: mockQueue },
       ],
     }).compile();
 
@@ -143,12 +150,13 @@ describe('SocialPostingService', () => {
     });
   });
 
-  describe('publishPost', () => {
+  describe('executePreparedPost', () => {
     it('should call post endpoint and update post status on success', async () => {
       const postId = 'post-123';
       const mockPost = {
         id: postId,
         status: PostStatus.PENDING,
+        preparedPayload: { some: 'payload' },
         publicationId: 'pub-1',
         channelId: 'chan-1',
         postingSnapshot: {
@@ -196,7 +204,7 @@ describe('SocialPostingService', () => {
           },
         });
 
-      const result = await service.publishPost(postId);
+      const result = await service.executePreparedPost(postId);
       expect(result.success).toBe(true);
       expect(mockPrismaService.post.update).toHaveBeenCalled();
     });

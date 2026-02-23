@@ -37,7 +37,7 @@ const mockPrismaService = {
 
 // Mock SocialPostingService
 const mockSocialPostingService = {
-  publishPublication: jest.fn(),
+  enqueuePublication: jest.fn(),
 };
 
 // Mock NotificationsService
@@ -102,7 +102,7 @@ describe('PublicationSchedulerService', () => {
       where: { id: { in: ['pub1'] } },
       data: { status: PublicationStatus.EXPIRED },
     });
-    expect(socialPostingService.publishPublication).not.toHaveBeenCalled();
+    expect(socialPostingService.enqueuePublication).not.toHaveBeenCalled();
   });
 
   it('should publish publication if scheduledAt is within window', async () => {
@@ -118,8 +118,9 @@ describe('PublicationSchedulerService', () => {
 
     await service.runNow();
 
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub1', {
+    expect(socialPostingService.enqueuePublication).toHaveBeenCalledWith('pub1', {
       skipLock: true,
+      force: false,
     });
   });
 
@@ -147,8 +148,9 @@ describe('PublicationSchedulerService', () => {
       data: { status: PostStatus.FAILED, errorMessage: 'EXPIRED' },
     });
 
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub2', {
+    expect(socialPostingService.enqueuePublication).toHaveBeenCalledWith('pub2', {
       skipLock: true,
+      force: false,
     });
   });
 
@@ -165,8 +167,9 @@ describe('PublicationSchedulerService', () => {
 
     await service.runNow();
 
-    expect(socialPostingService.publishPublication).toHaveBeenCalledWith('pub1', {
+    expect(socialPostingService.enqueuePublication).toHaveBeenCalledWith('pub1', {
       skipLock: true,
+      force: false,
     });
   });
 });

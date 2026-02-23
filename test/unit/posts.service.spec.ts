@@ -20,6 +20,7 @@ describe('PostsService (unit)', () => {
       update: jest.fn() as any,
       delete: jest.fn() as any,
       aggregate: jest.fn() as any,
+      count: jest.fn() as any,
     },
     publication: {
       findFirst: jest.fn() as any,

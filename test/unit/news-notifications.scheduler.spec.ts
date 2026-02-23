@@ -7,6 +7,8 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { RedisService } from '../../src/common/redis/redis.service.js';
+import { NEWS_NOTIFICATIONS_QUEUE } from '../../src/modules/news-queries/news-notifications.queue.js';
+import { getQueueToken } from '@nestjs/bullmq';
 
 const mockConfigService = {
   get: jest.fn((key: string) => {
@@ -29,6 +31,7 @@ const mockRedisService = {
 const mockPrismaService = {
   projectNewsQuery: {
     findMany: jest.fn() as any,
+    findUnique: jest.fn() as any,
   },
   $queryRaw: jest.fn() as any,
   $executeRaw: jest.fn() as any,
@@ -41,6 +44,10 @@ const mockProjectsService = {
 
 const mockNotificationsService = {
   create: jest.fn() as any,
+};
+
+const mockQueue = {
+  add: jest.fn() as any,
 };
 
 const mockI18nService = {
@@ -74,6 +81,7 @@ describe('NewsNotificationsScheduler (unit)', () => {
         { provide: I18nService, useValue: mockI18nService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: getQueueToken(NEWS_NOTIFICATIONS_QUEUE), useValue: mockQueue },
       ],
     }).compile();
 
@@ -92,6 +100,7 @@ describe('NewsNotificationsScheduler (unit)', () => {
       id: 'query-1',
       projectId: 'project-1',
       name: 'Main feed',
+      isNotificationEnabled: true,
       settings: { q: 'test' },
       project: {
         owner: { id: 'user-owner', uiLanguage: 'en-US' },
@@ -99,7 +108,7 @@ describe('NewsNotificationsScheduler (unit)', () => {
       },
     };
 
-    mockPrismaService.projectNewsQuery.findMany.mockResolvedValue([query]);
+    mockPrismaService.projectNewsQuery.findUnique.mockResolvedValue(query);
     mockPrismaService.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
       {
         userId: 'user-owner',
@@ -147,14 +156,28 @@ describe('NewsNotificationsScheduler (unit)', () => {
 
     mockNotificationsService.create.mockResolvedValue({ id: 'notif-1' });
 
-    const firstRun = await service.runNow();
+    await service.processQueryById('query-1');
 
-    const secondRun = await service.runNow();
+    await service.processQueryById('query-1');
 
-    expect(firstRun.createdNotificationsCount).toBe(2);
-    expect(secondRun.createdNotificationsCount).toBe(0);
     expect(mockNotificationsService.create).toHaveBeenCalledTimes(2);
     expect(mockPrismaService.$executeRaw).toHaveBeenCalledTimes(2);
+  });
+
+  it('should queue jobs in runNow', async () => {
+    const query = { id: 'query-1', isNotificationEnabled: true };
+    mockPrismaService.projectNewsQuery.findMany.mockResolvedValue([query]);
+    mockQueue.add.mockResolvedValue({ id: 'job-1' });
+
+    const result = await service.runNow();
+
+    expect(result.skipped).toBe(false);
+    expect(result.queuedQueriesCount).toBe(1);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      expect.any(String),
+      { queryId: 'query-1' },
+      expect.any(Object),
+    );
   });
 
   it('should skip run when distributed lock is not acquired', async () => {
