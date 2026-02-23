@@ -18,8 +18,10 @@ import llmConfig from './config/llm.config.js';
 import sttConfig from './config/stt.config.js';
 import translateConfig from './config/translate.config.js';
 import newsConfig from './config/news.config.js';
+import unsplashConfig from './config/unsplash.config.js';
 import redisConfig, { RedisConfig } from './config/redis.config.js';
 import mediaConfig, { MediaConfig } from './config/media.config.js';
+import httpConfig from './config/http.config.js';
 import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { BullModule } from '@nestjs/bullmq';
@@ -101,8 +103,10 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         sttConfig,
         translateConfig,
         newsConfig,
+        unsplashConfig,
         redisConfig,
         mediaConfig,
+        httpConfig,
       ],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,

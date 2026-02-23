@@ -23,6 +23,16 @@ export class TranslateConfig {
   public apiToken?: string;
 
   /**
+   * Single request timeout in seconds.
+   * Defined by TRANSLATE_REQUEST_TIMEOUT_SECS environment variable.
+   * Default: 30
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  public requestTimeoutSecs?: number;
+
+  /**
    * Default translation provider.
    * Defined by TRANSLATE_DEFAULT_PROVIDER environment variable.
    * Example: anylang, google, deepl, etc.
@@ -39,7 +49,6 @@ export class TranslateConfig {
   @IsString()
   public defaultModel?: string;
 
-
   /**
    * Maximum allowed input text length.
    * Defined by TRANSLATE_MAX_TEXT_LENGTH environment variable.
@@ -50,13 +59,15 @@ export class TranslateConfig {
   @Min(100)
   @Max(10000000)
   public maxTextLength?: number;
-
 }
 
 export default registerAs('translate', (): TranslateConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.TRANSLATE_SERVICE_URL || 'http://localhost:8081/api/v1',
     apiToken: process.env.TRANSLATE_SERVICE_API_TOKEN,
+    requestTimeoutSecs: process.env.TRANSLATE_REQUEST_TIMEOUT_SECS
+      ? parseInt(process.env.TRANSLATE_REQUEST_TIMEOUT_SECS, 10)
+      : undefined,
     defaultProvider: process.env.TRANSLATE_DEFAULT_PROVIDER,
     defaultModel: process.env.TRANSLATE_DEFAULT_MODEL,
     maxTextLength: process.env.TRANSLATE_MAX_TEXT_LENGTH

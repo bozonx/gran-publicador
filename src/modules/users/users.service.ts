@@ -88,6 +88,16 @@ export class UsersService {
       where: { id },
     });
   }
+
+  /**
+   * Force logout a user by deleting all their sessions.
+   */
+  public async logoutUser(userId: string): Promise<void> {
+    await this.prisma.userSession.deleteMany({
+      where: { userId },
+    });
+  }
+
   /**
    * Find a user by their Telegram ID or create one if they don't exist.
    * Updates profile information (username, name, avatar) on every login.

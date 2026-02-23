@@ -9,6 +9,12 @@ export const DEFAULT_STALE_CHANNELS_DAYS = 3;
 export const DEFAULT_MICROSERVICE_TIMEOUT_MS = 60000;
 
 /**
+ * Jitter ratio applied to generic HTTP retry delays.
+ * Example: 0.2 means ±20%.
+ */
+export const HTTP_RETRY_JITTER_RATIO = 0.2;
+
+/**
  * Telegram media proxy retry count (number of retries after the first attempt).
  */
 export const TELEGRAM_MEDIA_PROXY_RETRY_COUNT = 2;

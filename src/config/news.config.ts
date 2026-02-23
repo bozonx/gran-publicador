@@ -23,6 +23,14 @@ export class NewsConfig {
   public apiToken?: string;
 
   /**
+   * Single request timeout in seconds.
+   * Defined by NEWS_REQUEST_TIMEOUT_SECS environment variable.
+   * Default: 30
+   */
+  @IsOptional()
+  public requestTimeoutSecs: number = 30;
+
+  /**
    * Maximum lookback window in hours for news scheduler.
    * Defined by NEWS_SCHEDULER_LOOKBACK_HOURS environment variable.
    * Default: 3
@@ -57,6 +65,9 @@ export default registerAs('news', (): NewsConfig => {
   const rawConfig: any = {
     serviceUrl: process.env.NEWS_SERVICE_URL || 'http://news-microservice:8088',
     apiToken: process.env.NEWS_SERVICE_API_TOKEN,
+    requestTimeoutSecs: process.env.NEWS_REQUEST_TIMEOUT_SECS
+      ? parseInt(process.env.NEWS_REQUEST_TIMEOUT_SECS, 10)
+      : 30,
     schedulerLookbackHours: process.env.NEWS_SCHEDULER_LOOKBACK_HOURS
       ? parseInt(process.env.NEWS_SCHEDULER_LOOKBACK_HOURS, 10)
       : 3,

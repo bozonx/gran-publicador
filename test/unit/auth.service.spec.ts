@@ -8,6 +8,7 @@ import { UnauthorizedException } from '@nestjs/common';
 import { jest } from '@jest/globals';
 import { TelegramMiniAppAuthProvider } from '../../src/modules/auth/providers/telegram-mini-app-auth.provider.js';
 import { TelegramWidgetAuthProvider } from '../../src/modules/auth/providers/telegram-widget-auth.provider.js';
+import { SessionsService } from '../../src/modules/auth/sessions.service.js';
 
 describe('AuthService (unit)', () => {
   let service: AuthService;
@@ -34,6 +35,12 @@ describe('AuthService (unit)', () => {
     verifyAsync: jest.fn() as any,
   };
 
+  const mockSessionsService = {
+    createSessionAndIssueTokens: jest.fn() as any,
+    refreshSession: jest.fn() as any,
+    logout: jest.fn() as any,
+  };
+
   const mockTelegramMiniAppAuthProvider = {
     validateInitData: jest.fn() as any,
   };
@@ -57,6 +64,7 @@ describe('AuthService (unit)', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: TelegramMiniAppAuthProvider, useValue: mockTelegramMiniAppAuthProvider },
         { provide: TelegramWidgetAuthProvider, useValue: { validateWidgetData: jest.fn() as any } },
+        { provide: SessionsService, useValue: mockSessionsService },
       ],
     }).compile();
 
@@ -93,10 +101,10 @@ describe('AuthService (unit)', () => {
         languageCode: 'en',
       });
       mockUsersService.findOrCreateTelegramUser.mockResolvedValue(mockUser);
-      mockJwtService.signAsync
-        .mockResolvedValueOnce('mock.access.token')
-        .mockResolvedValueOnce('mock.refresh.token');
-      mockPrismaService.userSession.create.mockResolvedValue(undefined);
+      mockSessionsService.createSessionAndIssueTokens.mockResolvedValue({
+        accessToken: 'mock.access.token',
+        refreshToken: 'mock.refresh.token',
+      });
 
       const result = await service.loginWithTelegram(initData);
 
@@ -114,8 +122,11 @@ describe('AuthService (unit)', () => {
         avatarUrl: 'http://example.com/photo.jpg',
         languageCode: 'en',
       });
-      expect(mockJwtService.signAsync).toHaveBeenCalledTimes(2);
-      expect(mockPrismaService.userSession.create).toHaveBeenCalled();
+      expect(mockSessionsService.createSessionAndIssueTokens).toHaveBeenCalledWith({
+        userId: mockUser.id,
+        telegramId: mockUser.telegramId.toString(),
+        telegramUsername: mockUser.telegramUsername,
+      });
     });
 
     it('should throw UnauthorizedException if hash is invalid', async () => {
@@ -157,38 +168,30 @@ describe('AuthService (unit)', () => {
 
   describe('refreshTokens', () => {
     it('should issue new tokens when refresh token is valid and matches stored hash', async () => {
-      mockJwtService.verifyAsync.mockResolvedValue({ sub: 'user-1' });
-      const { createHash } = await import('node:crypto');
-      const hashed = createHash('sha256').update('refresh.token').digest('hex');
-
-      mockPrismaService.userSession.findUnique.mockResolvedValue({
-        id: 'session-1',
-        userId: 'user-1',
-        hashedRefreshToken: hashed,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+      mockSessionsService.refreshSession.mockResolvedValue({
         user: {
           id: 'user-1',
           telegramId: 1n,
           telegramUsername: 'u',
           deletedAt: null,
         },
+        tokens: {
+          accessToken: 'new.access',
+          refreshToken: 'new.refresh',
+        },
       });
-
-      mockJwtService.signAsync
-        .mockResolvedValueOnce('new.access')
-        .mockResolvedValueOnce('new.refresh');
-      mockPrismaService.userSession.update.mockResolvedValue(undefined);
 
       const result = await service.refreshTokens('refresh.token');
 
       expect(result.accessToken).toBe('new.access');
       expect(result.refreshToken).toBe('new.refresh');
-      expect(mockJwtService.verifyAsync).toHaveBeenCalled();
-      expect(mockPrismaService.userSession.update).toHaveBeenCalled();
+      expect(mockSessionsService.refreshSession).toHaveBeenCalledWith('refresh.token');
     });
 
     it('should throw if refresh token is invalid', async () => {
-      mockJwtService.verifyAsync.mockRejectedValue(new Error('invalid'));
+      mockSessionsService.refreshSession.mockRejectedValue(
+        new Error('Access Denied (Invalid refresh token)'),
+      );
 
       await expect(service.refreshTokens('bad.token')).rejects.toThrow('Access Denied');
     });

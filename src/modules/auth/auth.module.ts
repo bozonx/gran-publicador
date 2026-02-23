@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
 import { TelegramMiniAppAuthProvider, TelegramWidgetAuthProvider } from './providers/index.js';
+import { SessionsService } from './sessions.service.js';
 
 /**
  * Module for authentication and authorization.
@@ -27,7 +28,13 @@ import { TelegramMiniAppAuthProvider, TelegramWidgetAuthProvider } from './provi
     UsersModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, TelegramMiniAppAuthProvider, TelegramWidgetAuthProvider],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    SessionsService,
+    TelegramMiniAppAuthProvider,
+    TelegramWidgetAuthProvider,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

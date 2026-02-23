@@ -16,6 +16,15 @@ export class SocialPostingConfig {
   public requestTimeoutSecs!: number;
 
   /**
+   * Single request timeout in seconds.
+   * Defined by SOCIAL_POSTING_SERVICE_REQUEST_TIMEOUT_SECS environment variable.
+   * Default: 30
+   */
+  @IsInt()
+  @Min(1)
+  public serviceRequestTimeoutSecs!: number;
+
+  /**
    * Time-to-live for idempotency records in cache in minutes.
    * Defined by SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES environment variable.
    * Default: 10
@@ -44,6 +53,10 @@ export class SocialPostingConfig {
 export default registerAs('socialPosting', (): SocialPostingConfig => {
   const config = plainToClass(SocialPostingConfig, {
     requestTimeoutSecs: parseInt(process.env.SOCIAL_POSTING_REQUEST_TIMEOUT_SECS ?? '60', 10),
+    serviceRequestTimeoutSecs: parseInt(
+      process.env.SOCIAL_POSTING_SERVICE_REQUEST_TIMEOUT_SECS ?? '30',
+      10,
+    ),
     idempotencyTtlMinutes: parseInt(process.env.SOCIAL_POSTING_IDEMPOTENCY_TTL_MINUTES ?? '10', 10),
     serviceUrl: process.env.SOCIAL_POSTING_SERVICE_URL,
     apiToken: process.env.SOCIAL_POSTING_SERVICE_API_TOKEN,

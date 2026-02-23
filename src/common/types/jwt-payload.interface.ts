@@ -5,6 +5,13 @@
 export interface JwtPayload {
   /** The subject of the token (user ID). */
   sub: string;
+
+  /** Token type discriminator. */
+  tokenType?: 'access' | 'refresh';
+
+  /** JWT ID (session ID). Typically present on refresh tokens. */
+  jti?: string;
+
   /** The unique identifier of the user (alias for sub). */
   id?: string;
   /** The unique identifier of the user (alias for sub). */
