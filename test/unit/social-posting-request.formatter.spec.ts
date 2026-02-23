@@ -118,7 +118,7 @@ describe('SocialPostingRequestFormatter', () => {
     expect(request.media).toBeUndefined();
   });
 
-  it('should handle single FS snapshot media mapping with URL generation', () => {
+  it('should handle single STORAGE snapshot media mapping with URL generation', () => {
     const paramsWithMedia = {
       ...params,
       snapshot: {
@@ -127,7 +127,7 @@ describe('SocialPostingRequestFormatter', () => {
           {
             mediaId: 'media-1',
             type: 'IMAGE',
-            storageType: 'FS',
+            storageType: 'STORAGE',
             storagePath: 'file-123',
             order: 0,
             hasSpoiler: false,
@@ -162,7 +162,7 @@ describe('SocialPostingRequestFormatter', () => {
           {
             mediaId: 'media-2',
             type: 'VIDEO',
-            storageType: 'FS',
+            storageType: 'STORAGE',
             storagePath: 'file-abc',
             order: 1,
             hasSpoiler: false,
