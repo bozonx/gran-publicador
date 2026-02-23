@@ -242,6 +242,12 @@ const editor = useEditor({
     const hrefNearCursor = getLinkHrefNearCursor(editor)
     const isInLink = editor.isActive('link') || hrefNearCursor !== null
 
+    if (isLinkMenuOpen.value && linkMenuAnchor.value) {
+      // While link editor is open, selection may be programmatically collapsed.
+      // Do not auto-close the UI on such selection changes.
+      return
+    }
+
     // Close link menu when cursor leaves the link
     if (isLinkMenuOpen.value && !isInLink) {
       isLinkMenuOpen.value = false
@@ -309,8 +315,16 @@ function setLink() {
   isLinkMenuOpen.value = true
   linkMenuAnchor.value = { from, to }
 
+  // Collapse selection so formatting BubbleMenu closes immediately.
+  // The original selection is preserved in linkMenuAnchor and restored on apply.
+  editor.value.commands.setTextSelection({ from, to: from })
+
   nextTick(() => {
-    editor.value?.commands.focus()
+    if (editor.value) {
+      editor.value.commands.focus()
+      // Force Tiptap to re-evaluate shouldShow for BubbleMenus
+      editor.value.view.dispatch(editor.value.state.tr)
+    }
   })
 }
 
@@ -318,7 +332,10 @@ function cancelLink() {
   isLinkMenuOpen.value = false
   linkUrlInput.value = ''
   linkMenuAnchor.value = null
-  editor.value?.commands.focus()
+  if (editor.value) {
+    editor.value.commands.focus()
+    editor.value.view.dispatch(editor.value.state.tr)
+  }
 }
 
 function normalizeUrl(url: string): string {
@@ -335,6 +352,10 @@ function normalizeUrl(url: string): string {
 
 function applyLink() {
   const href = normalizeUrl(linkUrlInput.value)
+  const anchor = linkMenuAnchor.value
+  if (anchor) {
+    editor.value?.commands.setTextSelection(anchor)
+  }
   if (href) {
     editor.value?.chain().focus().extendMarkRange('link').setLink({ href }).run()
   } else {
@@ -345,6 +366,10 @@ function applyLink() {
 }
 
 function removeLink() {
+  const anchor = linkMenuAnchor.value
+  if (anchor) {
+    editor.value?.commands.setTextSelection(anchor)
+  }
   editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
   isLinkMenuOpen.value = false
   linkMenuAnchor.value = null
