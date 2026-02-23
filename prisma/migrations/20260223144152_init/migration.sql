@@ -1,14 +1,5 @@
 -- CreateEnum
-CREATE TYPE "ContentLibraryTabType" AS ENUM ('FOLDER', 'SAVED_VIEW');
-
--- CreateEnum
-CREATE TYPE "LlmSystemPromptOverrideAction" AS ENUM ('OVERRIDE', 'HIDE');
-
--- CreateEnum
-CREATE TYPE "LlmPromptTemplateCategory" AS ENUM ('GENERAL', 'CHAT', 'CONTENT', 'EDITING', 'METADATA');
-
--- CreateEnum
-CREATE TYPE "SocialMedia" AS ENUM ('TELEGRAM', 'VK', 'YOUTUBE', 'TIKTOK', 'FACEBOOK', 'SITE');
+CREATE TYPE "SocialMedia" AS ENUM ('telegram', 'vk', 'site');
 
 -- CreateEnum
 CREATE TYPE "PostType" AS ENUM ('POST', 'ARTICLE', 'NEWS', 'VIDEO', 'SHORT', 'STORY');
@@ -20,6 +11,9 @@ CREATE TYPE "PublicationStatus" AS ENUM ('DRAFT', 'READY', 'SCHEDULED', 'PROCESS
 CREATE TYPE "PostStatus" AS ENUM ('PENDING', 'FAILED', 'PUBLISHED');
 
 -- CreateEnum
+CREATE TYPE "RelationGroupType" AS ENUM ('SERIES', 'LOCALIZATION');
+
+-- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('PUBLICATION_FAILED', 'PROJECT_INVITE', 'SYSTEM', 'NEW_NEWS');
 
 -- CreateEnum
@@ -27,6 +21,15 @@ CREATE TYPE "MediaType" AS ENUM ('IMAGE', 'VIDEO', 'AUDIO', 'DOCUMENT');
 
 -- CreateEnum
 CREATE TYPE "StorageType" AS ENUM ('FS', 'TELEGRAM');
+
+-- CreateEnum
+CREATE TYPE "TagDomain" AS ENUM ('CONTENT_LIBRARY', 'PUBLICATIONS');
+
+-- CreateEnum
+CREATE TYPE "ContentCollectionType" AS ENUM ('GROUP', 'SAVED_VIEW', 'PUBLICATION_MEDIA_VIRTUAL', 'UNSPLASH');
+
+-- CreateEnum
+CREATE TYPE "ContentLibraryGroupType" AS ENUM ('PERSONAL_USER', 'PROJECT_USER', 'PROJECT_SHARED');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -36,7 +39,6 @@ CREATE TABLE "users" (
     "avatar_url" TEXT,
     "telegram_id" BIGINT,
     "is_admin" BOOLEAN NOT NULL DEFAULT false,
-    "hashed_refresh_token" TEXT,
     "is_banned" BOOLEAN NOT NULL DEFAULT false,
     "ban_reason" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -44,9 +46,22 @@ CREATE TABLE "users" (
     "deleted_at" TIMESTAMP(3),
     "language" TEXT NOT NULL DEFAULT 'en-US',
     "ui_language" TEXT NOT NULL DEFAULT 'en-US',
-    "preferences" JSONB NOT NULL,
+    "preferences" JSONB NOT NULL DEFAULT '{}',
+    "version" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "user_sessions" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "hashed_refresh_token" TEXT NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "user_sessions_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -74,24 +89,28 @@ CREATE TABLE "projects" (
     "updated_at" TIMESTAMP(3) NOT NULL,
     "archived_at" TIMESTAMP(3),
     "archived_by" TEXT,
-    "preferences" JSONB NOT NULL,
+    "preferences" JSONB NOT NULL DEFAULT '{}',
+    "version" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "projects_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "content_library_tabs" (
+CREATE TABLE "content_collections" (
     "id" TEXT NOT NULL,
-    "type" "ContentLibraryTabType" NOT NULL,
+    "type" "ContentCollectionType" NOT NULL,
     "title" TEXT NOT NULL,
+    "group_type" "ContentLibraryGroupType",
     "user_id" TEXT,
     "project_id" TEXT,
+    "parent_id" TEXT,
     "order" INTEGER NOT NULL DEFAULT 0,
-    "config" JSONB NOT NULL,
+    "config" JSONB NOT NULL DEFAULT '{}',
+    "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "content_library_tabs_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "content_collections_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -99,14 +118,28 @@ CREATE TABLE "project_news_queries" (
     "id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
-    "settings" JSONB NOT NULL,
+    "settings" JSONB NOT NULL DEFAULT '{}',
     "is_notification_enabled" BOOLEAN NOT NULL DEFAULT false,
     "last_checked_at" TIMESTAMP(3),
     "order" INTEGER NOT NULL DEFAULT 0,
+    "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "project_news_queries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "news_notification_user_states" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "query_id" TEXT NOT NULL,
+    "last_sent_saved_at" TIMESTAMP(3) NOT NULL,
+    "last_sent_news_id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "news_notification_user_states_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -118,6 +151,7 @@ CREATE TABLE "roles" (
     "is_system" BOOLEAN NOT NULL DEFAULT false,
     "system_type" TEXT,
     "permissions" JSONB NOT NULL,
+    "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -154,9 +188,10 @@ CREATE TABLE "channels" (
     "description" TEXT,
     "channel_identifier" TEXT NOT NULL,
     "language" TEXT NOT NULL,
-    "credentials" JSONB NOT NULL,
-    "preferences" JSONB NOT NULL,
+    "credentials" JSONB NOT NULL DEFAULT '{}',
+    "preferences" JSONB NOT NULL DEFAULT '{}',
     "tags" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -170,11 +205,10 @@ CREATE TABLE "channels" (
 CREATE TABLE "publications" (
     "id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
-    "translation_group_id" TEXT,
     "news_item_id" TEXT,
     "created_by" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
     "archived_at" TIMESTAMP(3),
     "archived_by" TEXT,
     "scheduled_at" TIMESTAMP(3),
@@ -182,15 +216,16 @@ CREATE TABLE "publications" (
     "processing_started_at" TIMESTAMP(3),
     "post_type" "PostType" NOT NULL DEFAULT 'POST',
     "language" TEXT NOT NULL DEFAULT 'en-US',
+    "project_template_id" TEXT,
     "status" "PublicationStatus" NOT NULL DEFAULT 'DRAFT',
     "title" TEXT,
     "description" TEXT,
     "content" TEXT,
     "author_comment" TEXT,
-    "tags" TEXT,
-    "meta" JSONB NOT NULL,
+    "meta" JSONB NOT NULL DEFAULT '{}',
     "post_date" TIMESTAMP(3),
     "note" TEXT,
+    "version" INTEGER NOT NULL DEFAULT 1,
 
     CONSTRAINT "publications_pkey" PRIMARY KEY ("id")
 );
@@ -200,10 +235,11 @@ CREATE TABLE "content_items" (
     "id" TEXT NOT NULL,
     "user_id" TEXT,
     "project_id" TEXT,
-    "folder_id" TEXT,
     "title" TEXT,
-    "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "note" TEXT,
+    "text" TEXT,
+    "meta" JSONB NOT NULL DEFAULT '{}',
+    "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "archived_at" TIMESTAMP(3),
@@ -213,28 +249,25 @@ CREATE TABLE "content_items" (
 );
 
 -- CreateTable
-CREATE TABLE "content_blocks" (
+CREATE TABLE "content_item_groups" (
     "id" TEXT NOT NULL,
     "content_item_id" TEXT NOT NULL,
-    "text" TEXT,
-    "order" INTEGER NOT NULL DEFAULT 0,
-    "meta" JSONB NOT NULL,
+    "collection_id" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "content_blocks_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "content_item_groups_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "content_block_media" (
+CREATE TABLE "content_item_media" (
     "id" TEXT NOT NULL,
-    "content_block_id" TEXT NOT NULL,
+    "content_item_id" TEXT NOT NULL,
     "media_id" TEXT NOT NULL,
     "order" INTEGER NOT NULL DEFAULT 0,
     "has_spoiler" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "content_block_media_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "content_item_media_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -254,35 +287,45 @@ CREATE TABLE "posts" (
     "publication_id" TEXT NOT NULL,
     "channel_id" TEXT NOT NULL,
     "social_media" TEXT NOT NULL,
-    "tags" TEXT,
     "status" "PostStatus" NOT NULL DEFAULT 'PENDING',
     "error_message" TEXT,
-    "meta" JSONB NOT NULL,
-    "template" JSONB,
+    "meta" JSONB NOT NULL DEFAULT '{}',
     "content" TEXT,
     "platform_options" JSONB,
     "author_signature" TEXT,
+    "posting_snapshot" JSONB,
+    "posting_snapshot_created_at" TIMESTAMP(3),
+    "prepared_payload" JSONB,
     "scheduled_at" TIMESTAMP(3),
     "published_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "posts_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "author_signatures" (
+CREATE TABLE "project_author_signatures" (
     "id" TEXT NOT NULL,
+    "project_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "channel_id" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "content" TEXT NOT NULL,
-    "is_default" BOOLEAN NOT NULL DEFAULT false,
     "order" INTEGER NOT NULL DEFAULT 0,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "author_signatures_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "project_author_signatures_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_author_signature_variants" (
+    "id" TEXT NOT NULL,
+    "signature_id" TEXT NOT NULL,
+    "language" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "project_author_signature_variants_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -296,7 +339,7 @@ CREATE TABLE "media" (
     "description" TEXT,
     "mime_type" TEXT,
     "size_bytes" BIGINT,
-    "meta" JSONB NOT NULL,
+    "meta" JSONB NOT NULL DEFAULT '{}',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -322,7 +365,7 @@ CREATE TABLE "notifications" (
     "type" "NotificationType" NOT NULL,
     "title" TEXT NOT NULL,
     "message" TEXT NOT NULL,
-    "meta" JSONB NOT NULL,
+    "meta" JSONB NOT NULL DEFAULT '{}',
     "read_at" TIMESTAMP(3),
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -334,11 +377,12 @@ CREATE TABLE "llm_prompt_templates" (
     "id" TEXT NOT NULL,
     "user_id" TEXT,
     "project_id" TEXT,
-    "name" TEXT NOT NULL,
+    "name" TEXT,
     "description" TEXT,
-    "category" "LlmPromptTemplateCategory" NOT NULL DEFAULT 'GENERAL',
+    "category" TEXT NOT NULL DEFAULT 'General',
     "prompt" TEXT NOT NULL,
     "order" INTEGER NOT NULL DEFAULT 0,
+    "is_hidden" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -346,19 +390,89 @@ CREATE TABLE "llm_prompt_templates" (
 );
 
 -- CreateTable
-CREATE TABLE "llm_system_prompt_overrides" (
+CREATE TABLE "llm_system_prompt_hidden" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
-    "system_key" TEXT NOT NULL,
-    "action" "LlmSystemPromptOverrideAction" NOT NULL,
-    "name" TEXT,
-    "description" TEXT,
-    "prompt" TEXT,
-    "category" "LlmPromptTemplateCategory",
+    "system_template_id" TEXT NOT NULL,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "llm_system_prompt_hidden_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "publication_relation_groups" (
+    "id" TEXT NOT NULL,
+    "project_id" TEXT NOT NULL,
+    "type" "RelationGroupType" NOT NULL,
+    "created_by" TEXT,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "publication_relation_groups_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "publication_relation_items" (
+    "id" TEXT NOT NULL,
+    "group_id" TEXT NOT NULL,
+    "publication_id" TEXT NOT NULL,
+    "position" INTEGER NOT NULL DEFAULT 0,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "publication_relation_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "project_templates" (
+    "id" TEXT NOT NULL,
+    "project_id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "post_type" "PostType",
+    "order" INTEGER NOT NULL DEFAULT 0,
+    "language" TEXT,
+    "template" JSONB NOT NULL,
+    "version" INTEGER NOT NULL DEFAULT 1,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "llm_system_prompt_overrides_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "project_templates_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "tags" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "normalized_name" TEXT NOT NULL,
+    "project_id" TEXT,
+    "user_id" TEXT,
+    "domain" "TagDomain" NOT NULL DEFAULT 'PUBLICATIONS',
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "tags_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "_PublicationToTag" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_PublicationToTag_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_ContentItemToTag" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_ContentItemToTag_AB_pkey" PRIMARY KEY ("A","B")
+);
+
+-- CreateTable
+CREATE TABLE "_PostToTag" (
+    "A" TEXT NOT NULL,
+    "B" TEXT NOT NULL,
+
+    CONSTRAINT "_PostToTag_AB_pkey" PRIMARY KEY ("A","B")
 );
 
 -- CreateIndex
@@ -368,22 +482,43 @@ CREATE UNIQUE INDEX "users_telegram_id_key" ON "users"("telegram_id");
 CREATE INDEX "users_telegram_username_idx" ON "users"("telegram_username");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "user_sessions_hashed_refresh_token_key" ON "user_sessions"("hashed_refresh_token");
+
+-- CreateIndex
+CREATE INDEX "user_sessions_user_id_idx" ON "user_sessions"("user_id");
+
+-- CreateIndex
+CREATE INDEX "user_sessions_expires_at_idx" ON "user_sessions"("expires_at");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "api_tokens_hashed_token_key" ON "api_tokens"("hashed_token");
 
 -- CreateIndex
 CREATE INDEX "api_tokens_user_id_idx" ON "api_tokens"("user_id");
 
 -- CreateIndex
-CREATE INDEX "content_library_tabs_user_id_order_idx" ON "content_library_tabs"("user_id", "order");
+CREATE INDEX "content_collections_user_id_order_idx" ON "content_collections"("user_id", "order");
 
 -- CreateIndex
-CREATE INDEX "content_library_tabs_project_id_order_idx" ON "content_library_tabs"("project_id", "order");
+CREATE INDEX "content_collections_project_id_order_idx" ON "content_collections"("project_id", "order");
+
+-- CreateIndex
+CREATE INDEX "content_collections_parent_id_order_idx" ON "content_collections"("parent_id", "order");
 
 -- CreateIndex
 CREATE INDEX "project_news_queries_project_id_idx" ON "project_news_queries"("project_id");
 
 -- CreateIndex
 CREATE INDEX "project_news_queries_is_notification_enabled_last_checked_a_idx" ON "project_news_queries"("is_notification_enabled", "last_checked_at");
+
+-- CreateIndex
+CREATE INDEX "news_notification_user_states_query_id_idx" ON "news_notification_user_states"("query_id");
+
+-- CreateIndex
+CREATE INDEX "news_notification_user_states_user_id_idx" ON "news_notification_user_states"("user_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "news_notification_user_states_user_id_query_id_key" ON "news_notification_user_states"("user_id", "query_id");
 
 -- CreateIndex
 CREATE INDEX "roles_project_id_idx" ON "roles"("project_id");
@@ -410,9 +545,6 @@ CREATE UNIQUE INDEX "project_members_project_id_user_id_key" ON "project_members
 CREATE INDEX "channels_project_id_idx" ON "channels"("project_id");
 
 -- CreateIndex
-CREATE INDEX "publications_translation_group_id_idx" ON "publications"("translation_group_id");
-
--- CreateIndex
 CREATE INDEX "publications_project_id_status_idx" ON "publications"("project_id", "status");
 
 -- CreateIndex
@@ -434,25 +566,31 @@ CREATE INDEX "publications_created_by_project_id_archived_at_idx" ON "publicatio
 CREATE INDEX "publications_news_item_id_idx" ON "publications"("news_item_id");
 
 -- CreateIndex
+CREATE INDEX "publications_project_template_id_idx" ON "publications"("project_template_id");
+
+-- CreateIndex
 CREATE INDEX "content_items_user_id_created_at_idx" ON "content_items"("user_id", "created_at");
 
 -- CreateIndex
 CREATE INDEX "content_items_project_id_created_at_idx" ON "content_items"("project_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "content_items_folder_id_created_at_idx" ON "content_items"("folder_id", "created_at");
-
--- CreateIndex
 CREATE INDEX "content_items_archived_at_idx" ON "content_items"("archived_at");
 
 -- CreateIndex
-CREATE INDEX "content_blocks_content_item_id_idx" ON "content_blocks"("content_item_id");
+CREATE INDEX "content_item_groups_content_item_id_idx" ON "content_item_groups"("content_item_id");
 
 -- CreateIndex
-CREATE INDEX "content_block_media_content_block_id_idx" ON "content_block_media"("content_block_id");
+CREATE INDEX "content_item_groups_collection_id_idx" ON "content_item_groups"("collection_id");
 
 -- CreateIndex
-CREATE INDEX "content_block_media_media_id_idx" ON "content_block_media"("media_id");
+CREATE UNIQUE INDEX "content_item_groups_content_item_id_collection_id_key" ON "content_item_groups"("content_item_id", "collection_id");
+
+-- CreateIndex
+CREATE INDEX "content_item_media_content_item_id_idx" ON "content_item_media"("content_item_id");
+
+-- CreateIndex
+CREATE INDEX "content_item_media_media_id_idx" ON "content_item_media"("media_id");
 
 -- CreateIndex
 CREATE INDEX "publication_content_items_publication_id_idx" ON "publication_content_items"("publication_id");
@@ -473,13 +611,13 @@ CREATE INDEX "posts_channel_id_created_at_idx" ON "posts"("channel_id", "created
 CREATE INDEX "posts_publication_id_idx" ON "posts"("publication_id");
 
 -- CreateIndex
-CREATE INDEX "author_signatures_user_id_channel_id_idx" ON "author_signatures"("user_id", "channel_id");
+CREATE INDEX "project_author_signatures_project_id_user_id_idx" ON "project_author_signatures"("project_id", "user_id");
 
 -- CreateIndex
-CREATE INDEX "author_signatures_channel_id_idx" ON "author_signatures"("channel_id");
+CREATE INDEX "project_author_signatures_project_id_order_idx" ON "project_author_signatures"("project_id", "order");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "author_signatures_user_id_channel_id_name_key" ON "author_signatures"("user_id", "channel_id", "name");
+CREATE UNIQUE INDEX "project_author_signature_variants_signature_id_language_key" ON "project_author_signature_variants"("signature_id", "language");
 
 -- CreateIndex
 CREATE INDEX "media_type_idx" ON "media"("type");
@@ -506,10 +644,46 @@ CREATE INDEX "llm_prompt_templates_user_id_idx" ON "llm_prompt_templates"("user_
 CREATE INDEX "llm_prompt_templates_project_id_idx" ON "llm_prompt_templates"("project_id");
 
 -- CreateIndex
-CREATE INDEX "llm_system_prompt_overrides_user_id_idx" ON "llm_system_prompt_overrides"("user_id");
+CREATE INDEX "llm_system_prompt_hidden_user_id_idx" ON "llm_system_prompt_hidden"("user_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "llm_system_prompt_overrides_user_id_system_key_key" ON "llm_system_prompt_overrides"("user_id", "system_key");
+CREATE UNIQUE INDEX "llm_system_prompt_hidden_user_id_system_template_id_key" ON "llm_system_prompt_hidden"("user_id", "system_template_id");
+
+-- CreateIndex
+CREATE INDEX "publication_relation_groups_project_id_type_idx" ON "publication_relation_groups"("project_id", "type");
+
+-- CreateIndex
+CREATE INDEX "publication_relation_items_publication_id_idx" ON "publication_relation_items"("publication_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "publication_relation_items_group_id_publication_id_key" ON "publication_relation_items"("group_id", "publication_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "publication_relation_items_group_id_position_key" ON "publication_relation_items"("group_id", "position");
+
+-- CreateIndex
+CREATE INDEX "project_templates_project_id_idx" ON "project_templates"("project_id");
+
+-- CreateIndex
+CREATE INDEX "tags_normalized_name_idx" ON "tags"("normalized_name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tags_project_id_domain_normalized_name_key" ON "tags"("project_id", "domain", "normalized_name");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "tags_user_id_domain_normalized_name_key" ON "tags"("user_id", "domain", "normalized_name");
+
+-- CreateIndex
+CREATE INDEX "_PublicationToTag_B_index" ON "_PublicationToTag"("B");
+
+-- CreateIndex
+CREATE INDEX "_ContentItemToTag_B_index" ON "_ContentItemToTag"("B");
+
+-- CreateIndex
+CREATE INDEX "_PostToTag_B_index" ON "_PostToTag"("B");
+
+-- AddForeignKey
+ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "api_tokens" ADD CONSTRAINT "api_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -518,13 +692,22 @@ ALTER TABLE "api_tokens" ADD CONSTRAINT "api_tokens_user_id_fkey" FOREIGN KEY ("
 ALTER TABLE "projects" ADD CONSTRAINT "projects_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_library_tabs" ADD CONSTRAINT "content_library_tabs_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "content_collections" ADD CONSTRAINT "content_collections_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_library_tabs" ADD CONSTRAINT "content_library_tabs_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "content_collections" ADD CONSTRAINT "content_collections_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "content_collections" ADD CONSTRAINT "content_collections_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "content_collections"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "project_news_queries" ADD CONSTRAINT "project_news_queries_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "news_notification_user_states" ADD CONSTRAINT "news_notification_user_states_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "news_notification_user_states" ADD CONSTRAINT "news_notification_user_states_query_id_fkey" FOREIGN KEY ("query_id") REFERENCES "project_news_queries"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "roles" ADD CONSTRAINT "roles_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -551,6 +734,9 @@ ALTER TABLE "channels" ADD CONSTRAINT "channels_project_id_fkey" FOREIGN KEY ("p
 ALTER TABLE "publications" ADD CONSTRAINT "publications_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "publications" ADD CONSTRAINT "publications_project_template_id_fkey" FOREIGN KEY ("project_template_id") REFERENCES "project_templates"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "publications" ADD CONSTRAINT "publications_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -560,16 +746,16 @@ ALTER TABLE "content_items" ADD CONSTRAINT "content_items_user_id_fkey" FOREIGN 
 ALTER TABLE "content_items" ADD CONSTRAINT "content_items_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_items" ADD CONSTRAINT "content_items_folder_id_fkey" FOREIGN KEY ("folder_id") REFERENCES "content_library_tabs"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "content_item_groups" ADD CONSTRAINT "content_item_groups_content_item_id_fkey" FOREIGN KEY ("content_item_id") REFERENCES "content_items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_blocks" ADD CONSTRAINT "content_blocks_content_item_id_fkey" FOREIGN KEY ("content_item_id") REFERENCES "content_items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "content_item_groups" ADD CONSTRAINT "content_item_groups_collection_id_fkey" FOREIGN KEY ("collection_id") REFERENCES "content_collections"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_block_media" ADD CONSTRAINT "content_block_media_content_block_id_fkey" FOREIGN KEY ("content_block_id") REFERENCES "content_blocks"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "content_item_media" ADD CONSTRAINT "content_item_media_content_item_id_fkey" FOREIGN KEY ("content_item_id") REFERENCES "content_items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "content_block_media" ADD CONSTRAINT "content_block_media_media_id_fkey" FOREIGN KEY ("media_id") REFERENCES "media"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "content_item_media" ADD CONSTRAINT "content_item_media_media_id_fkey" FOREIGN KEY ("media_id") REFERENCES "media"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "publication_content_items" ADD CONSTRAINT "publication_content_items_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -584,10 +770,13 @@ ALTER TABLE "posts" ADD CONSTRAINT "posts_publication_id_fkey" FOREIGN KEY ("pub
 ALTER TABLE "posts" ADD CONSTRAINT "posts_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "channels"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "author_signatures" ADD CONSTRAINT "author_signatures_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "project_author_signatures" ADD CONSTRAINT "project_author_signatures_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "author_signatures" ADD CONSTRAINT "author_signatures_channel_id_fkey" FOREIGN KEY ("channel_id") REFERENCES "channels"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "project_author_signatures" ADD CONSTRAINT "project_author_signatures_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_author_signature_variants" ADD CONSTRAINT "project_author_signature_variants_signature_id_fkey" FOREIGN KEY ("signature_id") REFERENCES "project_author_signatures"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "publication_media" ADD CONSTRAINT "publication_media_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -605,4 +794,40 @@ ALTER TABLE "llm_prompt_templates" ADD CONSTRAINT "llm_prompt_templates_user_id_
 ALTER TABLE "llm_prompt_templates" ADD CONSTRAINT "llm_prompt_templates_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "llm_system_prompt_overrides" ADD CONSTRAINT "llm_system_prompt_overrides_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "llm_system_prompt_hidden" ADD CONSTRAINT "llm_system_prompt_hidden_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "publication_relation_groups" ADD CONSTRAINT "publication_relation_groups_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "publication_relation_items" ADD CONSTRAINT "publication_relation_items_group_id_fkey" FOREIGN KEY ("group_id") REFERENCES "publication_relation_groups"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "publication_relation_items" ADD CONSTRAINT "publication_relation_items_publication_id_fkey" FOREIGN KEY ("publication_id") REFERENCES "publications"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "project_templates" ADD CONSTRAINT "project_templates_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tags" ADD CONSTRAINT "tags_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "tags" ADD CONSTRAINT "tags_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_PublicationToTag" ADD CONSTRAINT "_PublicationToTag_A_fkey" FOREIGN KEY ("A") REFERENCES "publications"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_PublicationToTag" ADD CONSTRAINT "_PublicationToTag_B_fkey" FOREIGN KEY ("B") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_ContentItemToTag" ADD CONSTRAINT "_ContentItemToTag_A_fkey" FOREIGN KEY ("A") REFERENCES "content_items"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_ContentItemToTag" ADD CONSTRAINT "_ContentItemToTag_B_fkey" FOREIGN KEY ("B") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_PostToTag" ADD CONSTRAINT "_PostToTag_A_fkey" FOREIGN KEY ("A") REFERENCES "posts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "_PostToTag" ADD CONSTRAINT "_PostToTag_B_fkey" FOREIGN KEY ("B") REFERENCES "tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;

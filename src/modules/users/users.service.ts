@@ -158,17 +158,28 @@ export class UsersService {
   }
 
   /**
-   * Force logout a user by clearing their refresh token.
+   * Soft-delete a user.
+   * Marks the user as deleted, clears all sessions, and deletes all API tokens.
    */
-  public async logoutUser(id: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id },
-      data: { hashedRefreshToken: null },
-    });
+  public async softDelete(userId: string): Promise<void> {
+    await this.prisma.$transaction([
+      // Mark user as deleted
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          deletedAt: new Date(),
+        },
+      }),
+      // Delete all sessions
+      this.prisma.userSession.deleteMany({
+        where: { userId },
+      }),
+      // Delete all API tokens associated with the user
+      this.prisma.apiToken.deleteMany({
+        where: { userId },
+      }),
+    ]);
   }
-
-  /**
-   * Find all users with pagination and filtering.
    * Returns users with their statistics (projects count, posts count).
    */
   public async findAll(options: {
@@ -346,42 +357,6 @@ export class UsersService {
       },
     });
   }
-  /**
-   * Update user's hashed refresh token.
-   *
-   * @param userId - The user's ID.
-   * @param hashedRefreshToken - The new hashed token or null to remove it.
-   */
-  public async updateHashedRefreshToken(
-    userId: string,
-    hashedRefreshToken: string | null,
-  ): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { hashedRefreshToken },
-    });
-  }
-  /**
-   * Soft-delete a user.
-   * Marks the user as deleted, clears the refresh token, and deletes all API tokens.
-   */
-  public async softDelete(userId: string): Promise<void> {
-    await this.prisma.$transaction([
-      // Mark user as deleted and clear refresh token
-      this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          deletedAt: new Date(),
-          hashedRefreshToken: null,
-        },
-      }),
-      // Delete all API tokens associated with the user
-      this.prisma.apiToken.deleteMany({
-        where: { userId },
-      }),
-    ]);
-  }
-
   /**
    * Get notification preferences for a user.
    * Returns default preferences if not set.
