@@ -167,6 +167,7 @@ function handleError() {
           :srcset="srcset || undefined"
           :alt="alt"
           :class="['w-full h-full object-cover relative', imgClass]"
+          draggable="false"
           @load="handleLoad"
           @error="handleError"
         />
@@ -224,7 +225,6 @@ function handleError() {
           src="/thumb-play-overlay.svg"
           alt="Play"
           class="w-16 h-16 opacity-90"
-          draggable="false"
         />
       </div>
 

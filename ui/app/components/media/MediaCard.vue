@@ -114,6 +114,21 @@ function handleClick() {
     emit('click', props.media)
   }
 }
+
+function handleDragStart(event: DragEvent) {
+  try {
+    const url = getMediaFileUrl(props.media.id, authStore.accessToken || undefined, props.media.updatedAt)
+    const absoluteUrl = new URL(url, window.location.origin).href
+    const mime = props.media.mimeType || 'application/octet-stream'
+    const filename = props.media.filename || 'file'
+
+    event.dataTransfer?.setData('DownloadURL', `${mime}:${filename}:${absoluteUrl}`)
+    event.dataTransfer?.setData('text/uri-list', absoluteUrl)
+    event.dataTransfer?.setData('text/plain', absoluteUrl)
+  } catch (error) {
+    console.error('Failed to set DownloadURL', error)
+  }
+}
 </script>
 
 <template>
@@ -130,8 +145,10 @@ function handleClick() {
     :placeholder-text="size !== 'sm' ? (media.filename || 'Untitled') : ''"
     :error-text="t('media.loadError', 'File unavailable')"
     :is-video="media.type === 'VIDEO'"
+    draggable="true"
     @click="handleClick"
     @error="handleImageError"
+    @dragstart="handleDragStart"
   >
     <template v-if="hasSpoiler" #overlay>
       <div class="absolute inset-0 flex items-center justify-center bg-black/20">

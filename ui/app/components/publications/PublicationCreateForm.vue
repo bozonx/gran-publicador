@@ -30,6 +30,7 @@ interface Props {
   isProjectLocked?: boolean
   isChannelLocked?: boolean
   isLanguageLocked?: boolean
+  isPostTypeLocked?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -389,6 +390,7 @@ async function handleCreate() {
 
     <!-- Post Type -->
     <UFormField
+      v-if="!props.isPostTypeLocked"
       :label="t('publication.createModal.selectPostType', 'Post Type')"
       required
     >

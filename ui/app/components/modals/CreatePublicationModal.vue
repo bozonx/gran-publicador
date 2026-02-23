@@ -21,6 +21,10 @@ interface Props {
   prefilledUnsplashId?: string
   prefilledAuthorSignatureId?: string
   prefilledProjectTemplateId?: string
+  isProjectLocked?: boolean
+  isChannelLocked?: boolean
+  isLanguageLocked?: boolean
+  isPostTypeLocked?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -69,6 +73,10 @@ function handleCancel() {
       :prefilled-unsplash-id="props.prefilledUnsplashId"
       :prefilled-author-signature-id="props.prefilledAuthorSignatureId"
       :prefilled-project-template-id="props.prefilledProjectTemplateId"
+      :is-project-locked="props.isProjectLocked"
+      :is-channel-locked="props.isChannelLocked"
+      :is-language-locked="props.isLanguageLocked"
+      :is-post-type-locked="props.isPostTypeLocked"
       @success="handleSuccess"
       @cancel="handleCancel"
     />

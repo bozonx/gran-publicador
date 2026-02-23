@@ -136,42 +136,14 @@ function openCreatePublicationModal() {
 const isCreatingPublication = computed(() => !!creatingType.value)
 const creatingType = ref<PostType | null>(null)
 
-async function quickCreatePublication(postType: PostType) {
-  if (creatingType.value) return
-  
+function quickCreatePublication(postType: PostType) {
   creatingType.value = postType
-  try {
-    const createData = {
-      projectId: projectId.value,
-      language: channel.value?.language,
-      postType,
-      channelIds: [channelId.value],
-      content: '', 
-      projectTemplateId: undefined as string | undefined
-    }
-
-    // Try to find the best matching template
-    if (projectTemplates.value.length > 0) {
-      const bestMatch = projectTemplates.value.find(t => 
-        (!t.language || t.language === createData.language) && (!t.postType || t.postType === createData.postType)
-      ) || projectTemplates.value[0]
-      
-      if (bestMatch) {
-        createData.projectTemplateId = bestMatch.id
-      }
-    }
-
-    const publication = await createPublication(createData)
-
-    if (publication) {
-      router.push(`/publications/${publication.id}/edit`)
-    }
-  } catch (error) {
-    console.error('Failed to quick create publication:', error)
-  } finally {
-    creatingType.value = null
-  }
+  showCreatePublicationModal.value = true
 }
+
+watch(showCreatePublicationModal, (val) => {
+  if (!val) creatingType.value = null
+})
 
 
 // View mode (list or cards)
@@ -739,6 +711,11 @@ const channelProblems = computed(() => {
           :project-id="projectId"
           :preselected-channel-id="channelId"
           :preselected-language="channel?.language"
+          :preselected-post-type="creatingType || undefined"
+          :is-project-locked="true"
+          :is-channel-locked="true"
+          :is-language-locked="true"
+          :is-post-type-locked="!!creatingType"
           @success="handlePublicationCreated"
         />
 
