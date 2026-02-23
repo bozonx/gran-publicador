@@ -577,8 +577,8 @@ function handleEditMedia() {
   const mediaId = selectedMedia.value.id
   const projectId = currentProject.value?.id
   const url = projectId
-    ? `/media/${mediaId}/edit?projectId=${projectId}`
-    : `/media/${mediaId}/edit`
+    ? `/media/${mediaId}/image-editor?projectId=${projectId}`
+    : `/media/${mediaId}/image-editor`
 
   window.open(url, '_blank')
 }
