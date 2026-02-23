@@ -62,7 +62,6 @@ export interface LlmResponse {
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly config: LlmConfig;
-  private readonly defaultRequestTimeoutSecs: number;
 
   private readonly defaultContextLimitChars = DEFAULT_LLM_CONTEXT_LIMIT_CHARS;
 
@@ -71,9 +70,7 @@ export class LlmService {
   }
 
   private getRequestTimeoutMs(): number {
-    return (
-      (this.config.timeoutSecs ?? this.defaultRequestTimeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000
-    );
+    return (this.config.timeoutSecs ?? DEFAULT_LLM_TIMEOUT_SECS) * 1000;
   }
 
   private async callLlmRouter(
@@ -309,8 +306,6 @@ export class LlmService {
    */
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<LlmConfig>('llm')!;
-    this.defaultRequestTimeoutSecs =
-      this.configService.get<number>('app.microserviceRequestTimeoutSeconds') ?? 30;
   }
 
   /**

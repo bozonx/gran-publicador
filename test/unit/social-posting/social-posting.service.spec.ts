@@ -19,7 +19,7 @@ describe('SocialPostingService', () => {
   let originalDispatcher: any;
 
   const mockI18nService = {
-    translate: jest.fn().mockImplementation(key => key),
+    t: jest.fn().mockImplementation((key: any) => String(key)),
   };
 
   const mockConfigService = {
@@ -28,7 +28,14 @@ describe('SocialPostingService', () => {
         return {
           serviceUrl: 'http://test-service/api/v1',
           requestTimeoutSecs: 60,
-          retryAttempts: 3,
+          serviceRequestTimeoutSecs: 30,
+        };
+      }
+      if (key === 'http') {
+        return {
+          retryMaxAttempts: 3,
+          retryInitialDelayMs: 1,
+          retryMaxDelayMs: 1,
         };
       }
       if (key === 'app') {

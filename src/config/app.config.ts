@@ -155,15 +155,6 @@ export class AppConfig {
   public schedulerWindowMinutes!: number;
 
   /**
-   * Default timeout for microservice requests in seconds.
-   * Defined by MICROSERVICE_REQUEST_TIMEOUT_SECONDS environment variable.
-   * Default: 30
-   */
-  @IsInt()
-  @Min(1)
-  public microserviceRequestTimeoutSeconds!: number;
-
-  /**
    * Timezone for the application.
    * Defined by TZ environment variable.
    * Default: 'UTC'
@@ -217,10 +208,6 @@ export default registerAs('app', (): AppConfig => {
 
     // Scheduler Config
     schedulerWindowMinutes: parseInt(process.env.SCHEDULER_WINDOW_MINUTES ?? '10', 10),
-    microserviceRequestTimeoutSeconds: parseInt(
-      process.env.MICROSERVICE_REQUEST_TIMEOUT_SECONDS ?? '30',
-      10,
-    ),
     timezone: process.env.TZ ?? 'UTC',
     version,
   });

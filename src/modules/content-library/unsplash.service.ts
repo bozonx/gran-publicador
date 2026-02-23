@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { HttpConfig } from '../../config/http.config.js';
+import { UnsplashConfig } from '../../config/unsplash.config.js';
+import { requestJsonWithRetry } from '../../common/utils/http-request-with-retry.util.js';
 
 export interface UnsplashPhoto {
   id: string;
@@ -38,7 +41,13 @@ export class UnsplashService {
   private readonly logger = new Logger(UnsplashService.name);
   private readonly baseUrl = 'https://api.unsplash.com';
 
-  constructor(private readonly configService: ConfigService) {}
+  private readonly httpConfig: HttpConfig;
+  private readonly unsplashConfig: UnsplashConfig;
+
+  constructor(private readonly configService: ConfigService) {
+    this.httpConfig = this.configService.get<HttpConfig>('http')!;
+    this.unsplashConfig = this.configService.get<UnsplashConfig>('unsplash')!;
+  }
 
   public async searchPhotos(options: {
     query: string;
@@ -65,23 +74,31 @@ export class UnsplashService {
       order_by: orderBy,
     });
 
-    const response = await fetch(`${this.baseUrl}/search/photos?${params}`, {
+    const timeoutMs = (this.unsplashConfig.requestTimeoutSecs ?? 30) * 1000;
+    const { statusCode, data } = await requestJsonWithRetry<{
+      results: any[];
+      total: number;
+      total_pages: number;
+    }>({
+      url: `${this.baseUrl}/search/photos`,
+      method: 'GET',
       headers: {
         Authorization: `Client-ID ${accessKey}`,
         'Accept-Version': 'v1',
       },
+      query: Object.fromEntries(params.entries()),
+      timeoutMs,
+      retry: {
+        maxAttempts: this.httpConfig.retryMaxAttempts,
+        initialDelayMs: this.httpConfig.retryInitialDelayMs,
+        maxDelayMs: this.httpConfig.retryMaxDelayMs,
+      },
     });
 
-    if (!response.ok) {
-      this.logger.error(`Unsplash API error: ${response.status} ${response.statusText}`);
+    if (statusCode >= 400) {
+      this.logger.error(`Unsplash API error: ${statusCode}`);
       return { items: [], total: 0, totalPages: 0 };
     }
-
-    const data = (await response.json()) as {
-      results: any[];
-      total: number;
-      total_pages: number;
-    };
 
     const items: UnsplashPhoto[] = (data.results ?? []).map((photo: any) => ({
       id: photo.id,
@@ -122,19 +139,26 @@ export class UnsplashService {
       return null;
     }
 
-    const response = await fetch(`${this.baseUrl}/photos/${photoId}`, {
+    const timeoutMs = (this.unsplashConfig.requestTimeoutSecs ?? 30) * 1000;
+    const { statusCode, data: photo } = await requestJsonWithRetry<any>({
+      url: `${this.baseUrl}/photos/${photoId}`,
+      method: 'GET',
       headers: {
         Authorization: `Client-ID ${accessKey}`,
         'Accept-Version': 'v1',
       },
+      timeoutMs,
+      retry: {
+        maxAttempts: this.httpConfig.retryMaxAttempts,
+        initialDelayMs: this.httpConfig.retryInitialDelayMs,
+        maxDelayMs: this.httpConfig.retryMaxDelayMs,
+      },
     });
 
-    if (!response.ok) {
-      this.logger.error(`Unsplash API error: ${response.status} ${response.statusText}`);
+    if (statusCode >= 400) {
+      this.logger.error(`Unsplash API error: ${statusCode}`);
       return null;
     }
-
-    const photo = await response.json();
     return {
       id: photo.id,
       description: photo.description ?? null,

@@ -1,5 +1,5 @@
 import { plainToClass } from 'class-transformer';
-import { IsString, IsUrl, IsOptional } from 'class-validator';
+import { IsString, IsUrl, IsOptional, IsInt, Min } from 'class-validator';
 import { registerAs } from '@nestjs/config';
 
 /**
@@ -28,6 +28,8 @@ export class NewsConfig {
    * Default: 30
    */
   @IsOptional()
+  @IsInt()
+  @Min(1)
   public requestTimeoutSecs: number = 30;
 
   /**

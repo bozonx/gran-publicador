@@ -291,7 +291,9 @@ pnpm dev
 | `SYSTEM_API_SECRET` | Нет | Секрет для системных эндпоинтов |
 | `SYSTEM_API_IP_RESTRICTION_ENABLED` | Нет | Ограничить System API локальной сетью (по умолчанию `true`) |
 | `SHUTDOWN_TIMEOUT_SECONDS` | Нет | Таймаут graceful shutdown (сек) |
-| `MICROSERVICE_REQUEST_TIMEOUT_SECONDS` | Нет | Таймаут запросов к микросервисам (сек, по умолчанию `30`) |
+| `HTTP_RETRY_MAX_ATTEMPTS` | Нет | Кол-во попыток для исходящих HTTP запросов (по умолчанию `3`) |
+| `HTTP_RETRY_INITIAL_DELAY_MS` | Нет | Начальная задержка backoff (мс, по умолчанию `500`) |
+| `HTTP_RETRY_MAX_DELAY_MS` | Нет | Максимальная задержка backoff (мс, по умолчанию `5000`) |
 | `TZ` | Нет | Часовой пояс приложения (по умолчанию `UTC`) |
 
 Полный список параметров с описанием значений по умолчанию приведен в файле [.env.production.example](.env.production.example).

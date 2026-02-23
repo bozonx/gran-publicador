@@ -6,8 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { request } from 'undici';
 import { NewsConfig } from '../../config/news.config.js';
+import { HttpConfig } from '../../config/http.config.js';
 import {
   Prisma,
   type Project,
@@ -16,10 +16,11 @@ import {
 } from '../../generated/prisma/index.js';
 
 import { TRANSACTION_TIMEOUT } from '../../common/constants/database.constants.js';
+import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
 import {
-  DEFAULT_STALE_CHANNELS_DAYS,
-  DEFAULT_MICROSERVICE_TIMEOUT_MS,
-} from '../../common/constants/global.constants.js';
+  requestJsonWithRetry,
+  requestTextWithRetry,
+} from '../../common/utils/http-request-with-retry.util.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -40,6 +41,7 @@ import { getPlatformConfig } from '@gran/shared/social-media-platforms';
 @Injectable()
 export class ProjectsService {
   private readonly logger = new Logger(ProjectsService.name);
+  private readonly httpConfig: HttpConfig;
 
   constructor(
     private prisma: PrismaService,
@@ -48,7 +50,17 @@ export class ProjectsService {
     private roles: RolesService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-  ) {}
+  ) {
+    this.httpConfig = this.configService.get<HttpConfig>('http')!;
+  }
+
+  private get retryConfig() {
+    return {
+      maxAttempts: this.httpConfig.retryMaxAttempts,
+      initialDelayMs: this.httpConfig.retryInitialDelayMs,
+      maxDelayMs: this.httpConfig.retryMaxDelayMs,
+    };
+  }
 
   private hasNoCredentials(creds: any, socialMedia?: string): boolean {
     if (!creds || typeof creds !== 'object') return true;
@@ -757,21 +769,17 @@ export class ProjectsService {
         headers['Authorization'] = `Bearer ${config.apiToken}`;
       }
 
-      const response = await request(url, {
+      const timeoutMs = (config.requestTimeoutSecs ?? 30) * 1000;
+      const { data } = await requestJsonWithRetry<any>({
+        url,
         method: 'GET',
         headers,
         query: searchParams,
-        headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
-        bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+        timeoutMs,
+        retry: this.retryConfig,
       });
 
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
-        throw new Error(`News microservice error: ${response.statusCode}`);
-      }
-
-      return response.body.json();
+      return data;
     } catch (error: any) {
       this.logger.error(`Failed to search news: ${error.message}`);
       throw error;
@@ -794,7 +802,10 @@ export class ProjectsService {
     if (!baseUrl.endsWith('/api/v1')) baseUrl += '/api/v1';
 
     try {
-      let response;
+      const timeoutMs = (config.requestTimeoutSecs ?? 30) * 1000;
+
+      let statusCode: number;
+      let responseText: string;
       // If contentLength is 0 or no value (undefined/null), or force is true, we call refresh
       if (!data.contentLength || data.force) {
         this.logger.debug(`Refreshing news content for ${newsId}`);
@@ -814,19 +825,25 @@ export class ProjectsService {
         // We do not pass locale here, letting the microservice use the stored news item locale
         // to ensure consistency with the locale used during the initial crawling (listing).
 
-        response = await request(url, {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
+        };
+
+        const result = await requestTextWithRetry({
+          url,
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(config.apiToken ? { Authorization: `Bearer ${config.apiToken}` } : {}),
-          },
+          headers,
           body: JSON.stringify({
             fingerprint,
             mode: config.refreshMode,
           }),
-          headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
-          bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+          timeoutMs,
+          retry: this.retryConfig,
         });
+
+        statusCode = result.statusCode;
+        responseText = result.text;
       } else {
         // Otherwise we just GET the news item which should already have content
         this.logger.debug(`Fetching existing news content for ${newsId}`);
@@ -840,22 +857,25 @@ export class ProjectsService {
           headers['Authorization'] = `Bearer ${config.apiToken}`;
         }
 
-        response = await request(url, {
+        const result = await requestTextWithRetry({
+          url,
           method: 'GET',
           headers,
-          headersTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
-          bodyTimeout: DEFAULT_MICROSERVICE_TIMEOUT_MS,
+          timeoutMs,
+          retry: this.retryConfig,
         });
+
+        statusCode = result.statusCode;
+        responseText = result.text;
       }
 
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        this.logger.error(`News microservice returned ${response.statusCode}: ${errorText}`);
+      if (statusCode >= 400) {
+        this.logger.error(`News microservice returned ${statusCode}: ${responseText}`);
 
         // If it failed and we have fallback data, use it
         if (data.title || data.description) {
           this.logger.warn(
-            `Using fallback data for news ${newsId} after service error ${response.statusCode}`,
+            `Using fallback data for news ${newsId} after service error ${statusCode}`,
           );
           return {
             title: data.title,
@@ -864,10 +884,10 @@ export class ProjectsService {
           };
         }
 
-        throw new Error(`News microservice error: ${response.statusCode}`);
+        throw new Error(`News microservice error: ${statusCode}`);
       }
 
-      const result = (await response.body.json()) as any;
+      const result = JSON.parse(responseText || '{}') as any;
       this.logger.debug(
         `Microservice response keys for news ${newsId}: ${Object.keys(result).join(', ')}`,
       );

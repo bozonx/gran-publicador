@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { TranslateService } from '../../../../src/modules/translate/translate.service.js';
 import type { TranslateTextDto } from '../../../../src/modules/translate/dto/translate-text.dto.js';
 import { MockAgent, setGlobalDispatcher, getGlobalDispatcher } from 'undici';
@@ -13,8 +13,11 @@ describe('TranslateService', () => {
   const mockConfig = {
     serviceUrl: 'http://test-service/api/v1',
     defaultProvider: 'test-provider',
-    timeoutSec: 30,
+    requestTimeoutSecs: 30,
     maxTextLength: 1000,
+  };
+
+  const mockHttpConfig = {
     retryMaxAttempts: 3,
     retryInitialDelayMs: 1,
     retryMaxDelayMs: 1,
@@ -38,7 +41,11 @@ describe('TranslateService', () => {
         {
           provide: ConfigService,
           useValue: {
-            get: jest.fn().mockReturnValue(mockConfig),
+            get: jest.fn((key: string) => {
+              if (key === 'translate') return mockConfig;
+              if (key === 'http') return mockHttpConfig;
+              return undefined;
+            }),
           },
         },
       ],
@@ -86,18 +93,12 @@ describe('TranslateService', () => {
     };
 
     const client = mockAgent.get('http://test-service');
-    // TranslateService only retries on non-BadGateway/BadRequest errors.
-    // Since it throws BadGateway on 500, it only consumes ONE intercept.
-    client
-      .intercept({
-        path: '/api/v1/translate',
-        method: 'POST',
-      })
-      .reply(500, 'Internal Server Error');
+    // requestJsonWithRetry retries on 5xx.
+    client.intercept({ path: '/api/v1/translate', method: 'POST' }).reply(500, 'fail-1');
+    client.intercept({ path: '/api/v1/translate', method: 'POST' }).reply(500, 'fail-2');
+    client.intercept({ path: '/api/v1/translate', method: 'POST' }).reply(500, 'fail-3');
 
-    await expect(service.translateText(dto)).rejects.toThrow(
-      'Translate Gateway error: Internal Server Error',
-    );
+    await expect(service.translateText(dto)).rejects.toThrow();
   });
 
   it('should override defaults with DTO values', async () => {

@@ -14,9 +14,10 @@ import { PostRequestDto, PostResponseDto, PreviewResponseDto } from './dto/socia
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { NotificationType } from '../../generated/prisma/index.js';
 import { I18nService } from 'nestjs-i18n';
-import { request } from 'undici';
 import { MediaService } from '../media/media.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
+import { HttpConfig } from '../../config/http.config.js';
+import { requestJsonWithRetry } from '../../common/utils/http-request-with-retry.util.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PROCESS_POST_JOB, ProcessPostJobData, PUBLICATIONS_QUEUE } from './publications.queue.js';
@@ -27,6 +28,7 @@ export class SocialPostingService {
   private readonly mediaStorageUrl: string;
   private readonly frontendUrl: string;
   private readonly socialPostingConfig: SocialPostingConfig;
+  private readonly httpConfig: HttpConfig;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -43,6 +45,7 @@ export class SocialPostingService {
     const appConfig = this.configService.get<AppConfig>('app')!;
     this.frontendUrl = appConfig.frontendUrl || '';
     this.socialPostingConfig = this.configService.get<SocialPostingConfig>('socialPosting')!;
+    this.httpConfig = this.configService.get<HttpConfig>('http')!;
   }
 
   private async refreshPublicationEffectiveAt(publicationId: string, lastPublishedAt: Date) {
@@ -601,9 +604,9 @@ export class SocialPostingService {
     const baseUrl = this.socialPostingConfig.serviceUrl.replace(/\/$/, '');
     const url = `${baseUrl}/${endpoint}`;
 
-    const appConfig = this.configService.get<AppConfig>('app')!;
     const timeout =
-      (appConfig.microserviceRequestTimeoutSeconds || 60) * 1000 || DEFAULT_MICROSERVICE_TIMEOUT_MS;
+      (this.socialPostingConfig.serviceRequestTimeoutSecs || 30) * 1000 ||
+      DEFAULT_MICROSERVICE_TIMEOUT_MS;
 
     try {
       const headers: Record<string, string> = {
@@ -613,24 +616,21 @@ export class SocialPostingService {
         headers['Authorization'] = `Bearer ${this.socialPostingConfig.apiToken}`;
       }
 
-      const response = await request(url, {
+      const { data } = await requestJsonWithRetry<T>({
+        url,
         method: 'POST',
         headers,
         body: JSON.stringify(body),
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
+        timeoutMs: timeout,
+        retry: {
+          maxAttempts: this.httpConfig.retryMaxAttempts,
+          initialDelayMs: this.httpConfig.retryInitialDelayMs,
+          maxDelayMs: this.httpConfig.retryMaxDelayMs,
+        },
+        shouldRetryOnStatusCode: statusCode => statusCode >= 500 || statusCode === 429,
       });
 
-      if (response.statusCode >= 400) {
-        try {
-          const errorData = (await response.body.json()) as any;
-          return errorData as T;
-        } catch {
-          throw new Error(`Service returned ${response.statusCode}`);
-        }
-      }
-
-      return (await response.body.json()) as T;
+      return data;
     } catch (error: any) {
       this.logger.error(`Request to ${url} failed: ${error.message}`);
       throw new Error(`Microservice request failed: ${error.message}`);

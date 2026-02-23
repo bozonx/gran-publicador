@@ -18,10 +18,6 @@ describe('LlmService', () => {
     timeoutSecs: 60,
   };
 
-  const mockAppConfig = {
-    microserviceRequestTimeoutSeconds: 30,
-  };
-
   beforeAll(() => {
     originalDispatcher = getGlobalDispatcher();
     mockAgent = new MockAgent();
@@ -42,9 +38,6 @@ describe('LlmService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               if (key === 'llm') return mockConfig;
-              if (key === 'app.microserviceRequestTimeoutSeconds') {
-                return mockAppConfig.microserviceRequestTimeoutSeconds;
-              }
               return undefined;
             }),
           },
