@@ -183,7 +183,8 @@ export default registerAs('app', (): AppConfig => {
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
-    telegramMiniAppUrl: process.env.TELEGRAM_MINI_APP_URL || undefined,
+    telegramMiniAppUrl:
+      process.env.TELEGRAM_MINI_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000',
     jwtSecret: process.env.JWT_SECRET,
     systemApiSecret: process.env.SYSTEM_API_SECRET,
     systemApiIpRestrictionEnabled: process.env.SYSTEM_API_IP_RESTRICTION_ENABLED !== 'false',
