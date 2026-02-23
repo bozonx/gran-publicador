@@ -53,7 +53,25 @@ watch(
   { immediate: true },
 )
 
+const isAnyModalOpen = computed(() => {
+  return (
+    isPurgeConfirmModalOpen.value ||
+    isBulkOperationModalOpen.value ||
+    isMergeConfirmModalOpen.value ||
+    isEditModalOpen.value ||
+    isPublicationPreviewModalOpen.value ||
+    isCreateItemFromPublicationModalOpen.value ||
+    isMoveModalOpen.value ||
+    isRenameCollectionModalOpen.value ||
+    isUnsplashPreviewModalOpen.value ||
+    isCreateItemFromUnsplashModalOpen.value ||
+    isDeleteCollectionConfirmModalOpen.value ||
+    isCreatePublicationModalOpen.value
+  )
+})
+
 const handleWindowDragEnter = (e: DragEvent) => {
+  if (isAnyModalOpen.value) return
   if (e.dataTransfer?.types?.includes('Files')) {
     windowDragDepth.value++
     isWindowFileDragActive.value = true
@@ -61,6 +79,7 @@ const handleWindowDragEnter = (e: DragEvent) => {
 }
 
 const handleWindowDragLeave = (e: DragEvent) => {
+  if (isAnyModalOpen.value) return
   if (e.dataTransfer?.types?.includes('Files')) {
     windowDragDepth.value = Math.max(0, windowDragDepth.value - 1)
     if (windowDragDepth.value === 0) {
@@ -70,6 +89,7 @@ const handleWindowDragLeave = (e: DragEvent) => {
 }
 
 const handleWindowDrop = () => {
+  if (isAnyModalOpen.value) return
   windowDragDepth.value = 0
   isWindowFileDragActive.value = false
 }

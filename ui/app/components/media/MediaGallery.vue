@@ -490,6 +490,12 @@ function handleDragStart() {
 // Drag and drop file upload handlers
 const isDropZoneActive = ref(false)
 
+function handleDragEnter(event: DragEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  isDropZoneActive.value = true
+}
+
 function handleDragOver(event: DragEvent) {
   event.preventDefault()
   event.stopPropagation()
@@ -884,6 +890,7 @@ const mediaValidation = computed(() => {
                 : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
             ]"
             @click="triggerFileInput"
+            @dragenter="handleDragEnter"
             @dragover="handleDragOver"
             @dragleave="handleDragLeave"
             @drop="handleDrop"
