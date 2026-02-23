@@ -166,6 +166,8 @@ const isContentOrMediaMissing = computed(() => {
     return isContentEmpty.value && !hasMedia.value
 })
 
+const isReallyEmpty = computed(() => isContentEmpty.value && !hasMedia.value)
+
 const displayTitle = computed(() => {
   if (currentPublication.value?.title) {
     return stripHtmlAndSpecialChars(currentPublication.value.title)
@@ -570,7 +572,7 @@ async function handleUpdateStatusOption(status: PublicationStatus) {
     }
     
     // Check content or media requirement for READY status
-    if (status === 'READY' && isContentOrMediaMissing.value) {
+    if (status === 'READY' && isReallyEmpty.value) {
         toast.add({
             title: t('common.error'),
             description: t('publication.validation.contentOrMediaRequired'),
@@ -1019,7 +1021,7 @@ async function executePublish(force: boolean) {
                                         :label="option.label"
                                         color="neutral"
                                         variant="ghost"
-                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isContentOrMediaMissing && currentPublication?.status === 'DRAFT')"
+                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isReallyEmpty)"
                                         class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
                                         :class="[
                                             currentPublication?.status === option.value 
@@ -1192,17 +1194,17 @@ async function executePublish(force: boolean) {
                                  </div>
 
                                  <div class="flex flex-row gap-2 mt-1">
-                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (isContentOrMediaMissing ? t('publication.validation.contentOrMediaRequired') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.scheduleLabel')))">
+                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (isReallyEmpty ? t('publication.validation.contentOrMediaRequired') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.scheduleLabel')))">
                                         <UButton
                                             :label="currentPublication.scheduledAt ? t('publication.changeSchedule') : t('publication.status.scheduleTime')"
                                             icon="i-heroicons-calendar-days"
                                             variant="soft"
                                             size="xs"
                                             color="primary"
-                                            :disabled="isContentOrMediaMissing || hasMediaValidationErrors || !!currentPublication.archivedAt"
+                                            :disabled="isReallyEmpty || hasMediaValidationErrors || !!currentPublication.archivedAt"
                                             @click="openScheduleModal"
                                         ></UButton>
-                                    </UTooltip>
+                                     </UTooltip>
                                     
                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? (currentPublication.status === 'DRAFT' ? t('publication.validation.draftBlocked') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish'))) : ''))">
                                         <UButton
