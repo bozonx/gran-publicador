@@ -17,6 +17,8 @@
     "lint:ui:fix": "pnpm --filter ui lint:fix",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:prod:migrate": "dotenv -e .env.production -- prisma migrate deploy",
+    "db:prod:migrate:deploy": "dotenv -e .env.production -- prisma migrate deploy",
+    "db:prod:reset": "dotenv -e .env.production -- prisma migrate reset",
     "db:dev:migrate": "dotenv -e .env.development -- prisma migrate dev",
     "db:dev:migrate:deploy": "dotenv -e .env.development -- prisma migrate deploy",
     "db:dev:push": "dotenv -e .env.development -- prisma db push",
