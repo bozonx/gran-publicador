@@ -9,9 +9,9 @@ export type TagsInput = string | string[] | null | undefined;
 
 function normalizeTagValue(value: unknown): string {
   const s = String(value ?? '')
+    .trim()
     .replace(/^#+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/\s+/g, ' ');
   return s;
 }
 
