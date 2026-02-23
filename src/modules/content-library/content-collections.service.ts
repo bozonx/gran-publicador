@@ -519,6 +519,7 @@ export class ContentCollectionsService {
       parentId?: string | null;
       title?: string;
       config?: unknown;
+      version?: number;
     },
     userId: string,
   ) {
@@ -552,13 +553,31 @@ export class ContentCollectionsService {
       await this.ensureNoCycle({ collectionId, parentId });
     }
 
+    const updateData: any = {
+      parentId,
+      title: dto.title,
+      config: dto.config as any,
+    };
+
+    if (dto.version !== undefined) {
+      updateData.version = { increment: 1 };
+      const { count } = await (this.prisma.contentCollection as any).updateMany({
+        where: { id: collection.id, version: dto.version },
+        data: updateData,
+      });
+
+      if (count === 0) {
+        throw new ConflictException('Коллекция была изменена в другой вкладке. Обновите страницу.');
+      }
+
+      return (this.prisma.contentCollection as any).findUnique({
+        where: { id: collection.id },
+      });
+    }
+
     return (this.prisma.contentCollection as any).update({
       where: { id: collection.id },
-      data: {
-        parentId,
-        title: dto.title,
-        config: dto.config as any,
-      },
+      data: updateData,
     });
   }
 

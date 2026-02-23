@@ -329,14 +329,25 @@ export class ContentLibraryController {
   @Patch('collections/:id')
   public async updateCollection(
     @Request() req: UnifiedAuthRequest,
-    @Param('id') collectionId: string,
+    @Param('id') id: string,
     @Body() dto: UpdateContentCollectionDto,
   ) {
     if (dto.scope === 'project') {
       this.validateQueryProjectScopeOrThrow(req, dto.projectId);
     }
 
-    return this.collectionsService.updateCollection(collectionId, dto, req.user.userId);
+    return this.collectionsService.updateCollection(
+      id,
+      {
+        scope: dto.scope,
+        projectId: dto.projectId,
+        parentId: dto.parentId,
+        title: dto.title,
+        config: dto.config,
+        version: dto.version,
+      },
+      req.user.userId,
+    );
   }
 
   @Delete('collections/:id')

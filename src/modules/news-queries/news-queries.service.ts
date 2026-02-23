@@ -96,13 +96,30 @@ export class NewsQueriesService {
     const currentSettings = query.settings as any;
     const newSettings = { ...currentSettings, ...settingsUpdate };
 
+    const updateData: any = {
+      name,
+      isNotificationEnabled,
+      settings: newSettings,
+    };
+
+    if (dto.version !== undefined) {
+      updateData.version = { increment: 1 };
+      const { count } = await this.prisma.projectNewsQuery.updateMany({
+        where: { id, version: dto.version },
+        data: updateData,
+      });
+
+      if (count === 0) {
+        throw new ConflictException('Запрос был изменен в другой вкладке. Обновите страницу.');
+      }
+
+      const updated = await this.prisma.projectNewsQuery.findUnique({ where: { id } });
+      return this.mapToResponse(updated);
+    }
+
     const updated = await this.prisma.projectNewsQuery.update({
       where: { id },
-      data: {
-        name,
-        isNotificationEnabled,
-        settings: newSettings,
-      },
+      data: updateData,
     });
 
     return this.mapToResponse(updated);

@@ -7,6 +7,7 @@ import {
 import { Prisma } from '../../generated/prisma/index.js';
 
 import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
+import { normalizeLocale } from '../../common/utils/locale.util.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateChannelDto, UpdateChannelDto, ChannelResponseDto } from './dto/index.js';
@@ -18,6 +19,10 @@ export class ChannelsService {
     private prisma: PrismaService,
     private permissions: PermissionsService,
   ) {}
+
+  private normalizeLanguage(code?: string | null): string {
+    return normalizeLocale(code, { defaultLocale: 'en-US' });
+  }
 
   private getJsonObject(value: unknown): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
@@ -221,7 +226,7 @@ export class ChannelsService {
         name: data.name,
         description: data.description,
         channelIdentifier: data.channelIdentifier,
-        language: data.language ?? 'en-US',
+        language: this.normalizeLanguage(data.language),
         credentials: (data.credentials ?? {}) as Prisma.InputJsonValue,
         preferences: (data.preferences ?? {}) as Prisma.InputJsonValue,
         isActive: data.isActive ?? true,
@@ -307,7 +312,7 @@ export class ChannelsService {
       preferences: data.preferences ? (data.preferences as Prisma.InputJsonValue) : undefined,
       isActive: data.isActive,
       tags: data.tags,
-      language: data.language,
+      language: data.language !== undefined ? this.normalizeLanguage(data.language) : undefined,
     };
 
     if (data.version !== undefined) {

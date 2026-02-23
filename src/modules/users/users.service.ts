@@ -4,6 +4,7 @@ import { Prisma, type User } from '../../generated/prisma/index.js';
 
 import { AppConfig } from '../../config/app.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { normalizeLocale } from '../../common/utils/locale.util.js';
 import {
   NotificationPreferencesDto,
   getDefaultNotificationPreferences,
@@ -21,34 +22,13 @@ export class UsersService {
     private configService: ConfigService,
   ) {}
 
-  /**
-   * Normalize language code for content/data.
-   * If it's a known short code, normalize it to full code.
-   * Otherwise, keep as is (to support all content languages).
-   */
   private normalizeLanguage(code?: string | null): string {
-    if (!code) return 'en-US';
-    const low = code.toLowerCase();
-    if (low === 'ru' || low.startsWith('ru-')) return 'ru-RU';
-    if (low === 'en') return 'en-US';
-    if (low === 'en-gb') return 'en-GB';
-    if (low.startsWith('en-')) return 'en-US';
-    if (low === 'es' || low.startsWith('es-')) return 'es-ES';
-    if (low === 'de' || low.startsWith('de-')) return 'de-DE';
-    if (low === 'fr' || low.startsWith('fr-')) return 'fr-FR';
-    // Add more if needed, otherwise return as is
-    return code;
+    return normalizeLocale(code, { defaultLocale: 'en-US' });
   }
 
-  /**
-   * Normalize language code for User Interface.
-   * Only supports languages that have translations.
-   */
   private normalizeUiLanguage(code?: string | null): string {
-    if (!code) return 'en-US';
-    const low = code.toLowerCase();
-    if (low.startsWith('ru')) return 'ru-RU';
-    return 'en-US'; // Default fallback for interface
+    const normalized = normalizeLocale(code, { defaultLocale: 'en-US' });
+    return normalized.startsWith('ru-') ? 'ru-RU' : 'en-US';
   }
 
   public async findByTelegramId(telegramId: bigint): Promise<User | null> {

@@ -36,7 +36,7 @@ model User {
   // Interface language (e.g., en-US, ru-RU)
   uiLanguage         String    @default("en-US") @map("ui_language")
   // User preferences stored as JSON
-  preferences        Json
+  preferences        Json      @default("{}")
   // Optimistic locking version
   version            Int       @default(1)
 
@@ -92,7 +92,7 @@ model Project {
   // User ID who archived the project
   archivedBy  String?   @map("archived_by")
   // Project preferences stored as JSON
-  preferences Json
+  preferences Json      @default("{}")
   // Optimistic locking version
   version     Int       @default(1)
 
@@ -126,7 +126,7 @@ model ContentCollection {
   parentId  String? @map("parent_id")
 
   order   Int  @default(0)
-  config  Json
+  config  Json @default("{}")
   // Optimistic locking version
   version Int  @default(1)
 
@@ -153,7 +153,7 @@ model ProjectNewsQuery {
   name String
 
   // Search settings stored as JSON: { q, mode, lang, sourceTags, newsTags, minScore, since, note }
-  settings Json
+  settings Json @default("{}")
 
   // Notification system fields
   isNotificationEnabled Boolean   @default(false) @map("is_notification_enabled")
@@ -259,9 +259,9 @@ model Channel {
   // Channel language in format like ru-RU, en-US, etc.
   language          String
   // Encrypted credentials for channel access
-  credentials       Json
+  credentials       Json        @default("{}")
   // Channel preferences
-  preferences       Json
+  preferences       Json        @default("{}")
   // Tags for navigation and publication orientation
   tags              String?
   // Optimistic locking version
@@ -292,7 +292,7 @@ model Publication {
   // User who created the publication (nullable for system-generated)
   createdBy           String?   @map("created_by")
   createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
   // Timestamp when publication was archived
   archivedAt          DateTime? @map("archived_at")
   // User ID who archived the publication
@@ -321,7 +321,7 @@ model Publication {
   // Author's commentary for the news (published along with the content)
   authorComment     String?           @map("author_comment")
   // Additional metadata stored as JSON
-  meta              Json
+  meta              Json              @default("{}")
   // Content date set by the author (e.g., article date, event date). Not the publication/posting date
   postDate          DateTime?         @map("post_date")
   // Internal note for author's reference only. Never published to social media
@@ -441,7 +441,7 @@ model Post {
   // Error message if post failed
   errorMessage             String?    @map("error_message")
   // Data received after publication (usually url or message id). Not editable by user.
-  meta                     Json
+  meta                     Json       @default("{}")
   // Overwrite of publication content for this specific post
   content                  String?
   // Platform-specific options (e.g., disableNotification for Telegram)
@@ -460,7 +460,7 @@ model Post {
   // Actual timestamp when post was published to platform. Set by the publishing service only.
   publishedAt DateTime? @map("published_at")
   createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   channel     Channel     @relation(fields: [channelId], references: [id], onDelete: Cascade)
@@ -520,7 +520,7 @@ model Media {
   sizeBytes   BigInt?     @map("size_bytes")
   // Metadata stored as JSON. For StorageType.TELEGRAM, contains:
   // { telegram: { thumbnailFileId: string } }
-  meta        Json
+  meta        Json        @default("{}")
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
@@ -555,7 +555,7 @@ model Notification {
   title     String
   message   String
   // JSON metadata: { publicationId?, postId?, channelId?, projectId? }
-  meta      Json
+  meta      Json             @default("{}")
   readAt    DateTime?        @map("read_at")
   createdAt DateTime         @default(now()) @map("created_at")
 
