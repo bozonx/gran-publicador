@@ -21,20 +21,6 @@ export class RedisConfig {
   public url: string = 'redis://localhost:6379/0';
 
   /**
-   * Upstash REST API URL
-   */
-  @IsOptional()
-  @IsString()
-  public upstashRestUrl?: string;
-
-  /**
-   * Upstash REST API Token
-   */
-  @IsOptional()
-  @IsString()
-  public upstashRestToken?: string;
-
-  /**
    * Default TTL for cache in milliseconds.
    * Default: 3600000 (1 hour)
    */
@@ -56,8 +42,6 @@ export default registerAs('redis', (): RedisConfig => {
   const config = plainToClass(RedisConfig, {
     enabled: process.env.REDIS_ENABLED !== 'false',
     url: process.env.REDIS_URL || 'redis://localhost:6379/0',
-    upstashRestUrl: process.env.UPSTASH_REDIS_REST_URL || undefined,
-    upstashRestToken: process.env.UPSTASH_REDIS_REST_TOKEN || undefined,
     ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
     keyPrefix: process.env.REDIS_KEY_PREFIX || undefined,
   });
