@@ -11,6 +11,8 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { registerAs } from '@nestjs/config';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 /**
  * Application configuration schema.
@@ -168,9 +170,25 @@ export class AppConfig {
    */
   @IsString()
   public timezone!: string;
+
+  /**
+   * Version of the application from package.json.
+   */
+  @IsString()
+  public version!: string;
 }
 
 export default registerAs('app', (): AppConfig => {
+  // Try to load version from package.json
+  let version = 'unknown';
+  try {
+    const pkgPath = join(process.cwd(), 'package.json');
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    version = pkg.version;
+  } catch (e) {
+    version = process.env.npm_package_version || 'unknown';
+  }
+
   // Transform environment variables to a typed configuration object
   const config = plainToClass(AppConfig, {
     port: parseInt(process.env.PORT ?? process.env.LISTEN_PORT ?? '8080', 10),
@@ -204,6 +222,7 @@ export default registerAs('app', (): AppConfig => {
       10,
     ),
     timezone: process.env.TZ ?? 'UTC',
+    version,
   });
 
   return config;

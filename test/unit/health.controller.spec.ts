@@ -1,4 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { HealthController } from '../../src/modules/health/health.controller.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { jest, describe, it, expect, beforeAll, afterAll } from '@jest/globals';
@@ -16,6 +17,12 @@ describe('HealthController (unit)', () => {
           provide: PrismaService,
           useValue: {
             $queryRaw: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue({ version: '1.0.0' }),
           },
         },
       ],
@@ -36,7 +43,7 @@ describe('HealthController (unit)', () => {
   it('GET /api/v1/health returns ok', async () => {
     jest.spyOn(prismaService, '$queryRaw').mockResolvedValueOnce([{ '?column?': 1 }]);
     const res = await controller.check();
-    expect(res).toEqual({ status: 'ok', database: 'connected' });
+    expect(res).toEqual({ status: 'ok', version: '1.0.0', database: 'connected' });
   });
 
   it('GET /api/v1/health handles db error', async () => {
@@ -44,6 +51,7 @@ describe('HealthController (unit)', () => {
     const res = await controller.check();
     expect(res).toEqual({
       status: 'ok',
+      version: '1.0.0',
       database: 'disconnected',
       error: 'DB Error',
     });
