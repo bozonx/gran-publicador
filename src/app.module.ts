@@ -72,9 +72,9 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
 
   // Redis is required in all non-test environments.
   if ((config.NODE_ENV ?? 'development') !== 'test') {
-    const redisUrl = config.REDIS_URL;
+    const redisUrl = config.REDIS_URL || config.REDIS_HOST;
     if (!redisUrl || typeof redisUrl !== 'string') {
-      throw new Error('REDIS_URL environment variable is not set');
+      throw new Error('Either REDIS_URL or REDIS_HOST environment variable must be set');
     }
   }
 

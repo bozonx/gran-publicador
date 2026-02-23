@@ -21,7 +21,8 @@ This document describes production deployment for Gran Publicador backend and fr
 
 Optional but recommended:
 
-- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` — Redis connection (required in non-test envs, default: `localhost:6379`)
+- `REDIS_URL` — Redis connection URL (e.g. `redis://localhost:6379/0`). Works with Upstash.
+- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` — Fallback Redis connection if `REDIS_URL` is not set.
 - `STT_SERVICE_URL` — Speech-To-Text gateway URL
 - `TRANSLATE_SERVICE_URL` — Translation gateway URL
 - `NEWS_SERVICE_URL` — News service URL

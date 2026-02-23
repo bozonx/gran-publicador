@@ -30,8 +30,20 @@ export class RedisConfig {
 }
 
 export default registerAs('redis', (): RedisConfig => {
+  const url = process.env.REDIS_URL;
+  const host = process.env.REDIS_HOST;
+  const port = process.env.REDIS_PORT || '6379';
+  const password = process.env.REDIS_PASSWORD;
+  const db = process.env.REDIS_DB || '0';
+
+  let finalUrl = url;
+  if (!finalUrl && host) {
+    const auth = password ? `:${password}@` : '';
+    finalUrl = `redis://${auth}${host}:${port}/${db}`;
+  }
+
   const config = plainToClass(RedisConfig, {
-    url: process.env.REDIS_URL || 'redis://localhost:6379/0',
+    url: finalUrl || 'redis://localhost:6379/0',
     ttlMs: process.env.REDIS_TTL_MS ? parseInt(process.env.REDIS_TTL_MS, 10) : DEFAULT_REDIS_TTL_MS,
     keyPrefix: process.env.REDIS_KEY_PREFIX || 'gran-p:',
   });
