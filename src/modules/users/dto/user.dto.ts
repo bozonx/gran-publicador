@@ -26,6 +26,9 @@ export class UserDto {
   public isAdmin!: boolean;
 
   @Expose()
+  public isSuperAdmin!: boolean;
+
+  @Expose()
   public isBanned!: boolean;
 
   @Expose()

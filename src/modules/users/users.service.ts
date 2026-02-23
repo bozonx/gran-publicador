@@ -10,6 +10,8 @@ import {
   getDefaultNotificationPreferences,
 } from './dto/notification-preferences.dto.js';
 
+type UserWithFlags = User & { isSuperAdmin: boolean };
+
 /**
  * Service for managing user data.
  */
@@ -31,10 +33,12 @@ export class UsersService {
     return normalized.startsWith('ru-') ? 'ru-RU' : 'en-US';
   }
 
-  public async findByTelegramId(telegramId: bigint): Promise<User | null> {
-    return this.prisma.user.findUnique({
+  public async findByTelegramId(telegramId: bigint): Promise<UserWithFlags | null> {
+    const user = await this.prisma.user.findUnique({
       where: { telegramId },
     });
+
+    return this.attachDerivedFlags(user);
   }
 
   /**
@@ -71,13 +75,16 @@ export class UsersService {
       projectsCount: user._count.ownedProjects,
       publicationsCount: user._count.publications,
       preferences: user.preferences,
+      isSuperAdmin: this.isSuperAdminByTelegramId(user.telegramId),
     };
   }
 
-  public async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({
+  public async findById(id: string): Promise<UserWithFlags | null> {
+    const user = await this.prisma.user.findUnique({
       where: { id },
     });
+
+    return this.attachDerivedFlags(user);
   }
 
   /**
@@ -112,7 +119,7 @@ export class UsersService {
     lastName?: string;
     avatarUrl?: string;
     languageCode?: string;
-  }): Promise<User> {
+  }): Promise<UserWithFlags> {
     const constructedName = [userData.firstName, userData.lastName].filter(Boolean).join(' ');
     let fullName: string | null = constructedName !== '' ? constructedName : null;
 
@@ -132,7 +139,7 @@ export class UsersService {
       }
     }
 
-    return (this.prisma.user as any).upsert({
+    const user = await (this.prisma.user as any).upsert({
       where: { telegramId: userData.telegramId },
       update: {
         telegramUsername: userData.username,
@@ -165,6 +172,8 @@ export class UsersService {
         },
       },
     });
+
+    return this.attachDerivedFlags(user);
   }
 
   /**
@@ -247,6 +256,7 @@ export class UsersService {
       avatarUrl: user.avatarUrl,
       telegramId: user.telegramId?.toString(),
       isAdmin: user.isAdmin,
+      isSuperAdmin: this.isSuperAdminByTelegramId(user.telegramId),
       isBanned: user.isBanned,
       banReason: user.banReason,
       language: user.language,
@@ -270,11 +280,13 @@ export class UsersService {
   /**
    * Update admin status for a user.
    */
-  public async updateAdminStatus(userId: string, isAdmin: boolean): Promise<User> {
-    return this.prisma.user.update({
+  public async updateAdminStatus(userId: string, isAdmin: boolean): Promise<UserWithFlags> {
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: { isAdmin },
     });
+
+    return this.attachDerivedFlags(user)!;
   }
 
   /**
@@ -293,7 +305,7 @@ export class UsersService {
       contentLibraryCollectionOrder?: any;
       videoAutoplay?: boolean;
     },
-  ): Promise<User> {
+  ): Promise<UserWithFlags> {
     const updateData: Prisma.UserUpdateInput = {};
 
     if (data.fullName !== undefined) updateData.fullName = data.fullName;
@@ -323,8 +335,7 @@ export class UsersService {
       if (data.newsQueryOrder !== undefined) newPreferences.newsQueryOrder = data.newsQueryOrder;
       if (data.contentLibraryCollectionOrder !== undefined)
         newPreferences.contentLibraryCollectionOrder = data.contentLibraryCollectionOrder;
-      if (data.videoAutoplay !== undefined)
-        newPreferences.videoAutoplay = data.videoAutoplay;
+      if (data.videoAutoplay !== undefined) newPreferences.videoAutoplay = data.videoAutoplay;
 
       updateData.preferences = JSON.parse(JSON.stringify(newPreferences));
     }
@@ -340,40 +351,80 @@ export class UsersService {
           'Данные пользователя были изменены в другой вкладке. Обновите страницу.',
         );
       }
-      return this.prisma.user.findUnique({ where: { id: userId } }) as Promise<User>;
+      const updatedUser = await this.prisma.user.findUnique({ where: { id: userId } });
+      return this.attachDerivedFlags(updatedUser)!;
     }
 
-    return await this.prisma.user.update({
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: updateData,
     });
+
+    return this.attachDerivedFlags(user)!;
   }
 
   /**
    * Ban a user.
    */
-  public async banUser(userId: string, reason?: string): Promise<User> {
-    return this.prisma.user.update({
+  public async banUser(userId: string, reason?: string): Promise<UserWithFlags> {
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
         isBanned: true,
         banReason: reason,
       },
     });
+
+    return this.attachDerivedFlags(user)!;
   }
 
   /**
    * Unban a user.
    */
-  public async unbanUser(userId: string): Promise<User> {
-    return this.prisma.user.update({
+  public async unbanUser(userId: string): Promise<UserWithFlags> {
+    const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
         isBanned: false,
         banReason: null,
       },
     });
+
+    return this.attachDerivedFlags(user)!;
   }
+
+  private getAdminTelegramId(): string | undefined {
+    return this.configService.get<AppConfig>('app')?.adminTelegramId;
+  }
+
+  private isSuperAdminByTelegramId(telegramId?: bigint | string | null): boolean {
+    const adminId = this.getAdminTelegramId();
+    if (!adminId) {
+      return false;
+    }
+
+    if (telegramId === null || telegramId === undefined) {
+      return false;
+    }
+
+    const normalized = typeof telegramId === 'bigint' ? telegramId.toString() : String(telegramId);
+    return normalized === adminId;
+  }
+
+  private attachDerivedFlags<T extends { telegramId?: bigint | string | null }>(
+    user: T | null,
+  ): (T & { isSuperAdmin: boolean }) | null {
+    if (!user) {
+      return null;
+    }
+
+    const isSuperAdmin = this.isSuperAdminByTelegramId(user.telegramId);
+    return {
+      ...user,
+      isSuperAdmin,
+    };
+  }
+
   /**
    * Get notification preferences for a user.
    * Returns default preferences if not set.

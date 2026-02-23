@@ -1,78 +1,79 @@
-import type { Database } from '~/types/database.types'
+import type { Database } from '~/types/database.types';
 
-type User = Database['public']['Tables']['users']['Row']
+type User = Database['public']['Tables']['users']['Row'];
 
 export interface UserWithStats extends User {
-  projectsCount?: number
-  postsCount?: number
-  publicationsCount?: number // Added: count from backend
-  telegramId?: string // Added: string representation of bigint from backend
-  isBanned?: boolean
-  banReason?: string | null
-  fullName?: string | null
-  telegramUsername?: string | null
+  projectsCount?: number;
+  postsCount?: number;
+  publicationsCount?: number; // Added: count from backend
+  telegramId?: string; // Added: string representation of bigint from backend
+  isBanned?: boolean;
+  banReason?: string | null;
+  fullName?: string | null;
+  telegramUsername?: string | null;
   // Added camelCase properties to match backend DTO
-  isAdmin?: boolean | null
-  createdAt?: string | null
-  avatarUrl?: string | null
-  language?: string | null
+  isAdmin?: boolean | null;
+  isSuperAdmin?: boolean | null;
+  createdAt?: string | null;
+  avatarUrl?: string | null;
+  language?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preferences?: any | null
+  preferences?: any | null;
 }
 
 export interface UsersFilter {
-  is_admin?: boolean | null
-  search?: string
+  is_admin?: boolean | null;
+  search?: string;
 }
 
 export interface UsersPaginationOptions {
-  page: number
-  perPage: number
+  page: number;
+  perPage: number;
 }
 
 export const useUsersStore = defineStore('users', () => {
-  const users = shallowRef<UserWithStats[]>([])
-  const currentUser = shallowRef<UserWithStats | null>(null)
-  const isLoading = ref(false)
-  const error = ref<string | null>(null)
-  const filter = ref<UsersFilter>({})
-  const pagination = ref<UsersPaginationOptions>({ page: 1, perPage: 20 })
-  const totalCount = ref(0)
+  const users = shallowRef<UserWithStats[]>([]);
+  const currentUser = shallowRef<UserWithStats | null>(null);
+  const isLoading = ref(false);
+  const error = ref<string | null>(null);
+  const filter = ref<UsersFilter>({});
+  const pagination = ref<UsersPaginationOptions>({ page: 1, perPage: 20 });
+  const totalCount = ref(0);
 
-  const totalPages = computed(() => Math.ceil(totalCount.value / pagination.value.perPage))
+  const totalPages = computed(() => Math.ceil(totalCount.value / pagination.value.perPage));
 
   function setUsers(newUsers: UserWithStats[]) {
-    users.value = newUsers
+    users.value = newUsers;
   }
 
   function setCurrentUser(user: UserWithStats | null) {
-    currentUser.value = user
+    currentUser.value = user;
   }
 
   function setLoading(loading: boolean) {
-    isLoading.value = loading
+    isLoading.value = loading;
   }
 
   function setError(err: string | null) {
-    error.value = err
+    error.value = err;
   }
 
   function setFilter(newFilter: UsersFilter) {
-    filter.value = { ...filter.value, ...newFilter }
-    pagination.value.page = 1
+    filter.value = { ...filter.value, ...newFilter };
+    pagination.value.page = 1;
   }
 
   function clearFilter() {
-    filter.value = {}
-    pagination.value.page = 1
+    filter.value = {};
+    pagination.value.page = 1;
   }
 
   function setPage(page: number) {
-    pagination.value.page = page
+    pagination.value.page = page;
   }
 
   function setTotalCount(count: number) {
-    totalCount.value = count
+    totalCount.value = count;
   }
 
   return {
@@ -92,5 +93,5 @@ export const useUsersStore = defineStore('users', () => {
     clearFilter,
     setPage,
     setTotalCount,
-  }
-})
+  };
+});

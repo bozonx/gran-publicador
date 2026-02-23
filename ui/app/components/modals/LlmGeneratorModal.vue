@@ -421,6 +421,7 @@ const hasContext = computed(() => contextTags.value.length > 0)
 
 // Metadata from last generation
 const metadata = ref<any>(null)
+const canSeeModelMetadata = computed(() => user.value?.isSuperAdmin === true)
 
 // Token counter with debounce
 const estimatedTokens = computed(() => {
@@ -1208,7 +1209,7 @@ async function confirmResetChat() {
            <div class="flex items-center gap-2">
               <span v-if="estimatedTokensValue">{{ t('llm.estimatedTokens', { count: estimatedTokensValue }) }}</span>
            </div>
-           <div v-if="metadata" class="flex items-center gap-2">
+           <div v-if="metadata && canSeeModelMetadata" class="flex items-center gap-2">
               <span>{{ metadata.provider }} ({{ metadata.model_name }})</span>
            </div>
         </div>

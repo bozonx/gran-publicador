@@ -14,6 +14,7 @@ export const useAuth = () => {
     error: computed(() => authStore.error),
     isAuthenticated: computed(() => authStore.isLoggedIn),
     isAdmin: computed(() => authStore.isAdmin),
+    isSuperAdmin: computed(() => authStore.isSuperAdmin),
     displayName: computed(() => authStore.displayName),
     authMode: computed(() => {
       if (isDevMode) return 'dev';

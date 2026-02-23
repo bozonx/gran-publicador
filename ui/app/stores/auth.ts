@@ -10,6 +10,7 @@ export interface User {
   avatarUrl?: string;
 
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   language?: string;
   uiLanguage?: string;
   isUiLanguageAuto?: boolean;
@@ -40,6 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => !!user.value);
   const isAdmin = computed(() => user.value?.isAdmin === true);
+  const isSuperAdmin = computed(() => user.value?.isSuperAdmin === true);
   const displayName = computed(() => {
     if (user.value?.fullName) return user.value.fullName;
     if (user.value?.telegramUsername) return user.value.telegramUsername;
@@ -157,6 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
     error,
     isLoggedIn,
     isAdmin,
+    isSuperAdmin,
     displayName,
     loginWithTelegram,
     loginWithTelegramWidget,
