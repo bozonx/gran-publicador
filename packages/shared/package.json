@@ -6,7 +6,10 @@
   "main": "./dist/social-media-platforms.constants.js",
   "types": "./dist/social-media-platforms.constants.d.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json"
+    "build": "tsc -p tsconfig.build.json",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest -c jest.config.ts",
+    "test:watch": "NODE_OPTIONS='--experimental-vm-modules' jest -c jest.config.ts --watch",
+    "test:cov": "NODE_OPTIONS='--experimental-vm-modules' jest -c jest.config.ts --coverage"
   },
   "files": [
     "dist"
