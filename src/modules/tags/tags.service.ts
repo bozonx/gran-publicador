@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SearchTagsQueryDto } from './dto/index.js';
+import { normalizeTags } from '../../common/utils/tags.util.js';
 
 export type TagDomain = 'CONTENT_LIBRARY' | 'PUBLICATIONS';
 
@@ -9,7 +10,12 @@ export class TagsService {
   constructor(private readonly prisma: PrismaService) {}
 
   private normalizeSearchPrefix(q?: string): string | undefined {
-    const normalized = q ? String(q).trim().toLowerCase() : '';
+    const [normalizedRaw] = normalizeTags([q ?? ''], {
+      dedupe: false,
+      dedupeCaseInsensitive: false,
+      limit: 1,
+    });
+    const normalized = String(normalizedRaw ?? '').toLowerCase();
     return normalized.length > 0 ? normalized : undefined;
   }
 
@@ -89,10 +95,11 @@ export class TagsService {
       throw new BadRequestException('Exactly one of projectId or userId must be provided');
     }
 
-    const normalizedTags = tags
-      .map(t => String(t ?? '').trim())
-      .filter(Boolean)
-      .slice(0, 50);
+    const normalizedTags = normalizeTags(tags, {
+      dedupe: true,
+      dedupeCaseInsensitive: true,
+      limit: 50,
+    });
 
     const connectOrCreate = normalizedTags.map(name => {
       const normalizedName = name.toLowerCase();

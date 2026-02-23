@@ -10,6 +10,7 @@ import {
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
+import { normalizeTags } from '../../common/utils/tags.util.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { MediaService } from '../media/media.service.js';
@@ -48,13 +49,12 @@ export class ContentItemsService {
   }
 
   private normalizeTags(tags?: string[]): string[] {
-    if (!tags) return [];
-    const normalized = tags
-      .map(t => t.trim())
-      .filter(Boolean)
-      .map(t => t.toLowerCase())
-      .slice(0, 50);
-    return Array.from(new Set(normalized));
+    return normalizeTags(tags ?? [], {
+      lowercase: true,
+      dedupe: true,
+      dedupeCaseInsensitive: true,
+      limit: 50,
+    });
   }
 
   private normalizeItemText(text?: unknown): string | null {

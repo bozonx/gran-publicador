@@ -11,7 +11,9 @@ export function normalizeLocale(
   const normalized = raw.replace(/_/g, '-');
   const [languageRaw, regionRaw] = normalized.split('-');
 
-  const language = String(languageRaw || '').trim().toLowerCase();
+  const language = String(languageRaw || '')
+    .trim()
+    .toLowerCase();
   const region = String(regionRaw || '').trim();
 
   if (!language) return fallback;
@@ -19,9 +21,6 @@ export function normalizeLocale(
   const defaults: Record<string, string> = {
     en: 'en-US',
     ru: 'ru-RU',
-    es: 'es-ES',
-    de: 'de-DE',
-    fr: 'fr-FR',
   };
 
   if (!region) {

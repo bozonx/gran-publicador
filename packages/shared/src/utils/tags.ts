@@ -7,23 +7,28 @@ export interface NormalizeTagsOptions {
 
 export type TagsInput = string | string[] | null | undefined;
 
+function normalizeTagValue(value: unknown): string {
+  const s = String(value ?? '')
+    .replace(/^#+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return s;
+}
+
 export function parseTags(raw: TagsInput): string[] {
   if (!raw) return [];
 
   if (Array.isArray(raw)) {
-    return raw.map(t => String(t ?? '').trim()).filter(Boolean);
+    return raw.map(normalizeTagValue).filter(Boolean);
   }
 
-  return String(raw)
-    .split(',')
-    .map(t => t.trim())
-    .filter(Boolean);
+  return String(raw).split(',').map(normalizeTagValue).filter(Boolean);
 }
 
 export function normalizeTags(tags: string[], options: NormalizeTagsOptions = {}): string[] {
   const { lowercase = false, dedupe = true, dedupeCaseInsensitive = true, limit } = options;
 
-  let out = (tags ?? []).map(t => String(t ?? '').trim()).filter(Boolean);
+  let out = (tags ?? []).map(normalizeTagValue).filter(Boolean);
 
   if (lowercase) {
     out = out.map(t => t.toLowerCase());
