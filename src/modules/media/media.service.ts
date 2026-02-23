@@ -290,10 +290,10 @@ export class MediaService {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
 
-    // Allow replacing both FS and Telegram media.
-    // Replacing Telegram media will effectively convert it to FS.
-    if (media.storageType !== StorageType.FS && media.storageType !== StorageType.TELEGRAM) {
-      throw new BadRequestException('Only FS or Telegram media can be replaced');
+    // Allow replacing both STORAGE and Telegram media.
+    // Replacing Telegram media will effectively convert it to STORAGE.
+    if (media.storageType !== StorageType.STORAGE && media.storageType !== StorageType.TELEGRAM) {
+      throw new BadRequestException('Only STORAGE or Telegram media can be replaced');
     }
 
     const oldStoragePath = media.storagePath;
@@ -340,7 +340,7 @@ export class MediaService {
     );
 
     const updated = await this.update(id, {
-      storageType: StorageType.FS, // Always set to FS after replacement
+      storageType: StorageType.STORAGE, // Always set to STORAGE after replacement
       storagePath: fileId,
       filename,
       mimeType: metadata.mimeType,
@@ -351,14 +351,14 @@ export class MediaService {
         gp: {
           ...(existingMeta.gp || {}),
           editedAt: new Date().toISOString(),
-          originalStorageType: oldStorageType === StorageType.FS ? undefined : oldStorageType,
-          originalStoragePath: oldStorageType === StorageType.FS ? undefined : oldStoragePath,
+          originalStorageType: oldStorageType === StorageType.STORAGE ? undefined : oldStorageType,
+          originalStoragePath: oldStorageType === StorageType.STORAGE ? undefined : oldStoragePath,
         },
       },
     });
 
-    // Only attempt to delete from storage if the previous type was FS
-    if (oldStorageType === StorageType.FS) {
+    // Only attempt to delete from storage if the previous type was STORAGE
+    if (oldStorageType === StorageType.STORAGE) {
       try {
         await this.deleteFileFromStorage(oldStoragePath);
       } catch (error) {
@@ -451,7 +451,7 @@ export class MediaService {
   async remove(id: string): Promise<Media> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    if (media.storageType === StorageType.FS) {
+    if (media.storageType === StorageType.STORAGE) {
       try {
         await this.deleteFileFromStorage(media.storagePath);
       } catch (error) {
@@ -601,8 +601,8 @@ export class MediaService {
     userId?: string,
   ): Promise<{ fileId: string; metadata: Record<string, any> }> {
     const media = await this.findOne(id);
-    if (media.storageType !== StorageType.FS)
-      throw new BadRequestException('Only FS media can be reprocessed');
+    if (media.storageType !== StorageType.STORAGE)
+      throw new BadRequestException('Only STORAGE media can be reprocessed');
     if (userId) await this.checkMediaAccess(id, userId);
 
     const config = this.config;
@@ -769,7 +769,7 @@ export class MediaService {
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
-    if (media.storageType === StorageType.FS) return this.getFileStream(media.storagePath, range);
+    if (media.storageType === StorageType.STORAGE) return this.getFileStream(media.storagePath, range);
     else if (media.storageType === StorageType.TELEGRAM) {
       let mimeType = media.mimeType ?? undefined;
       // Fallback mimeType if missing in DB

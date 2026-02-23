@@ -529,7 +529,7 @@ export class PublicationsService {
                         media: {
                           create: {
                             type: MediaType.IMAGE,
-                            storageType: StorageType.FS,
+                            storageType: StorageType.STORAGE,
                             storagePath: fileId,
                             filename: `unsplash-${photo.id}.jpg`,
                             mimeType: metadata.mimeType,
@@ -577,7 +577,7 @@ export class PublicationsService {
                         media: {
                           create: {
                             type: MediaType.IMAGE,
-                            storageType: StorageType.FS,
+                            storageType: StorageType.STORAGE,
                             storagePath: fileId,
                             filename,
                             mimeType: metadata.mimeType,

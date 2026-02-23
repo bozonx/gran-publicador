@@ -114,7 +114,7 @@ describe('MediaService (unit)', () => {
     it('should create a media record', async () => {
       const createDto = {
         type: MediaType.IMAGE,
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: 'file-id-123',
         filename: 'test.jpg',
         mimeType: 'image/jpeg',
@@ -296,7 +296,7 @@ describe('MediaService (unit)', () => {
       const mediaId = 'media-1';
       const mockMedia = {
         id: mediaId,
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: 'file-id-123',
         meta: {},
       };
@@ -325,7 +325,7 @@ describe('MediaService (unit)', () => {
 
       mockPrismaService.media.findUnique.mockResolvedValue({
         id: mediaId,
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: oldStoragePath,
         meta: { customKey: 'customValue', width: 10 },
       });
@@ -358,7 +358,7 @@ describe('MediaService (unit)', () => {
       mockPrismaService.media.update.mockResolvedValue({
         id: mediaId,
         type: MediaType.IMAGE,
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: newStoragePath,
         filename: 'new.jpg',
         mimeType: 'image/jpeg',
@@ -396,7 +396,7 @@ describe('MediaService (unit)', () => {
     it('should throw for non-image mimetype', async () => {
       mockPrismaService.media.findUnique.mockResolvedValue({
         id: 'media-1',
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: 'old-file-id',
         meta: {},
       });

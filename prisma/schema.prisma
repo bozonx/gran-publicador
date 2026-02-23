@@ -762,7 +762,7 @@ enum MediaType {
 
 // Storage type enum - defines where the media file is physically stored
 enum StorageType {
-  FS // File system (local or mounted S3)
+  STORAGE // Internal media storage service
   TELEGRAM // Telegram servers (not stored locally)
 }
 

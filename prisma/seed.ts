@@ -906,7 +906,7 @@ async function main() {
     {
       id: '99999999-9999-4999-8999-000000000001',
       type: 'IMAGE' as const,
-      storageType: 'FS' as const,
+      storageType: 'STORAGE' as const,
       storagePath: 'samples/image1.jpg',
       filename: 'image1.jpg',
       alt: 'Nuxt 4 Logo',
@@ -918,7 +918,7 @@ async function main() {
     {
       id: '99999999-9999-4999-8999-000000000002',
       type: 'VIDEO' as const,
-      storageType: 'FS' as const,
+      storageType: 'STORAGE' as const,
       storagePath: 'samples/video1.mp4',
       filename: 'video1.mp4',
       description: 'Intro video for Nuxt 4 features.',

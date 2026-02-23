@@ -420,9 +420,9 @@ export class ContentItemsService {
         },
       );
 
-      const media = await this.mediaService.create({
+        const media = await this.mediaService.create({
         type: MediaType.IMAGE,
-        storageType: StorageType.FS,
+        storageType: StorageType.STORAGE,
         storagePath: uploaded.fileId,
         filename: `unsplash-${photo.id}.jpg`,
         mimeType: uploaded.metadata.mimeType,

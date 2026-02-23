@@ -37,8 +37,8 @@ export abstract class AbstractPlatformFormatter {
       return media.storagePath;
     }
 
-    // For FS storage, storagePath contains Media Storage fileId
-    if (media.storageType === StorageType.FS) {
+    // For STORAGE storage type, storagePath contains Media Storage fileId
+    if (media.storageType === StorageType.STORAGE) {
       // If we have a public base URL and media service, generate a signed public proxy URL.
       // This is necessary for Telegram to download the file from its servers.
       if (publicMediaBaseUrl && mediaService) {

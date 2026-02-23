@@ -109,7 +109,7 @@ export class MediaController {
     // Create the media record with fileId from Media Storage
     return this.mediaService.create({
       type: getMediaTypeFromMime(metadata.mimeType),
-      storageType: StorageType.FS,
+      storageType: StorageType.STORAGE,
       storagePath: fileId, // Store Media Storage fileId
       filename: part.filename,
       mimeType: metadata.mimeType,
@@ -119,7 +119,7 @@ export class MediaController {
   }
 
   /**
-   * Replace an existing FS media file in Media Storage.
+   * Replace an existing STORAGE media file in Media Storage.
    * Keeps the same Media ID in DB and updates metadata.
    */
   @Post(':id/replace-file')
@@ -243,7 +243,7 @@ export class MediaController {
 
     return this.mediaService.create({
       type: getMediaTypeFromMime(metadata.mimeType),
-      storageType: StorageType.FS,
+      storageType: StorageType.STORAGE,
       storagePath: fileId,
       filename,
       mimeType: metadata.mimeType,
@@ -313,7 +313,7 @@ export class MediaController {
 
   /**
    * Stream media file.
-   * For StorageType.FS: proxies from Media Storage
+   * For StorageType.STORAGE: proxies from Media Storage
    * For StorageType.TELEGRAM: streams from Telegram API
    */
   @Get(':id/file')
@@ -362,7 +362,7 @@ export class MediaController {
 
   /**
    * Get thumbnail for media.
-   * For StorageType.FS: proxied from Media Storage.
+   * For StorageType.STORAGE: proxied from Media Storage.
    * For StorageType.TELEGRAM: proxied from Telegram API.
    */
   @Get(':id/thumbnail')
@@ -432,8 +432,8 @@ export class MediaController {
   public async getInfo(@Req() req: UnifiedAuthRequest, @Param('id') id: string) {
     await this.mediaService.checkMediaAccess(id, req.user.userId);
     const media = await this.mediaService.findOne(id);
-    if (media.storageType !== StorageType.FS) {
-      throw new BadRequestException('Only FS media has extended info');
+    if (media.storageType !== StorageType.STORAGE) {
+      throw new BadRequestException('Only STORAGE media has extended info');
     }
     return this.mediaService.getFileInfo(media.storagePath);
   }
