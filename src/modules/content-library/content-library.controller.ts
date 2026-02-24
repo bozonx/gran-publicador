@@ -13,9 +13,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
@@ -43,6 +43,7 @@ export class ContentLibraryController {
     private readonly publicationsService: PublicationsService,
     private readonly unsplashService: UnsplashService,
     private readonly prisma: PrismaService,
+    private readonly apiTokenScope: ApiTokenScopeService,
   ) {}
 
   private validateQueryProjectScopeOrThrow(req: UnifiedAuthRequest, projectId?: string) {
@@ -50,19 +51,14 @@ export class ContentLibraryController {
       return;
     }
 
-    if (req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
   }
 
   private async validateContentItemProjectScopeOrThrow(
     req: UnifiedAuthRequest,
     contentItemId: string,
   ) {
-    if (req.user.allProjects !== false || !req.user.projectIds) {
+    if (req.user.allProjects === undefined) {
       return;
     }
 
@@ -75,17 +71,14 @@ export class ContentLibraryController {
       return;
     }
 
-    ApiTokenGuard.validateProjectScope(item.projectId, req.user.allProjects, req.user.projectIds, {
-      userId: req.user.userId,
-      tokenId: req.user.tokenId,
-    });
+    this.apiTokenScope.validateProjectScopeOrThrow(req, item.projectId);
   }
 
   private async validateBulkContentItemsProjectScopeOrThrow(
     req: UnifiedAuthRequest,
     contentItemIds: string[],
   ) {
-    if (req.user.allProjects !== false || !req.user.projectIds) {
+    if (req.user.allProjects === undefined) {
       return;
     }
 
@@ -106,12 +99,7 @@ export class ContentLibraryController {
       ),
     );
 
-    for (const projectId of projectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateManyProjectScopesOrThrow(req, projectIds);
   }
 
   @Get('items')
@@ -418,16 +406,8 @@ export class ContentLibraryController {
 
   @Post('items')
   public async create(@Request() req: UnifiedAuthRequest, @Body() dto: CreateContentItemDto) {
-    if (
-      dto.scope === 'project' &&
-      dto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (dto.scope === 'project' && dto.projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, dto.projectId);
     }
 
     return this.itemsService.create(dto, req.user.userId);
@@ -457,16 +437,8 @@ export class ContentLibraryController {
   ) {
     await this.validateContentItemProjectScopeOrThrow(req, contentItemId);
 
-    if (
-      dto.scope === 'project' &&
-      dto.projectId &&
-      req.user.allProjects === false &&
-      req.user.projectIds
-    ) {
-      ApiTokenGuard.validateProjectScope(dto.projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
+    if (dto.scope === 'project' && dto.projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, dto.projectId);
     }
 
     return this.itemsService.linkItemToGroup(contentItemId, dto, req.user.userId);
@@ -499,12 +471,7 @@ export class ContentLibraryController {
     @Request() req: UnifiedAuthRequest,
     @Param('projectId') projectId: string,
   ) {
-    if (req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds, {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
 
     return this.itemsService.purgeArchivedByProject(projectId, req.user.userId);
   }

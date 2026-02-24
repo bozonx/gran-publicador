@@ -16,9 +16,9 @@ import {
 } from '@nestjs/common';
 import { PublicationStatus, SocialMedia } from '../../generated/prisma/index.js';
 
-import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { ParsePublicationStatusPipe } from '../../common/pipes/parse-publication-status.pipe.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
@@ -52,6 +52,7 @@ export class PublicationsController {
     private readonly socialPostingService: SocialPostingService,
     private readonly tagsService: TagsService,
     private readonly permissions: PermissionsService,
+    private readonly apiTokenScope: ApiTokenScopeService,
   ) {}
 
   @Get('tags/search')
@@ -83,15 +84,7 @@ export class PublicationsController {
     }
 
     if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(
-        projectId!,
-        req.user.allProjects,
-        req.user.projectIds ?? [],
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId!);
     } else {
       await this.permissions.checkProjectAccess(projectId!, req.user.userId);
     }
@@ -115,15 +108,7 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users if projectId is provided
     if (createPublicationDto.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(
-        createPublicationDto.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, createPublicationDto.projectId);
     }
     return this.publicationsService.create(createPublicationDto, req.user.userId);
   }
@@ -275,15 +260,7 @@ export class PublicationsController {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
     if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(
-        publication.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, publication.projectId);
     }
 
     return this.publicationsService.createPostsFromPublication(
@@ -357,15 +334,7 @@ export class PublicationsController {
     // Validate project scope for API token users
     const publication = await this.publicationsService.findOne(id, req.user.userId);
     if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(
-        publication.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, publication.projectId);
     }
 
     return this.socialPostingService.enqueuePublication(id, { force });
@@ -382,15 +351,7 @@ export class PublicationsController {
   ) {
     // Validate project scope for API token users
     if (body.projectId && req.user.allProjects === false && req.user.projectIds) {
-      ApiTokenGuard.validateProjectScope(
-        body.projectId,
-        req.user.allProjects,
-        req.user.projectIds,
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, body.projectId);
     }
 
     return this.publicationsService.copy(id, body.projectId, req.user.userId);

@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { PermissionsService } from './permissions.service.js';
+import { ApiTokenScopeService } from './api-token-scope.service.js';
 
 /**
  * Global module providing permissions checking service
@@ -7,7 +8,7 @@ import { PermissionsService } from './permissions.service.js';
  */
 @Global()
 @Module({
-  providers: [PermissionsService],
-  exports: [PermissionsService],
+  providers: [PermissionsService, ApiTokenScopeService],
+  exports: [PermissionsService, ApiTokenScopeService],
 })
 export class PermissionsModule {}

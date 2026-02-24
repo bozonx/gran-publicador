@@ -28,7 +28,7 @@ export interface UsersFilter {
 
 export interface UsersPaginationOptions {
   page: number;
-  perPage: number;
+  limit: number;
 }
 
 export const useUsersStore = defineStore('users', () => {
@@ -37,10 +37,10 @@ export const useUsersStore = defineStore('users', () => {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
   const filter = ref<UsersFilter>({});
-  const pagination = ref<UsersPaginationOptions>({ page: 1, perPage: 20 });
+  const pagination = ref<UsersPaginationOptions>({ page: 1, limit: 20 });
   const totalCount = ref(0);
 
-  const totalPages = computed(() => Math.ceil(totalCount.value / pagination.value.perPage));
+  const totalPages = computed(() => Math.ceil(totalCount.value / pagination.value.limit));
 
   function setUsers(newUsers: UserWithStats[]) {
     users.value = newUsers;

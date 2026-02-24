@@ -16,8 +16,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
-import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import {
   CreateProjectDto,
@@ -40,7 +40,10 @@ import { ProjectsService } from './projects.service.js';
 export class ProjectsController {
   private readonly logger = new Logger(ProjectsController.name);
 
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly apiTokenScope: ApiTokenScopeService,
+  ) {}
 
   @Post()
   public async create(
@@ -88,13 +91,7 @@ export class ProjectsController {
 
   @Get(':id')
   public async findOne(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.findOne(id, req.user.userId, true);
   }
@@ -105,39 +102,21 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
   ) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.update(id, req.user.userId, updateProjectDto);
   }
 
   @Delete(':id')
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.remove(id, req.user.userId);
   }
 
   @Get(':id/members')
   public async findMembers(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.findMembers(id, req.user.userId);
   }
@@ -148,13 +127,7 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body() addMemberDto: AddMemberDto,
   ) {
-    // Validate project scope for API token users (only admins/owners can add members)
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.addMember(id, req.user.userId, addMemberDto);
   }
@@ -166,13 +139,7 @@ export class ProjectsController {
     @Param('userId') memberUserId: string,
     @Body() updateMemberDto: UpdateMemberDto,
   ) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.updateMemberRole(
       id,
@@ -188,13 +155,7 @@ export class ProjectsController {
     @Param('id') id: string,
     @Param('userId') memberUserId: string,
   ) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(id, req.user.allProjects, req.user.projectIds ?? [], {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      });
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
     return this.projectsService.removeMember(id, req.user.userId, memberUserId);
   }
@@ -215,18 +176,7 @@ export class ProjectsController {
     @Param('newsId') newsId: string,
     @Body() body: FetchNewsContentDto,
   ) {
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(
-        projectId,
-        req.user.allProjects,
-        req.user.projectIds ?? [],
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
-    }
+    this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
 
     return this.projectsService.fetchNewsContent(projectId, req.user.userId, newsId, body);
   }

@@ -205,13 +205,14 @@ export class UsersService {
    * Returns users with their statistics (projects count, posts count).
    */
   public async findAll(options: {
-    page: number;
-    perPage: number;
+    limit: number;
+    offset: number;
     isAdmin?: boolean;
     search?: string;
   }) {
-    const { page, perPage, isAdmin, search } = options;
-    const skip = (page - 1) * perPage;
+    const { limit, offset, isAdmin, search } = options;
+    const skip = Math.max(0, offset);
+    const take = Math.max(0, limit);
 
     // Build where clause
     const where: Prisma.UserWhereInput = {
@@ -236,7 +237,7 @@ export class UsersService {
     const users = await this.prisma.user.findMany({
       where,
       skip,
-      take: perPage,
+      take,
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {
@@ -271,8 +272,8 @@ export class UsersService {
       data,
       meta: {
         total,
-        page,
-        perPage,
+        limit: take,
+        offset: skip,
       },
     };
   }

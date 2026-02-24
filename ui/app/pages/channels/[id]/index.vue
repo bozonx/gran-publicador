@@ -154,16 +154,14 @@ function handlePublicationCreated(publicationId: string) {
   resetAndFetchPosts()
 }
 
-const page = ref(1)
 const LIMIT = 12
 
 async function resetAndFetchPosts() {
-  page.value = 1
   setFilter({ 
       channelId: channelId.value, 
       status: 'PUBLISHED' as PostStatus,
       limit: LIMIT,
-      page: 1
+      offset: 0
   })
   await fetchPostsByProject(projectId.value, { append: false })
 }
@@ -175,8 +173,7 @@ const hasMoreData = computed(() => {
 async function loadMore() {
   if (isPostsLoading.value || !hasMoreData.value) return
   
-  page.value++
-  setFilter({ page: page.value })
+  setFilter({ offset: postsBatch.value.length })
   
   await fetchPostsByProject(projectId.value, { append: true })
 }
@@ -194,7 +191,7 @@ onMounted(async () => {
             channelId: channelId.value,
             status: 'FAILED' as PostStatus,
             limit: 5,
-            page: 1,
+            offset: 0,
             sortBy: 'createdAt',
             sortOrder: 'desc'
         })
@@ -207,7 +204,7 @@ onMounted(async () => {
             status: 'PENDING' as PostStatus,
             publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
             limit: 5,
-            page: 1,
+            offset: 0,
             sortBy: 'scheduledAt',
             sortOrder: 'asc'
         })

@@ -85,7 +85,7 @@ export class PostsService {
       status?: PostStatus;
       postType?: PostType;
       search?: string;
-      publicationStatus?: PublicationStatus;
+      publicationStatus?: PublicationStatus | string | string[];
     },
   ) {
     if (filters?.status && typeof filters.status === 'string') {
@@ -247,7 +247,8 @@ export class PostsService {
       search?: string;
       includeArchived?: boolean;
       limit?: number;
-      page?: number;
+      offset?: number;
+      publicationStatus?: PublicationStatus | string | string[];
     },
   ) {
     // Check project permission (owner/admin/editor/viewer)
@@ -297,7 +298,7 @@ export class PostsService {
         },
         orderBy: { createdAt: 'desc' },
         take: filters?.limit,
-        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+        skip: filters?.offset,
       }),
       this.prisma.post.count({ where }),
       this.prisma.post.count({ where: { channel: { projectId } } }),
@@ -325,7 +326,8 @@ export class PostsService {
       search?: string;
       includeArchived?: boolean;
       limit?: number;
-      page?: number;
+      offset?: number;
+      publicationStatus?: PublicationStatus | string | string[];
     },
   ) {
     const where: any = {};
@@ -373,7 +375,7 @@ export class PostsService {
         },
         orderBy: { createdAt: 'desc' },
         take: filters?.limit,
-        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+        skip: filters?.offset,
       }),
       this.prisma.post.count({ where }),
     ]);
@@ -401,7 +403,8 @@ export class PostsService {
       search?: string;
       includeArchived?: boolean;
       limit?: number;
-      page?: number;
+      offset?: number;
+      publicationStatus?: PublicationStatus | string | string[];
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId, true);
@@ -440,7 +443,7 @@ export class PostsService {
         },
         orderBy: { createdAt: 'desc' },
         take: filters?.limit,
-        skip: filters?.limit && filters?.page ? (filters.page - 1) * filters.limit : undefined,
+        skip: filters?.offset,
       }),
       this.prisma.post.count({ where }),
     ]);

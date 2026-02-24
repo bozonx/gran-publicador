@@ -38,16 +38,16 @@ export class UsersController {
   @UseGuards(AdminGuard)
   public async findAll(
     @Request() req: AuthenticatedRequest,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-    @Query('perPage', new DefaultValuePipe(20), ParseIntPipe) perPage: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
     @Query('is_admin') isAdmin?: string,
     @Query('search') search?: string,
   ) {
     const isAdminFilter = isAdmin === 'true' ? true : isAdmin === 'false' ? false : undefined;
 
     return this.usersService.findAll({
-      page,
-      perPage,
+      limit,
+      offset,
       isAdmin: isAdminFilter,
       search,
     });

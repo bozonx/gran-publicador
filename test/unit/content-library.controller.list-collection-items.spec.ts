@@ -29,6 +29,11 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     },
   };
 
+  const mockApiTokenScopeService = {
+    validateProjectScopeOrThrow: jest.fn() as any,
+    validateManyProjectScopesOrThrow: jest.fn() as any,
+  };
+
   beforeEach(() => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
@@ -39,6 +44,7 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
       mockPublicationsService as any,
       mockUnsplashService as any,
       mockPrismaService as any,
+      mockApiTokenScopeService as any,
     );
   });
 
@@ -188,6 +194,14 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     const req: any = {
       user: { userId: 'u1', allProjects: false, projectIds: ['p1'], tokenId: 't1' },
     };
+
+    mockApiTokenScopeService.validateProjectScopeOrThrow.mockImplementation(
+      (_req: any, projectId: string) => {
+        if (projectId === 'p2') {
+          throw new ForbiddenException('Access denied: project not in token scope');
+        }
+      },
+    );
 
     mockCollectionsService.assertCollectionAccess.mockResolvedValue({
       id: 'g1',

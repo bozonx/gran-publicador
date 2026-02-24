@@ -14,8 +14,8 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 
-import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ParsePostStatusPipe } from '../../common/pipes/parse-post-status.pipe.js';
 import { ParsePostTypePipe } from '../../common/pipes/parse-post-type.pipe.js';
@@ -34,25 +34,15 @@ export class PostsController {
     private readonly postsService: PostsService,
     private readonly channelsService: ChannelsService,
     private readonly socialPostingService: SocialPostingService,
+    private readonly apiTokenScope: ApiTokenScopeService,
   ) {}
 
   @Post()
   public async create(@Request() req: UnifiedAuthRequest, @Body() createPostDto: CreatePostDto) {
     const { channelId, ...data } = createPostDto;
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      const channel = await this.channelsService.findOne(channelId, req.user.userId);
-      ApiTokenGuard.validateProjectScope(
-        channel.projectId,
-        req.user.allProjects,
-        req.user.projectIds ?? [],
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
-    }
+    const channel = await this.channelsService.findOne(channelId, req.user.userId);
+    this.apiTokenScope.validateProjectScopeOrThrow(req, channel.projectId);
 
     return this.postsService.create(req.user.userId, channelId, data);
   }
@@ -68,34 +58,15 @@ export class PostsController {
     @Query('includeArchived', new DefaultValuePipe(false), ParseBoolPipe) includeArchived?: boolean,
     @Query('publicationStatus') publicationStatus?: string | string[],
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
-    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
   ) {
-    const filters = { status, postType, search, includeArchived, limit, page, publicationStatus };
+    const filters = { status, postType, search, includeArchived, limit, offset, publicationStatus };
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      if (projectId) {
-        ApiTokenGuard.validateProjectScope(
-          projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      } else if (channelId) {
-        const channel = await this.channelsService.findOne(channelId, req.user.userId);
-        ApiTokenGuard.validateProjectScope(
-          channel.projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      }
+    if (projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
+    } else if (channelId) {
+      const channel = await this.channelsService.findOne(channelId, req.user.userId);
+      this.apiTokenScope.validateProjectScopeOrThrow(req, channel.projectId);
     }
 
     let result: { items: any[]; total: number };
@@ -115,7 +86,7 @@ export class PostsController {
         total: result.total,
         totalUnfiltered: (result as any).totalUnfiltered ?? result.total,
         limit,
-        page,
+        offset,
       },
     };
   }
@@ -124,21 +95,9 @@ export class PostsController {
   public async findOne(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const post = await this.postsService.findOne(id, req.user.userId);
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      // @ts-ignore - post returned from findOne includes channel
-      const projectId = post.channel?.projectId;
-      if (projectId) {
-        ApiTokenGuard.validateProjectScope(
-          projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      }
+    const projectId = post.channel?.projectId;
+    if (projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
     }
 
     return post;
@@ -152,21 +111,9 @@ export class PostsController {
   ) {
     const post = await this.postsService.findOne(id, req.user.userId);
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      // @ts-ignore - post returned from findOne includes channel
-      const projectId = post.channel?.projectId;
-      if (projectId) {
-        ApiTokenGuard.validateProjectScope(
-          projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      }
+    const projectId = post.channel?.projectId;
+    if (projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
     }
 
     return this.postsService.update(id, req.user.userId, updatePostDto);
@@ -176,21 +123,9 @@ export class PostsController {
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const post = await this.postsService.findOne(id, req.user.userId);
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      // @ts-ignore - post returned from findOne includes channel
-      const projectId = post.channel?.projectId;
-      if (projectId) {
-        ApiTokenGuard.validateProjectScope(
-          projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      }
+    const projectId = post.channel?.projectId;
+    if (projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
     }
 
     return this.postsService.remove(id, req.user.userId);
@@ -203,21 +138,9 @@ export class PostsController {
   public async publish(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const post = await this.postsService.findOne(id, req.user.userId);
 
-    // Validate project scope for API token users
-    if (req.user.allProjects !== undefined) {
-      // @ts-ignore - post returned from findOne includes channel
-      const projectId = post.channel?.projectId;
-      if (projectId) {
-        ApiTokenGuard.validateProjectScope(
-          projectId,
-          req.user.allProjects,
-          req.user.projectIds ?? [],
-          {
-            userId: req.user.userId,
-            tokenId: req.user.tokenId,
-          },
-        );
-      }
+    const projectId = post.channel?.projectId;
+    if (projectId) {
+      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
     }
 
     return this.socialPostingService.enqueuePost(id, { force: true });

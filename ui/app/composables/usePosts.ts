@@ -88,7 +88,7 @@ export interface PostsFilter {
   channelId?: string | null;
   search?: string;
   limit?: number;
-  page?: number;
+  offset?: number;
   includeArchived?: boolean;
   publicationStatus?: PublicationStatus | PublicationStatus[] | null;
 }
@@ -128,21 +128,29 @@ export function usePosts() {
       if (filter.value.postType) params.postType = filter.value.postType;
       if (filter.value.search) params.search = filter.value.search;
       if (filter.value.createdBy) params.createdBy = filter.value.createdBy;
-      if (filter.value.limit) params.limit = filter.value.limit;
-      if (filter.value.page) params.page = filter.value.page;
+      const limit = filter.value.limit ?? pagination.value.limit;
+      const offset =
+        typeof filter.value.offset === 'number'
+          ? filter.value.offset
+          : (pagination.value.page - 1) * limit;
+      params.limit = limit;
+      params.offset = Math.max(0, offset);
       applyArchiveQueryFlags(params, {
         includeArchived: filter.value.includeArchived,
       });
       if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
 
-      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>('/posts', { params });
-      
+      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>(
+        '/posts',
+        { params },
+      );
+
       if (options.append) {
         posts.value = [...posts.value, ...response.items];
       } else {
         posts.value = response.items;
       }
-      
+
       totalCount.value = response.meta.total;
       return response.items;
     } catch (err: any) {
@@ -170,19 +178,27 @@ export function usePosts() {
       if (filter.value.postType) params.postType = filter.value.postType;
       if (filter.value.search) params.search = filter.value.search;
       if (filter.value.createdBy) params.createdBy = filter.value.createdBy;
-      if (filter.value.limit) params.limit = filter.value.limit;
-      if (filter.value.page) params.page = filter.value.page;
+      const limit = filter.value.limit ?? pagination.value.limit;
+      const offset =
+        typeof filter.value.offset === 'number'
+          ? filter.value.offset
+          : (pagination.value.page - 1) * limit;
+      params.limit = limit;
+      params.offset = Math.max(0, offset);
       if (filter.value.includeArchived) params.includeArchived = true;
       if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
 
-      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>('/posts', { params });
-      
+      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>(
+        '/posts',
+        { params },
+      );
+
       if (options.append) {
         posts.value = [...posts.value, ...response.items];
       } else {
         posts.value = response.items;
       }
-      
+
       totalCount.value = response.meta.total;
       return response.items;
     } catch (err: any) {
@@ -311,12 +327,18 @@ export function usePosts() {
 
   function setPage(page: number) {
     pagination.value.page = page;
+    filter.value = {
+      ...filter.value,
+      limit: filter.value.limit ?? pagination.value.limit,
+      offset: Math.max(0, (page - 1) * (filter.value.limit ?? pagination.value.limit)),
+    };
   }
 
   // Filters
   function setFilter(newFilter: Partial<PostsFilter>) {
     filter.value = { ...filter.value, ...newFilter };
     pagination.value.page = 1; // Reset to first page on filter change
+    filter.value.offset = 0;
   }
 
   function clearFilter() {

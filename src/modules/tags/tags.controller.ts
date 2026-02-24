@@ -1,7 +1,7 @@
 import { BadRequestException, Controller, Get, Query, Request, UseGuards } from '@nestjs/common';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
-import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
+import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { TagsService } from './tags.service.js';
 import { SearchTagsQueryDto } from './dto/index.js';
@@ -12,6 +12,7 @@ export class TagsController {
   constructor(
     private readonly tagsService: TagsService,
     private readonly permissions: PermissionsService,
+    private readonly apiTokenScope: ApiTokenScopeService,
   ) {}
 
   @Get('search')
@@ -32,15 +33,7 @@ export class TagsController {
 
     // projectId scope
     if (req.user.allProjects !== undefined) {
-      ApiTokenGuard.validateProjectScope(
-        query.projectId!,
-        req.user.allProjects,
-        req.user.projectIds ?? [],
-        {
-          userId: req.user.userId,
-          tokenId: req.user.tokenId,
-        },
-      );
+      this.apiTokenScope.validateProjectScopeOrThrow(req, query.projectId!);
     } else {
       await this.permissions.checkProjectAccess(query.projectId!, req.user.userId);
     }
