@@ -506,7 +506,8 @@ const hasActiveFilters = computed(() => {
           </UButton>
 
           <UButton
-            color="warning"
+            color="primary"
+            variant="soft"
             icon="i-heroicons-wrench-screwdriver"
             :loading="isRunningMaintenance"
             @click="handleRunMaintenance"

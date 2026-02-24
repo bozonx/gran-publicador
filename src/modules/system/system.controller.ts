@@ -38,16 +38,12 @@ export class SystemController {
   @Post('maintenance/run')
   @HttpCode(HttpStatus.OK)
   public async runMaintenance() {
-    const publications = await this.publicationScheduler.runNow();
-    const news = await this.newsScheduler.runNow();
     const notificationsCleanup = await this.notificationsScheduler.runCleanupNow();
 
     return {
       status: 'completed',
       scheduler: 'maintenance',
       result: {
-        publications,
-        news,
         notificationsCleanup,
       },
     };
