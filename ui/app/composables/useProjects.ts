@@ -17,10 +17,14 @@ export function useProjects() {
   const store = useProjectsStore();
   const { projects, currentProject, members, isLoading, error } = storeToRefs(store);
 
-  async function fetchProjects(arg?: boolean | {
-    includeArchived?: boolean;
-    hasContentCollections?: boolean;
-  }): Promise<ProjectWithRole[]> {
+  async function fetchProjects(
+    arg?:
+      | boolean
+      | {
+          includeArchived?: boolean;
+          hasContentCollections?: boolean;
+        },
+  ): Promise<ProjectWithRole[]> {
     store.setLoading(true);
     store.setError(null);
 
@@ -141,15 +145,26 @@ export function useProjects() {
       store.updateProject(projectId, updatedProject as ProjectWithRole);
       return updatedProject;
     } catch (err: any) {
+      const isConflict =
+        err.statusCode === 409 || err.status === 409 || err.response?.status === 409;
       const message = err.message || 'Failed to update project';
       store.setError(message);
-      if (!options.silent) {
+
+      // Always show error for conflicts, even if silent save
+      if (!options.silent || isConflict) {
         toast.add({
-          title: t('common.error'),
+          title: isConflict ? t('common.error') : t('common.error'),
           description: message,
           color: 'error',
+          duration: isConflict ? 10000 : 5000,
         });
       }
+
+      // If conflict, optionally refetch to get latest data
+      if (isConflict) {
+        fetchProject(projectId);
+      }
+
       return null;
     } finally {
       store.setLoading(false);
@@ -330,6 +345,11 @@ export function useProjects() {
     );
   }
 
+  function canTransfer(project: ProjectWithRole): boolean {
+    if (!user.value) return false;
+    return project.ownerId === user.value.id || project.role === 'owner';
+  }
+
   function canManageMembers(project: ProjectWithRole): boolean {
     return canEdit(project);
   }
@@ -426,15 +446,19 @@ export function useProjects() {
       problems,
       errorsCount: critical.reduce((sum, p) => sum + (p.count || 1), 0),
       warningsCount: warnings.reduce((sum, p) => sum + (p.count || 1), 0),
-      errorsTooltip: critical.map(p => t(`problems.project.${p.key}`, { count: p.count || 1 })).join(', '),
-      warningsTooltip: warnings.map(p => t(`problems.project.${p.key}`, { count: p.count || 1 })).join(', '),
-      level: critical.length > 0 ? 'critical' : warnings.length > 0 ? 'warning' : null
+      errorsTooltip: critical
+        .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
+        .join(', '),
+      warningsTooltip: warnings
+        .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
+        .join(', '),
+      level: critical.length > 0 ? 'critical' : warnings.length > 0 ? 'warning' : null,
     };
   }
 
   async function transferProject(
     projectId: string,
-    data: { targetUserId: string; projectName: string; clearCredentials: boolean },
+    data: { targetUsername: string; projectName: string; clearCredentials: boolean },
   ): Promise<boolean> {
     store.setLoading(true);
     store.setError(null);
@@ -498,6 +522,7 @@ export function useProjects() {
     removeMember,
     canEdit,
     canDelete,
+    canTransfer,
     archiveProject,
     unarchiveProject,
     canManageMembers,

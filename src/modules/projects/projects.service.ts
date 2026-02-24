@@ -612,21 +612,22 @@ export class ProjectsService {
   }
 
   public async remove(projectId: string, userId: string) {
-    // TODO: Update to use new permission system
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE); // Requires at least update permission, though ideally should be DELETE if added
+
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId)
-      throw new ForbiddenException('Only project owner can delete project');
+
+    // We allow either the owner OR someone with PROJECT_UPDATE permission to delete
+    // The permission check above already validates this
 
     return this.prisma.project.delete({ where: { id: projectId } });
   }
 
   public async archive(projectId: string, userId: string) {
-    // TODO: Update to use new permission system
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
+
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId)
-      throw new ForbiddenException('Only project owner can archive project');
 
     return this.prisma.project.update({
       where: { id: projectId },
@@ -635,11 +636,10 @@ export class ProjectsService {
   }
 
   public async unarchive(projectId: string, userId: string) {
-    // TODO: Update to use new permission system
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
+
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId !== userId)
-      throw new ForbiddenException('Only project owner can unarchive project');
 
     return this.prisma.project.update({
       where: { id: projectId },
@@ -1023,18 +1023,29 @@ export class ProjectsService {
       throw new ForbiddenException('Project name mismatch for confirmation');
     }
 
-    const targetUser = await this.prisma.user.findUnique({
-      where: { id: data.targetUserId },
-    });
+    let targetUser;
 
-    if (!targetUser) throw new NotFoundException('Target user not found');
+    // Check if input is a Telegram ID (numeric)
+    if (/^\d+$/.test(data.targetUsername)) {
+      targetUser = await this.prisma.user.findUnique({
+        where: { telegramId: BigInt(data.targetUsername) },
+      });
+    } else {
+      targetUser = await this.prisma.user.findFirst({
+        where: { telegramUsername: data.targetUsername.replace(/^@/, '') },
+      });
+    }
+
+    if (!targetUser) {
+      throw new NotFoundException(`User with identifier ${data.targetUsername} not found`);
+    }
 
     return this.prisma.$transaction(
       async tx => {
         // 1. Update project owner
         const updatedProject = await tx.project.update({
           where: { id: projectId },
-          data: { ownerId: data.targetUserId },
+          data: { ownerId: targetUser.id },
         });
 
         // 2. Cascade ownership of publications is REMOVED to preserve audit history
@@ -1050,7 +1061,7 @@ export class ProjectsService {
 
         // 4. Remove new owner from members if they were one
         await tx.projectMember.deleteMany({
-          where: { projectId, userId: data.targetUserId },
+          where: { projectId, userId: targetUser.id },
         });
 
         // 5. Notify the new owner
@@ -1065,7 +1076,7 @@ export class ProjectsService {
 
           await this.notifications.create(
             {
-              userId: data.targetUserId,
+              userId: targetUser.id,
               type: 'PROJECT_TRANSFER' as any,
               title: this.i18n.t('notifications.PROJECT_TRANSFER_TITLE', { lang }),
               message: this.i18n.t('notifications.PROJECT_TRANSFER_MESSAGE', {
@@ -1084,7 +1095,7 @@ export class ProjectsService {
         }
 
         this.logger.log(
-          `Project "${project.name}" (${project.id}) transferred from ${userId} to ${data.targetUserId}`,
+          `Project "${project.name}" (${project.id}) transferred from ${userId} to ${targetUser.id}`,
         );
 
         return updatedProject;

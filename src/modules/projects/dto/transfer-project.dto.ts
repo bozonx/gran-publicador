@@ -5,11 +5,11 @@ import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-valid
  */
 export class TransferProjectDto {
   /**
-   * Internal ID (UUID) of the target user who will become the new owner.
+   * Username or Telegram ID of the target user who will become the new owner.
    */
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
-  targetUserId!: string;
+  targetUsername!: string;
 
   /**
    * Whether to clear credentials (access tokens, etc.) of all project channels during transfer.

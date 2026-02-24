@@ -27,6 +27,7 @@ const {
   clearCurrentProject,
   canEdit,
   canDelete,
+  canTransfer,
   canManageMembers,
   fetchMembers,
 } = useProjects()
@@ -42,7 +43,9 @@ const projectId = computed(() => route.params.id as string)
 const showDeleteModal = ref(false)
 const deleteConfirmationInput = ref('')
 const isDeleting = ref(false)
-const isSaving = ref(false)
+const isSavingGeneral = ref(false)
+const isSavingPreferences = ref(false)
+const isSavingOptimization = ref(false)
 
 // Fetch project on mount
 onMounted(async () => {
@@ -88,18 +91,25 @@ function goBack() {
 /**
  * Handle project update
  */
-async function handleUpdate(data: Partial<ProjectWithRole>) {
+async function handleUpdate(data: Partial<ProjectWithRole>, section: 'general' | 'preferences' | 'optimization') {
   if (!projectId.value) return
 
-  isSaving.value = true
-  const success = await updateProject(projectId.value, data)
-  isSaving.value = false
-  
-  if (!success) {
-    throw new Error('Failed to update project')
-  }
+  if (section === 'general') isSavingGeneral.value = true
+  else if (section === 'preferences') isSavingPreferences.value = true
+  else if (section === 'optimization') isSavingOptimization.value = true
 
-  await fetchProject(projectId.value)
+  try {
+    const success = await updateProject(projectId.value, data)
+    
+    if (!success) {
+      throw new Error('Failed to update project')
+    }
+    // Optimization: We don't fetchProject here anymore as useProjects updateProject handles the optimistic update
+  } finally {
+    if (section === 'general') isSavingGeneral.value = false
+    else if (section === 'preferences') isSavingPreferences.value = false
+    else if (section === 'optimization') isSavingOptimization.value = false
+  }
 }
 
 /**
@@ -137,24 +147,23 @@ function cancelDelete() {
 const showTransferModal = ref(false)
 const isTransferring = ref(false)
 const transferData = ref({
-  targetUserId: '',
+  targetUsername: '',
   projectName: '',
   clearCredentials: true,
 })
 
 // Validation for transfer
-const isTransferUserIdValid = computed(() => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[4][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  return uuidRegex.test(transferData.value.targetUserId)
+const isTransferUsernameValid = computed(() => {
+  return transferData.value.targetUsername.trim().length > 0
 })
 
 const isTransferProjectNameValid = computed(() => {
   return transferData.value.projectName === currentProject.value?.name
 })
 
-const transferUserIdError = computed(() => {
-  if (!transferData.value.targetUserId) return undefined
-  return isTransferUserIdValid.value ? undefined : t('project.error_invalid_id')
+const transferUsernameError = computed(() => {
+  if (!transferData.value.targetUsername) return undefined
+  return isTransferUsernameValid.value ? undefined : t('project.error_invalid_username', 'Invalid username or ID')
 })
 
 const transferProjectNameError = computed(() => {
@@ -163,7 +172,7 @@ const transferProjectNameError = computed(() => {
 })
 
 const isTransferButtonDisabled = computed(() => {
-  return !currentProject.value || !isTransferUserIdValid.value || !isTransferProjectNameValid.value
+  return !currentProject.value || !isTransferUsernameValid.value || !isTransferProjectNameValid.value
 })
 
 /**
@@ -217,13 +226,13 @@ async function handleTransfer() {
           
           <FormsProjectForm
             :project="currentProject"
-            :is-loading="isSaving"
+            :is-loading="isSavingGeneral"
             :visible-sections="['general']"
             autosave
             hide-header
             hide-cancel
             flat
-            @submit="handleUpdate"
+            @submit="(data) => handleUpdate(data, 'general')"
           />
         </UiAppCard>
 
@@ -236,13 +245,13 @@ async function handleTransfer() {
           
           <FormsProjectForm
             :project="currentProject"
-            :is-loading="isSaving"
+            :is-loading="isSavingPreferences"
             :visible-sections="['preferences']"
             autosave
             hide-header
             hide-cancel
             flat
-            @submit="handleUpdate"
+            @submit="(data) => handleUpdate(data, 'preferences')"
           />
         </UiAppCard>
 
@@ -254,13 +263,13 @@ async function handleTransfer() {
         >
           <FormsProjectForm
             :project="currentProject"
-            :is-loading="isSaving"
+            :is-loading="isSavingOptimization"
             :visible-sections="['optimization']"
             autosave
             hide-header
             hide-cancel
             flat
-            @submit="handleUpdate"
+            @submit="(data) => handleUpdate(data, 'optimization')"
           />
         </UiAppCard>
 
@@ -385,7 +394,7 @@ async function handleTransfer() {
             </UButton>
           </div>
 
-          <div class="mt-8 pt-8 border-t border-red-100 dark:border-red-900/50 flex items-center justify-between">
+          <div class="mt-8 pt-8 border-t border-red-100 dark:border-red-900/50 flex items-center justify-between" v-if="canTransfer(currentProject)">
             <div>
               <h3 class="font-medium text-gray-900 dark:text-white">
                 {{ t('project.transferProject', 'Transfer Project') }}
@@ -448,26 +457,26 @@ async function handleTransfer() {
     <UiAppModal v-model:open="showTransferModal" :title="t('project.transferProject', 'Transfer Project')">
       <div v-if="currentProject" class="mb-6">
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {{ t('project.transfer_info', 'Enter the internal ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.') }}
+          {{ t('project.transfer_info', 'Enter the username or Telegram ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.') }}
         </p>
 
         <UFormField 
-          :label="t('project.targetUserId', 'New Owner Internal ID')" 
+          :label="t('project.targetUsername', 'New Owner Username or ID')" 
           required 
           class="mb-4"
-          :error="transferUserIdError"
+          :error="transferUsernameError"
         >
           <div class="relative flex items-center">
             <UInput
-              v-model="transferData.targetUserId"
-              :placeholder="t('project.id_placeholder', 'e.g. 550e8400-e29b-41d4-a716-446655440000')"
+              v-model="transferData.targetUsername"
+              :placeholder="t('project.username_placeholder', 'e.g. @username or 123456789')"
               autofocus
               class="flex-1"
-              :color="isTransferUserIdValid ? 'success' : undefined"
+              :color="isTransferUsernameValid ? 'success' : undefined"
             />
             <Transition name="scale-fade">
               <UIcon 
-                v-if="isTransferUserIdValid" 
+                v-if="isTransferUsernameValid" 
                 name="i-heroicons-check-circle" 
                 class="absolute right-3 w-5 h-5 text-green-500"
               />
