@@ -1,37 +1,23 @@
 import { ref, computed } from 'vue';
 import { ArchiveEntityType } from '~/types/archive.types';
 import { logger } from '~/utils/logger';
-import type { PublicationStatus } from '~/types/posts';
-import { getStatusIcon } from '~/utils/publications';
+import { 
+  getStatusIcon, 
+  getPublicationProblems, 
+  getPublicationProblemLevel, 
+  getPostProblemLevel,
+  getStatusDisplayName as utilGetStatusDisplayName,
+  getStatusUiColor as utilGetStatusUiColor
+} from '~/utils/publications';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 import { normalizeTags, parseTags } from '~/utils/tags';
-
-export interface Publication {
-  id: string;
-  projectId: string;
-  createdBy: string | null;
-  title: string | null;
-  description: string | null;
-  content: string | null;
-  tags: string[];
-  status: PublicationStatus;
-  meta: string;
-  language: string;
-  postType: string;
-  newsItemId?: string | null;
-  postDate: string | null;
-  createdAt: string;
-  updatedAt?: string | null;
-  archivedBy: string | null;
-  authorComment: string | null;
-  note: string | null;
-  archivedAt?: string | null;
-  scheduledAt?: string | null;
-  postScheduledAt?: string | null;
-  authorSignatureId?: string | null;
-  projectTemplateId?: string | null;
-  version?: number;
-}
+import type { 
+  PublicationWithRelations, 
+  PublicationsFilter, 
+  PaginatedPublications,
+  PublicationLlmChatInput,
+  PublicationLlmChatResponse
+} from '~/types/publications';
 
 function resolvePublicationTags(publication: PublicationWithRelations): string[] {
   const rawTags = (publication as { tags?: unknown }).tags;
@@ -58,162 +44,8 @@ function normalizePublication(publication: PublicationWithRelations): Publicatio
   };
 }
 
-export interface PublicationCreateInput {
-  projectId?: string | null;
-  title?: string | null;
-  description?: string | null;
-  content?: string | null;
-  tags?: string[];
-  language?: string | null;
-  postType?: string | null;
-  postDate?: string | null;
-  newsItemId?: string | null;
-  authorComment?: string | null;
-  note?: string | null;
-  scheduledAt?: string | null;
-  status?: PublicationStatus | null;
-  meta?: string | null;
-  authorSignatureId?: string | null;
-  projectTemplateId?: string | null;
-}
-
-export interface PublicationUpdateInput extends Partial<PublicationCreateInput> {
-  version?: number;
-}
-
-export interface PublicationWithRelations extends Publication {
-  tagObjects?: Array<{ id: string; name: string; normalizedName?: string }>;
-  creator?: {
-    id: string;
-    fullName: string | null;
-    telegramUsername: string | null;
-    avatarUrl: string | null;
-  } | null;
-  project?: {
-    id: string;
-    name: string;
-  } | null;
-  posts?: any[];
-  relations?: Array<{
-    id: string;
-    type: string;
-    projectId: string;
-    items: Array<{
-      id: string;
-      position: number;
-      publication: {
-        id: string;
-        title: string | null;
-        language: string;
-        postType: string;
-        status: string;
-        archivedAt: string | null;
-        posts?: Array<{
-          id: string;
-          status: string;
-          postingSnapshot?: any;
-          postingSnapshotCreatedAt?: string | null;
-          channel: {
-            id: string;
-            name: string;
-            isActive: boolean;
-            archivedAt: string | null;
-            project: { id: string; archivedAt: string | null };
-          };
-        }>;
-      };
-    }>;
-  }>;
-  media?: Array<{
-    id: string;
-    order: number;
-    media?: {
-      id: string;
-      type: string;
-      storageType: string;
-      storagePath: string;
-      filename?: string;
-      mimeType?: string;
-      sizeBytes?: number;
-      meta?: Record<string, any>;
-    };
-  }>;
-  contentItems?: Array<{
-    id: string;
-    order: number;
-    contentItem: {
-      id: string;
-      title: string | null;
-      tags: string[];
-    };
-  }>;
-  _count?: {
-    posts: number;
-  };
-}
-
-export interface PublicationsFilter {
-  status?: PublicationStatus | PublicationStatus[] | null;
-  channelId?: string | null;
-  projectId?: string | null;
-  limit?: number;
-  offset?: number;
-  includeArchived?: boolean;
-  archivedOnly?: boolean;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-  search?: string;
-  language?: string;
-  ownership?: 'own' | 'notOwn' | 'all';
-  issueType?: 'failed' | 'partial' | 'expired' | 'problematic' | 'all';
-  socialMedia?: string;
-  scope?: 'projects';
-  publishedAfter?: string;
-  tags?: string | null;
-}
-
-export interface PaginatedPublications {
-  items: PublicationWithRelations[];
-  meta: {
-    total: number;
-    totalUnfiltered?: number;
-    limit: number;
-    offset: number;
-  };
-}
-
-export interface PublicationLlmChatContextInput {
-  content?: string;
-  mediaDescriptions?: string[];
-  contextLimitChars?: number;
-}
-
-export interface PublicationLlmChatInput {
-  message: string;
-  context?: PublicationLlmChatContextInput;
-  temperature?: number;
-  max_tokens?: number;
-  model?: string;
-  tags?: string[];
-  onlyRawResult?: boolean;
-}
-
-export interface PublicationLlmChatResponse {
-  message: string;
-  metadata?: any;
-  usage?: any;
-  chat?: {
-    messages: Array<{ role: string; content: string }>;
-    context?: PublicationLlmChatContextInput;
-    savedAt?: string;
-    model?: any;
-    usage?: any;
-  };
-}
-
 export function usePublications() {
   const api = useApi();
-  const { user } = useAuth();
   const { t } = useI18n();
   const toast = useToast();
   const { archiveEntity, restoreEntity } = useArchive();
@@ -388,23 +220,11 @@ export function usePublications() {
   }
 
   function getStatusDisplayName(status: string): string {
-    if (!status) return '-';
-    return t(`publicationStatus.${status.toLowerCase()}`);
+    return utilGetStatusDisplayName(status, t);
   }
 
-  function getStatusColor(status: string): string {
-    if (!status) return 'neutral';
-    const colors: Record<string, string> = {
-      draft: 'neutral',
-      ready: 'warning',
-      scheduled: 'info',
-      processing: 'primary',
-      published: 'success',
-      partial: 'error',
-      failed: 'error',
-      expired: 'error',
-    };
-    return colors[status.toLowerCase()] || 'neutral';
+  function getStatusColor(status: string) {
+    return utilGetStatusUiColor(status);
   }
 
   async function createPublication(data: any): Promise<PublicationWithRelations> {
@@ -497,13 +317,13 @@ export function usePublications() {
     error.value = null;
 
     try {
-      const payload = { ids, operation, status, targetProjectId };
+      const payload: any = { ids, operation, status, targetProjectId };
       // Remove undefined/null values to avoid issues with whitelist: true, forbidNonWhitelisted: true
       Object.keys(payload).forEach(
         key =>
-          (payload[key as keyof typeof payload] === undefined ||
-            payload[key as keyof typeof payload] === null) &&
-          delete payload[key as keyof typeof payload],
+          (payload[key] === undefined ||
+            payload[key] === null) &&
+          delete payload[key],
       );
 
       await api.post('/publications/bulk', payload);
@@ -564,10 +384,6 @@ export function usePublications() {
       if (currentPublication.value?.id === publicationId) {
         await fetchPublication(publicationId);
       } else {
-        // If in list, refresh list? Or just update local item if possible?
-        // Re-fetch is safest for now as we don't know filtering context perfectly
-        // access projectId from current view? We don't have it here.
-        // But we can check if the publication is in the `publications` list
         const idx = publications.value.findIndex(
           (p: PublicationWithRelations) => p.id === publicationId,
         );
@@ -585,59 +401,9 @@ export function usePublications() {
     }
   }
 
-  // Problem detection functions
   function hasFailedPosts(publication: PublicationWithRelations): boolean {
     if (!publication.posts || publication.posts.length === 0) return false;
     return publication.posts.some((post: any) => post.status === 'FAILED');
-  }
-
-  function getPublicationProblems(publication: PublicationWithRelations) {
-    const problems: Array<{ type: 'critical' | 'warning'; key: string; count?: number }> = [];
-
-    // Check if any post failed regardless of publication status (Lowest level - bottom)
-    const failedPostsCount =
-      publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0;
-    if (
-      failedPostsCount > 0 &&
-      publication.status !== 'FAILED' &&
-      publication.status !== 'PARTIAL'
-    ) {
-      problems.push({ type: 'warning', key: 'postsHaveErrors', count: failedPostsCount });
-    }
-
-    // Check publication status (Higher level)
-    if (publication.status === 'EXPIRED') {
-      problems.push({ type: 'warning', key: 'publicationExpired' });
-    }
-
-    if (publication.status === 'PARTIAL') {
-      const failedCount = publication.posts?.filter((p: any) => p.status === 'FAILED').length || 0;
-      problems.push({ type: 'warning', key: 'somePostsFailed', count: failedCount });
-    }
-
-    if (publication.status === 'FAILED') {
-      problems.push({ type: 'critical', key: 'allPostsFailed' });
-    }
-
-    return problems;
-  }
-
-  function getPublicationProblemLevel(
-    publication: PublicationWithRelations,
-  ): 'critical' | 'warning' | null {
-    const problems = getPublicationProblems(publication);
-    if (problems.some(p => p.type === 'critical')) return 'critical';
-    if (problems.some(p => p.type === 'warning')) return 'warning';
-    return null;
-  }
-
-  function getPostProblemLevel(post: any): 'critical' | 'warning' | null {
-    // Check post status
-    if (post.status === 'FAILED') {
-      return 'critical';
-    }
-
-    return null;
   }
 
   async function copyPublication(

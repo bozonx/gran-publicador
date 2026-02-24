@@ -7,45 +7,9 @@ import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAutosave } from '~/composables/useAutosave'
-
-interface MediaItem {
-  id: string
-  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
-  storageType: 'TELEGRAM' | 'STORAGE'
-  storagePath: string
-  filename?: string
-  alt?: string
-  description?: string
-  mimeType?: string
-  sizeBytes?: number | string
-  meta?: Record<string, any>
-  fullMediaMeta?: Record<string, any>
-  publicToken?: string
-  createdAt?: string
-  updatedAt?: string
-}
-
-async function handleDone() {
-  await forceSaveMediaMeta()
-
-  if (mediaSaveStatus.value === 'error') {
-    toast.add({
-      title: t('common.error'),
-      description: t('common.saveError', 'Failed to save'),
-      color: 'error',
-    })
-    return
-  }
-
-  closeMediaModal()
-}
-
-interface MediaLinkItem {
-  id?: string
-  media?: MediaItem
-  order: number
-  hasSpoiler?: boolean
-}
+import { formatBytes, getMediaIcon } from '~/utils/media'
+import type { MediaItem, MediaLinkItem } from '~/types/media'
+import type { ValidationError } from '~/composables/useSocialMediaValidation'
 
 interface Props {
   media: MediaLinkItem[]
@@ -249,7 +213,7 @@ function getMediaIcon(type: string) {
 }
 
 function triggerFileInput() {
-  fileInput.value?.click()
+  fileInput.value?.triggerFileInput()
 }
 
 function getDefaultOptimizationParams() {
@@ -710,15 +674,7 @@ watch(selectedMedia, () => {
 
 
 
-function formatBytes(bytes?: number | string): string {
-  if (!bytes || bytes === 0 || bytes === '0') return '0 B'
-  const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(b) / Math.log(k))
-  const val = b / Math.pow(k, i)
-  return (val < 10 ? val.toFixed(2) : val.toFixed(1)) + ' ' + sizes[i]
-}
+// formatBytes and getMediaIcon moved to utils/media.ts
 
 const compressionStats = computed(() => {
   const meta = selectedMedia.value?.meta
@@ -903,60 +859,20 @@ const mediaValidation = computed(() => {
       <!-- Horizontal scrollable media gallery -->
       <CommonHorizontalScroll class="-mx-6 px-6">
           <!-- Upload button card (always first) -->
-          <div
+          <MediaUploadButton
             v-if="editable"
-            :class="[
-              'shrink-0 w-48 h-48 border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer group relative overflow-hidden',
-              isDropZoneActive 
-                ? 'border-primary-500 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20' 
-                : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50'
-            ]"
-            @click="triggerFileInput"
+            ref="fileInput"
+            :is-uploading="isUploading"
+            :upload-progress="uploadProgress ? 1 : 0"
+            :upload-progress-percent="uploadProgressPercent"
+            :is-drop-zone-active="isDropZoneActive"
+            :editable="editable"
+            @file-upload="handleFileUpload"
             @dragenter="handleDragEnter"
             @dragover="handleDragOver"
             @dragleave="handleDragLeave"
             @drop="handleDrop"
-          >
-            <!-- Progress bar background -->
-            <div
-              v-if="uploadProgress"
-              class="absolute bottom-0 left-0 h-1 bg-primary-500 dark:bg-primary-400 transition-all duration-300"
-              :style="{ width: `${uploadProgressPercent}%` }"
-            ></div>
-            
-            <input
-              ref="fileInput"
-              type="file"
-              multiple
-              class="hidden"
-              @change="handleFileUpload"
-            />
-            <UIcon
-              :name="isDropZoneActive ? 'i-heroicons-arrow-down-tray' : 'i-heroicons-arrow-up-tray'"
-              :class="[
-                'w-8 h-8 transition-colors',
-                isDropZoneActive 
-                  ? 'text-primary-500 dark:text-primary-400' 
-                  : 'text-gray-400 group-hover:text-primary-500'
-              ]"
-            ></UIcon>
-            <span 
-              :class="[
-                'text-sm font-medium transition-colors text-center px-2',
-                isDropZoneActive
-                  ? 'text-primary-600 dark:text-primary-400'
-                  : 'text-gray-600 dark:text-gray-400 group-hover:text-primary-500'
-              ]"
-            >
-              {{ 
-                uploadProgress || isUploading 
-                  ? `${t('media.uploading', 'Uploading...')} ${uploadProgressPercent}%`
-                  : isDropZoneActive
-                    ? t('media.dropHere', 'Drop file here')
-                    : t('media.uploadFile', 'Upload File') 
-              }}
-            </span>
-          </div>
+          />
 
           <!-- Draggable Media items -->
           <VueDraggable
@@ -1234,68 +1150,11 @@ const mediaValidation = computed(() => {
           class="flex justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg overflow-hidden touch-pan-y relative min-h-[40vh] max-h-[70vh]"
         >
           <Transition :name="transitionName">
-            <div :key="selectedMedia.id" class="absolute inset-0 flex items-center justify-center">
-              <img
-                v-if="selectedMedia.type === 'IMAGE'"
-                :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
-                :alt="selectedMedia.filename || 'Media'"
-                class="max-w-full max-h-full object-contain"
-              />
-              <div v-else-if="selectedMedia.type === 'VIDEO'" class="w-full h-full flex items-center justify-center relative group">
-                <video
-                  controls
-                  :autoplay="authStore.user?.videoAutoplay !== false"
-                  class="max-w-full max-h-full"
-                  :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
-                >
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-              <div v-else-if="selectedMedia.type === 'AUDIO'" class="w-full h-full flex items-center justify-center relative group">
-                <!-- Decorative background -->
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10">
-                   <UIcon name="i-heroicons-musical-note" class="w-96 h-96 text-primary-500 dark:text-primary-400" />
-                </div>
-                
-                <!-- Player Card -->
-                <div class="relative z-10 w-full max-w-[90%] sm:max-w-md bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm border border-gray-200 dark:border-gray-700 p-8 rounded-3xl shadow-2xl flex flex-col items-center text-center gap-6">
-                    
-                    <!-- Icon / Art -->
-                    <div class="relative group/icon cursor-default">
-                        <div class="absolute -inset-1 bg-linear-to-r from-primary-500 to-indigo-500 rounded-2xl blur opacity-30 group-hover/icon:opacity-50 transition duration-1000"></div>
-                        <div class="relative w-32 h-32 rounded-2xl bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900 shadow-inner flex items-center justify-center ring-1 ring-gray-900/5 dark:ring-white/10">
-                             <UIcon name="i-heroicons-musical-note" class="w-16 h-16 text-gray-400 dark:text-gray-500" />
-                        </div>
-                    </div>
-            
-                    <!-- Info -->
-                    <div class="space-y-1.5 w-full">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white truncate px-2">
-                            {{ selectedMedia.filename || 'Audio Track' }}
-                        </h3>
-                        <p class="text-xs font-mono text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            {{ selectedMedia.mimeType || 'AUDIO' }}
-                        </p>
-                    </div>
-            
-                    <!-- HTML5 Audio -->
-                    <audio
-                        controls
-                        :autoplay="authStore.user?.videoAutoplay !== false"
-                        class="w-full mt-2"
-                        :src="getMediaFileUrl(selectedMedia.id, authStore.accessToken || undefined, selectedMedia.updatedAt)"
-                    >
-                         Your browser does not support the audio element.
-                    </audio>
-                </div>
-              </div>
-              <div v-else class="flex items-center justify-center h-full w-full">
-                <UIcon
-                  :name="getMediaIcon(selectedMedia.type)"
-                  class="w-24 h-24 text-gray-400"
-                />
-              </div>
-            </div>
+            <MediaViewerItem 
+              v-if="selectedMedia"
+              :key="selectedMedia.id"
+              :media="selectedMedia"
+            />
           </Transition>
         </div>
 
@@ -1313,178 +1172,26 @@ const mediaValidation = computed(() => {
 
       <!-- Metadata -->
       <div v-if="selectedMedia" class="w-full">
-        <!-- Read-only fields -->
-        <div class="space-y-1 mb-6 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-800 text-xs font-mono overflow-x-auto">
-          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">type:</span>
-            <span class="text-gray-900 dark:text-gray-200">
-              {{ selectedMedia.storageType }}, {{ selectedMedia.type }}{{ selectedMedia.mimeType ? `, ${selectedMedia.mimeType}` : '' }}
-            </span>
-          </div>
-          <div v-if="selectedMedia.sizeBytes" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">size:</span>
-            <span class="text-gray-900 dark:text-gray-200">{{ formatBytes(selectedMedia.sizeBytes) }}</span>
-          </div>
-          <div v-if="resolution" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">resolution:</span>
-            <span class="text-gray-900 dark:text-gray-200">{{ resolution }}</span>
-          </div>
-          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">path:</span>
-            <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.storagePath }}</span>
-          </div>
-          <div v-if="selectedMedia.filename" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">filename:</span>
-            <span class="text-gray-900 dark:text-gray-200 whitespace-nowrap">{{ selectedMedia.filename }}</span>
-          </div>
-          <div class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">id:</span>
-            <div class="flex items-center gap-2">
-              <span 
-                class="text-gray-900 dark:text-gray-200 truncate cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                @click="downloadMediaFile(selectedMedia)"
-              >
-                {{ selectedMedia.id }}
-              </span>
-              <UIcon 
-                name="i-heroicons-arrow-down-tray" 
-                class="w-4 h-4 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 cursor-pointer transition-colors shrink-0"
-                @click="downloadMediaFile(selectedMedia)"
-              />
-            </div>
-          </div>
-          <div v-if="publicMediaUrl" class="grid grid-cols-[100px_1fr] gap-2 min-w-0">
-            <span class="text-gray-500 shrink-0">public url:</span>
-            <div class="flex items-center gap-2 min-w-0">
-               <span class="text-gray-900 dark:text-gray-200 truncate font-mono text-xs select-all">{{ publicMediaUrl }}</span>
-               <UButton 
-                 icon="i-heroicons-clipboard-document"
-                 variant="ghost"
-                 color="neutral"
-                 size="xs"
-                 class="-my-1"
-                 @click="copyPublicLink"
-               />
-               <UButton 
-                 icon="i-heroicons-arrow-top-right-on-square"
-                 variant="ghost"
-                 color="neutral"
-                 size="xs"
-                 class="-my-1"
-                 :to="publicMediaUrl"
-                 target="_blank"
-               />
-            </div>
-          </div>
-        </div>
+        <MediaDetailsViewer
+          :media="selectedMedia"
+          :resolution="resolution"
+          :exif-data="exifData"
+          :compression-stats="compressionStats"
+          :public-media-url="publicMediaUrl"
+          @copy-link="copyPublicLink"
+          @download="downloadMediaFile(selectedMedia)"
+        />
 
-        <!-- Compression statistics -->
-        <div v-if="compressionStats" class="mb-6 p-4 bg-primary-50 dark:bg-primary-900/10 rounded-lg border border-primary-200 dark:border-primary-800/50">
-          <div class="flex items-center gap-2 mb-3 text-primary-700 dark:text-primary-300">
-            <UIcon name="i-heroicons-sparkles" class="w-5 h-5" />
-            <span class="font-semibold text-sm">{{ t('media.compressionRatio', 'Compression') }}</span>
-            <span v-if="compressionStats.originalFormat && compressionStats.optimizedFormat && compressionStats.originalFormat !== compressionStats.optimizedFormat" class="ml-auto text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded">
-              {{ compressionStats.originalFormat.split('/')[1]?.toUpperCase() }} <UIcon name="i-heroicons-arrow-right" class="w-3 h-3 inline -mt-0.5 mx-0.5" /> {{ compressionStats.optimizedFormat.split('/')[1]?.toUpperCase() }}
-            </span>
-          </div>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.originalSize') }}</div>
-              <div class="text-sm font-mono">{{ compressionStats.originalSize }}</div>
-            </div>
-            <div class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.optimizedSize') }}</div>
-              <div class="text-sm font-mono text-primary-600 dark:text-primary-400">{{ compressionStats.optimizedSize }}</div>
-            </div>
-            <div class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.savedSpace') }}</div>
-              <div class="text-sm font-mono text-green-600 dark:text-green-400 font-bold">
-                {{ compressionStats.savedPercent }}%
-              </div>
-            </div>
-            <div class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">Ratio</div>
-              <div class="text-sm font-mono">{{ compressionStats.ratio }}x</div>
-            </div>
-            <div v-if="compressionStats.quality" class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.quality') }}</div>
-              <div class="text-sm font-mono">{{ compressionStats.quality }}%</div>
-            </div>
-            <div v-if="compressionStats.lossless !== undefined" class="space-y-1">
-              <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.lossless') }}</div>
-              <div class="text-sm font-mono flex items-center gap-1">
-                <UIcon :name="compressionStats.lossless ? 'i-heroicons-check' : 'i-heroicons-x-mark'" :class="compressionStats.lossless ? 'text-green-500' : 'text-gray-400'" class="w-4 h-4" />
-                <span>{{ compressionStats.lossless ? t('common.yes') : t('common.no') }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="editable" class="mb-6 p-4 bg-orange-50 dark:bg-orange-900/10 rounded-lg border border-orange-200 dark:border-orange-800/50">
-          <UCheckbox
-            v-model="editableHasSpoiler"
-            :label="t('media.hasSpoiler', 'Hide content (spoiler)')"
-            :description="t('media.spoilerDescription', 'Content will be hidden until user clicks')"
-            color="warning"
-          />
-          <div v-if="selectedMedia.meta?.telegram?.hasSpoiler" class="mt-2 flex items-center gap-1.5 text-xs text-orange-600 dark:text-orange-400">
-            <UIcon name="i-heroicons-information-circle" class="w-4 h-4" />
-            <span>{{ t('media.originalSpoilerFromTelegram', 'Original message from Telegram had spoiler') }}</span>
-          </div>
-        </div>
-
-        <div v-if="editable" class="space-y-4 mb-4">
-          <UFormField>
-            <template #label>
-              <div class="flex items-center gap-1.5">
-                <span>{{ t('media.description') }}</span>
-                <CommonInfoTooltip :text="t('media.descriptionTooltip')" />
-              </div>
-            </template>
-            <UTextarea 
-              v-model="editableDescription" 
-              :placeholder="t('media.descriptionPlaceholder', 'Description of the media')" 
-              :rows="3"
-              class="w-full"
-            />
-          </UFormField>
-
-          <UFormField>
-            <template #label>
-              <div class="flex items-center gap-1.5">
-                <span>{{ t('media.alt') }}</span>
-                <CommonInfoTooltip :text="t('media.altTooltip')" />
-              </div>
-            </template>
-            <UInput 
-              v-model="editableAlt" 
-              :placeholder="t('media.altPlaceholder', 'Alt text for the image')" 
-              class="w-full"
-            />
-          </UFormField>
-        </div>
-
-         <div class="mt-4">
-            <CommonMetadataEditor
-               v-model="editableMetadata"
-               :rows="8"
-               :disabled="!editable"
-            />
-         </div>
-
-        <!-- EXIF Data Display -->
-        <div v-if="exifData" class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-          <div class="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
-            <UIcon name="i-heroicons-camera" class="w-5 h-5" />
-            <span class="font-semibold text-sm">{{ t('media.exif', 'EXIF Data') }}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-            <div v-for="(value, key) in exifData" :key="key" class="flex flex-col">
-              <span class="text-gray-500 font-medium">{{ key }}</span>
-              <span class="text-gray-900 dark:text-gray-200 truncate" :title="String(value)">{{ value }}</span>
-            </div>
-          </div>
-        </div>
+        <MediaDetailsEditor
+          v-if="editable"
+          class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
+          :media="selectedMedia"
+          :editable="editable"
+          v-model:hasSpoiler="editableHasSpoiler"
+          v-model:description="editableDescription"
+          v-model:alt="editableAlt"
+          v-model:metadata="editableMetadata"
+        />
       </div>
     </div>
     

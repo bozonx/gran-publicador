@@ -123,9 +123,22 @@ const {
 } = useContentLibraryFilters(activeCollectionId)
 
 const activeCollection = ref<ContentCollection | null>(null)
-const selectedGroupId = ref<string | null>(null)
-const orphansOnly = ref(false)
 const collections = ref<ContentCollection[]>([])
+const collectionsById = computed(() => new Map(collections.value.map(c => [c.id, c])))
+const activeRootGroupId = computed(() => {
+  if (activeCollection.value?.type !== 'GROUP') return undefined
+  return getRootGroupId({
+    activeGroupId: activeCollection.value.id,
+    collectionsById: collectionsById.value,
+  })
+})
+
+const getSelectedGroupStorageKey = () => {
+  return `content-library-selected-group-${props.scope}-${props.projectId || 'global'}-${activeRootGroupId.value || 'none'}`
+}
+
+const selectedGroupId = useLocalStorage<string | null>(getSelectedGroupStorageKey(), null)
+const orphansOnly = ref(false)
 const archiveStatus = ref<'active' | 'archived'>('active')
 const limit = DEFAULT_PAGE_SIZE
 const offset = ref(0)
@@ -141,23 +154,8 @@ const isSelectionDisabled = computed(() =>
   activeCollection.value?.type === 'UNSPLASH'
 )
 
-
 const selectedTagsArray = computed(() => parseTags(selectedTags.value))
-
 const allScopeGroupCollections = computed(() => collections.value.filter(c => c.type === 'GROUP'))
-const collectionsById = computed(() => new Map(collections.value.map(c => [c.id, c])))
-
-const activeRootGroupId = computed(() => {
-  if (activeCollection.value?.type !== 'GROUP') return undefined
-  return getRootGroupId({
-    activeGroupId: activeCollection.value.id,
-    collectionsById: collectionsById.value as any,
-  })
-})
-
-const getSelectedGroupStorageKey = () => {
-  return `content-library-selected-group-${props.scope}-${props.projectId || 'global'}-${activeRootGroupId.value || 'none'}`
-}
 
 // Modals State
 const isPurgeConfirmModalOpen = ref(false)
@@ -246,8 +244,8 @@ const persistSavedViewStateToDb = async () => {
   const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
 
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     persistSearch,
     persistTags,
@@ -280,8 +278,8 @@ const persistPublicationMediaVirtualStateToDb = async () => {
   const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
 
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     persistSearch,
     persistTags,
@@ -312,8 +310,8 @@ const persistGroupSortStateToDb = async () => {
 
   const state = ensureTabState(collection.id)
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
@@ -363,8 +361,8 @@ const persistUnsplashStateToDb = async () => {
   const state = ensureTabState(collection.id)
   const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     persistSearch,
     sortBy: state.sortBy,
@@ -401,8 +399,8 @@ const setSavedViewPersistSearch = async (value: boolean) => {
   if (!isSavedView(collection) && !isPublicationMediaVirtual(collection) && !isUnsplash(collection)) return
 
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     persistSearch: value,
   }
@@ -422,8 +420,8 @@ const setSavedViewPersistTags = async (value: boolean) => {
   if (!isSavedView(collection) && !isPublicationMediaVirtual(collection)) return
 
   const nextConfig: Record<string, any> = {
-    ...(typeof (collection as any).config === 'object' && (collection as any).config !== null
-      ? (collection as any).config
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
       : {}),
     persistTags: value,
   }
@@ -586,6 +584,7 @@ watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
     selectedIds.value = []
     if (next) initTabStateFromCollectionConfigIfMissing(next)
+
     if (next?.type === 'PUBLICATION_MEDIA_VIRTUAL') {
       sortBy.value = 'combined'
       selectedIds.value = []
@@ -597,21 +596,21 @@ watch(activeCollection, (next, prev) => {
         sortBy.value = 'createdAt'
       }
     }
+
     if (next?.type === 'GROUP') {
-      let restoredGroupId: string | null = null
-      if (import.meta.client) {
-        restoredGroupId = localStorage.getItem(getSelectedGroupStorageKey())
-      }
+      const restoredGroupId = selectedGroupId.value
 
       const isValidRestoredId =
         !!restoredGroupId &&
         collectionsById.value.has(restoredGroupId) &&
         getRootGroupId({
           activeGroupId: restoredGroupId,
-          collectionsById: collectionsById.value as any,
+          collectionsById: collectionsById.value,
         }) === activeRootGroupId.value
 
-      selectedGroupId.value = isValidRestoredId ? restoredGroupId : next.id
+      if (!isValidRestoredId) {
+        selectedGroupId.value = next.id
+      }
       orphansOnly.value = false
     } else {
       selectedGroupId.value = null
@@ -651,10 +650,6 @@ watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
 watch(selectedGroupId, (next) => {
   if (activeCollection.value?.type !== 'GROUP') return
   selectedIds.value = []
-  if (!next) return
-  if (!import.meta.client) return
-  if (!activeRootGroupId.value) return
-  localStorage.setItem(getSelectedGroupStorageKey(), next)
 })
 const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 const hasMore = computed(() => items.value.length < total.value)
