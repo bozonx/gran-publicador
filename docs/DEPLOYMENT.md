@@ -29,6 +29,8 @@ Optional but recommended:
 - `SYSTEM_API_SECRET` — shared secret for system API endpoints (e.g. n8n triggers)
 - `SYSTEM_API_IP_RESTRICTION_ENABLED` — restrict system API to local network IPs (default: `true`)
 - `TELEGRAM_BOT_ENABLED` — enable Telegram bot for content collection (default: `false`)
+- `TELEGRAM_BOT_USE_WEBHOOK` — use Webhooks instead of Long Polling (default: `false`)
+- `TELEGRAM_BOT_WEB_URL` — Base URL for Telegram Bot Webhook
 - `TELEGRAM_ADMIN_ID` — Telegram ID of the super-administrator
 - `FRONTEND_URL` — frontend URL for links in bot messages
 - `TELEGRAM_MINI_APP_URL` — Telegram Mini App base URL
@@ -39,6 +41,9 @@ Optional but recommended:
 - `SCHEDULER_WINDOW_MINUTES` — past window for scheduled tasks (default: `10`)
 - `SHUTDOWN_TIMEOUT_SECONDS` — graceful shutdown timeout (default: `30`)
 - `TZ` — application timezone (default: `UTC`)
+- `UNSPLASH_ACCESS_KEY` — Unsplash API key for image collection
+- `MEDIA_IMAGE_OPTIMIZATION_ENABLED` — Enable automatic image optimization (default: `true`)
+- `HTTP_RETRY_MAX_ATTEMPTS` — Outbound HTTP request retry limit (default: `3`)
 
 See `.env.production.example` for the full list with defaults.
 

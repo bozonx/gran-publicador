@@ -8,6 +8,7 @@ import { TelegramBotUpdate } from './telegram-bot.update.js';
 import { SttModule } from '../stt/stt.module.js';
 import { TELEGRAM_MESSAGES_QUEUE } from './telegram-bot.queue.js';
 import { TelegramMessageProcessor } from './telegram-message.processor.js';
+import { TelegramWebhookController } from './telegram-bot.controller.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TelegramMessageProcessor } from './telegram-message.processor.js';
     MediaModule,
     SttModule,
   ],
+  controllers: [TelegramWebhookController],
   providers: [TelegramBotService, TelegramBotUpdate, TelegramMessageProcessor],
   exports: [TelegramBotService],
 })

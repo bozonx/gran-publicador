@@ -75,7 +75,7 @@ export class AppConfig {
   /**
    * Telegram Bot Token.
    */
-  @ValidateIf(o => o.telegramBotEnabled)
+  @ValidateIf((o: AppConfig) => o.telegramBotEnabled)
   @IsString()
   public telegramBotToken?: string;
 
@@ -99,6 +99,28 @@ export class AppConfig {
   @IsOptional()
   @IsString()
   public telegramMiniAppUrl?: string;
+
+  /**
+   * Whether to use Webhook instead of Long Polling for Telegram Bot.
+   */
+  @IsBoolean()
+  public telegramBotUseWebhook!: boolean;
+
+  /**
+   * Base URL for Telegram Webhook (without /api/v1/telegram/webhook).
+   * E.g., https://api.example.com
+   */
+  @ValidateIf((o: AppConfig) => o.telegramBotUseWebhook)
+  @IsString()
+  public telegramBotWebhookUrl?: string;
+
+  /**
+   * Secret token to verify Telegram Webhook requests.
+   */
+  @ValidateIf((o: AppConfig) => o.telegramBotUseWebhook)
+  @IsString()
+  @IsOptional()
+  public telegramBotWebhookSecret?: string;
 
   /**
    * JWT Secret for auth.
@@ -174,10 +196,10 @@ export default registerAs('app', (): AppConfig => {
   let version = 'unknown';
   try {
     const pkgPath = join(process.cwd(), 'package.json');
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { version: string };
     version = pkg.version;
-  } catch (e) {
-    version = process.env.npm_package_version || 'unknown';
+  } catch (_e) {
+    version = process.env.npm_package_version ?? 'unknown';
   }
 
   // Transform environment variables to a typed configuration object
@@ -188,12 +210,15 @@ export default registerAs('app', (): AppConfig => {
     nodeEnv: process.env.NODE_ENV ?? 'production',
     logLevel: process.env.LOG_LEVEL ?? 'warn',
 
-    adminTelegramId: process.env.TELEGRAM_ADMIN_ID || undefined,
-    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || undefined,
+    adminTelegramId: process.env.TELEGRAM_ADMIN_ID ?? undefined,
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? undefined,
     telegramBotEnabled: process.env.TELEGRAM_BOT_ENABLED === 'true',
+    telegramBotUseWebhook: process.env.TELEGRAM_BOT_USE_WEBHOOK === 'true',
+    telegramBotWebhookUrl: process.env.TELEGRAM_BOT_WEB_URL ?? undefined,
+    telegramBotWebhookSecret: process.env.TELEGRAM_BOT_WEB_SECRET ?? undefined,
     frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:3000',
     telegramMiniAppUrl:
-      process.env.TELEGRAM_MINI_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000',
+      process.env.TELEGRAM_MINI_APP_URL ?? process.env.FRONTEND_URL ?? 'http://localhost:3000',
     jwtSecret: process.env.JWT_SECRET,
     systemApiSecret: process.env.SYSTEM_API_SECRET,
     systemApiIpRestrictionEnabled: process.env.SYSTEM_API_IP_RESTRICTION_ENABLED !== 'false',
