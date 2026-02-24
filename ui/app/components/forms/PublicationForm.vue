@@ -388,7 +388,7 @@ onMounted(async () => {
 })
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave, flushSave } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
     if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
@@ -708,6 +708,7 @@ function handleReset() {
           :default-target-lang="state.language"
           :project-id="currentProjectId"
           :disabled="isLocked"
+          @blur="props.autosave ? flushSave() : undefined"
         />
       </UFormField>
 

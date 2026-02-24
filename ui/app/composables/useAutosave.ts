@@ -1,5 +1,9 @@
 import { ref, watch, type Ref, computed, onMounted, onUnmounted, toRaw } from 'vue';
-import { onBeforeRouteLeave } from 'vue-router';
+import {
+  onBeforeRouteLeave,
+  type NavigationGuardNext,
+  type RouteLocationNormalized,
+} from 'vue-router';
 import {
   AUTO_SAVE_DEBOUNCE_MS,
   AUTOSAVE_INDICATOR_DELAY_MS,
@@ -73,6 +77,7 @@ export interface AutosaveReturn {
   isIndicatorVisible: Ref<boolean>;
   indicatorStatus: Ref<SaveStatus>;
   isDirty: Ref<boolean>;
+  flushSave: () => Promise<void>;
   forceSave: () => Promise<void>;
   // Manual trigger that ignores isEqual check
   triggerSave: () => Promise<void>;
@@ -456,7 +461,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   // Watch for changes
   watch(
     data,
-    (newValue, oldValue) => {
+    (newValue: T | null, oldValue: T | null) => {
       if (!newValue) return;
 
       if (skipInitial && !baselineInitialized) {
@@ -527,22 +532,24 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   // In unit tests or some runtimes there may be no active router context.
   if (enableNavigationGuards) {
     try {
-      onBeforeRouteLeave((to, from, next) => {
-        if (saveStatus.value === 'saving' || isDirty.value) {
-          const key =
-            saveStatus.value === 'saving'
-              ? 'common.savingInProgressConfirm'
-              : 'common.unsavedChangesConfirm';
-          const answer = window.confirm(t(key));
-          if (answer) {
-            next();
+      onBeforeRouteLeave(
+        (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+          if (saveStatus.value === 'saving' || isDirty.value) {
+            const key =
+              saveStatus.value === 'saving'
+                ? 'common.savingInProgressConfirm'
+                : 'common.unsavedChangesConfirm';
+            const answer = window.confirm(t(key));
+            if (answer) {
+              next();
+            } else {
+              next(false);
+            }
           } else {
-            next(false);
+            next();
           }
-        } else {
-          next();
-        }
-      });
+        },
+      );
     } catch (error) {
       logger.warn('Failed to register autosave route leave guard', error);
     }
@@ -578,6 +585,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     isDirty,
     isIndicatorVisible,
     indicatorStatus,
+    flushSave: () => performSave(false),
     forceSave: () => performSave(true),
     triggerSave: () => performSave(true),
     retrySave: async () => {

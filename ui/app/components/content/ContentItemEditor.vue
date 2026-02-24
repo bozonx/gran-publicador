@@ -61,7 +61,7 @@ const editForm = ref({
 
 const groups = ref(JSON.parse(JSON.stringify(props.item.groups || [])))
 
-const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave, flushSave } = useAutosave({
   data: toRef(() => editForm.value),
   saveFn: async (data: any) => {
     await saveItem(data)
@@ -250,6 +250,7 @@ defineExpose({
         :placeholder="t('contentLibrary.fields.textPlaceholder')"
         :min-height="150"
         @update:model-value="(v: any) => (editForm.text = v)"
+        @blur="flushSave()"
       />
     </UFormField>
 
