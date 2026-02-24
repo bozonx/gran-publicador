@@ -109,6 +109,8 @@ function handleDelete(e: Event) {
               class="w-4 h-4"
             />
           </UTooltip>
+
+          <CommonAdminDebugInfo :data="publication" />
         </div>
       </div>
       

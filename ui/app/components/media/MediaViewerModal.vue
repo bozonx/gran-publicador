@@ -3,6 +3,7 @@ interface Props {
   title?: string
   counterText?: string
   preventClose?: boolean
+  media?: Record<string, any>
   ui?: {
     content?: string
     body?: string
@@ -14,7 +15,8 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   preventClose: false,
-  ui: () => ({})
+  ui: () => ({}),
+  media: () => ({})
 })
 
 const isOpen = defineModel<boolean>('open', { default: false })
@@ -65,6 +67,7 @@ function handleClose() {
           <span v-if="props.counterText" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {{ props.counterText }}
           </span>
+          <CommonAdminDebugInfo v-if="props.media && Object.keys(props.media).length > 0" :data="props.media" placement="bottom-end" />
           <slot name="header-right" />
           <UButton
             icon="i-heroicons-x-mark"

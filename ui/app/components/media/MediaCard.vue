@@ -174,5 +174,12 @@ function handleDragStart(event: DragEvent) {
     <template #actions>
       <slot name="actions" />
     </template>
+
+    <template #overlay>
+      <div class="absolute top-1 right-1 z-20">
+        <CommonAdminDebugInfo :data="media" placement="bottom-end" />
+      </div>
+      <slot name="overlay" />
+    </template>
   </CommonThumb>
 </template>

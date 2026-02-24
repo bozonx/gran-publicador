@@ -1209,6 +1209,7 @@ async function confirmResetChat() {
               <span v-if="estimatedTokensValue">{{ t('llm.estimatedTokens', { count: estimatedTokensValue }) }}</span>
            </div>
            <div v-if="metadata && canSeeModelMetadata" class="flex items-center gap-2">
+              <CommonAdminDebugInfo :data="metadata" placement="top-end" />
               <span>{{ metadata.provider }} ({{ metadata.model_name }})</span>
            </div>
         </div>
