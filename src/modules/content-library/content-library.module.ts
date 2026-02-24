@@ -10,6 +10,8 @@ import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
 import { ContentLibraryService } from './content-library.service.js';
 import { UnsplashService } from './unsplash.service.js';
+import { ContentBulkService } from './content-bulk.service.js';
+import { ContentLibraryVirtualService } from './content-library-virtual.service.js';
 
 @Module({
   imports: [
@@ -25,7 +27,16 @@ import { UnsplashService } from './unsplash.service.js';
     ContentItemsService,
     ContentLibraryService,
     UnsplashService,
+    ContentBulkService,
+    ContentLibraryVirtualService,
   ],
-  exports: [ContentCollectionsService, ContentItemsService, ContentLibraryService, UnsplashService],
+  exports: [
+    ContentCollectionsService,
+    ContentItemsService,
+    ContentLibraryService,
+    UnsplashService,
+    ContentBulkService,
+    ContentLibraryVirtualService,
+  ],
 })
 export class ContentLibraryModule {}

@@ -5,6 +5,7 @@ import { aggregateSelectedItemsToPublicationOrThrow } from '~/composables/useCon
 import { parseTags } from '~/utils/tags'
 import { buildDescendantsTree, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
+import { useContentLibraryFilters } from '~/composables/useContentLibraryFilters'
 import ContentCollections from './ContentCollections.vue'
 import ContentLibraryToolbar from './ContentLibraryToolbar.vue'
 import ContentLibraryBulkBar from './ContentLibraryBulkBar.vue'
@@ -109,6 +110,18 @@ const contentCollectionsRef = ref<any>(null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 const activeCollectionId = ref<string | null>(null)
+
+const {
+  q,
+  selectedTags,
+  sortBy,
+  sortOrder,
+  withMedia,
+  initTabStateFromCollectionConfigIfMissing,
+  getSavedViewConfigBoolean,
+  ensureTabState,
+} = useContentLibraryFilters(activeCollectionId)
+
 const activeCollection = ref<ContentCollection | null>(null)
 const selectedGroupId = ref<string | null>(null)
 const orphansOnly = ref(false)
@@ -128,80 +141,6 @@ const isSelectionDisabled = computed(() =>
   activeCollection.value?.type === 'UNSPLASH'
 )
 
-interface ContentLibraryTabState {
-  q: string
-  selectedTags: string
-  sortBy: 'createdAt' | 'title' | 'combined'
-  sortOrder: 'asc' | 'desc'
-  withMedia: boolean
-}
-
-const tabStateByCollectionId = reactive<Record<string, ContentLibraryTabState>>({})
-
-const DEFAULT_TAB_STATE: ContentLibraryTabState = {
-  q: '',
-  selectedTags: '',
-  sortBy: 'combined',
-  sortOrder: 'desc',
-  withMedia: true,
-}
-
-const getTabKey = (collectionId: string | null) => collectionId ?? '__default__'
-
-const ensureTabState = (collectionId: string | null) => {
-  const key = getTabKey(collectionId)
-  if (!tabStateByCollectionId[key]) {
-    tabStateByCollectionId[key] = {
-      ...DEFAULT_TAB_STATE,
-    }
-  }
-  return tabStateByCollectionId[key]
-}
-
-const q = computed<string>({
-  get() {
-    return ensureTabState(activeCollectionId.value).q
-  },
-  set(next) {
-    ensureTabState(activeCollectionId.value).q = next
-  },
-})
-
-const selectedTags = computed<string>({
-  get() {
-    return ensureTabState(activeCollectionId.value).selectedTags
-  },
-  set(next) {
-    ensureTabState(activeCollectionId.value).selectedTags = next
-  },
-})
-
-const sortBy = computed<'createdAt' | 'title' | 'combined'>({
-  get() {
-    return ensureTabState(activeCollectionId.value).sortBy
-  },
-  set(next) {
-    ensureTabState(activeCollectionId.value).sortBy = next
-  },
-})
-
-const sortOrder = computed<'asc' | 'desc'>({
-  get() {
-    return ensureTabState(activeCollectionId.value).sortOrder
-  },
-  set(next) {
-    ensureTabState(activeCollectionId.value).sortOrder = next
-  },
-})
-
-const withMedia = computed<boolean>({
-  get() {
-    return ensureTabState(activeCollectionId.value).withMedia
-  },
-  set(next) {
-    ensureTabState(activeCollectionId.value).withMedia = next
-  },
-})
 
 const selectedTagsArray = computed(() => parseTags(selectedTags.value))
 
@@ -283,48 +222,6 @@ const isUnsplash = (c: ContentCollection | null | undefined): c is ContentCollec
   return !!c && c.type === 'UNSPLASH'
 }
 
-const getSavedViewConfigBoolean = (collection: ContentCollection, key: string, defaultValue: boolean) => {
-  const raw = (collection as any)?.config?.[key]
-  return typeof raw === 'boolean' ? raw : defaultValue
-}
-
-const initTabStateFromCollectionConfigIfMissing = (collection: ContentCollection) => {
-  if (!collection?.id) return
-
-  const key = getTabKey(collection.id)
-  if (tabStateByCollectionId[key]) return
-
-  const base: ContentLibraryTabState = { ...DEFAULT_TAB_STATE }
-
-  const cfg = (collection as any)?.config ?? {}
-  if (cfg.sortBy === 'combined' || cfg.sortBy === 'createdAt' || cfg.sortBy === 'title') base.sortBy = cfg.sortBy
-  if (cfg.sortOrder === 'asc' || cfg.sortOrder === 'desc') base.sortOrder = cfg.sortOrder
-
-  if (collection.type === 'SAVED_VIEW') {
-    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
-
-    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
-    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
-  }
-
-  if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
-    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-    const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', false)
-
-    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
-    if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
-    if (typeof cfg.withMedia === 'boolean') base.withMedia = cfg.withMedia
-  }
-
-  if (collection.type === 'UNSPLASH') {
-    const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
-
-    if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
-  }
-
-  tabStateByCollectionId[key] = base
-}
 
 const updateCollectionsCache = (updated: ContentCollection) => {
   const idx = collections.value.findIndex(c => c.id === updated.id)
@@ -786,7 +683,7 @@ const uploadContentFiles = async (files: File[]) => {
       ? (selectedGroupId.value ?? activeCollection.value.id)
       : undefined
   try {
-    for (const file of files) {
+    await Promise.all(files.map(async (file) => {
       const ext = file.name.split('.').pop()?.toLowerCase()
       if (['txt', 'md'].includes(ext || '')) {
         const text = await new Promise<string>((res, rej) => {
@@ -797,7 +694,7 @@ const uploadContentFiles = async (files: File[]) => {
         const media = await uploadMedia(file, undefined, undefined, props.projectId)
         await api.post('/content-library/items', { scope: props.scope, projectId: props.projectId, groupId: targetGroupId, title: file.name, text: '', meta: {}, media: [{ mediaId: media.id, order: 0, hasSpoiler: false }] })
       }
-    }
+    }))
     await fetchItems({ reset: true })
     contentCollectionsRef.value?.fetchCollections()
     toast.add({ title: t('common.success'), description: t('contentLibrary.actions.uploadMediaSuccess', { count: files.length }), color: 'success' })

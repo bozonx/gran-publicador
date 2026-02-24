@@ -567,7 +567,7 @@ export class ContentCollectionsService {
       });
 
       if (count === 0) {
-        throw new ConflictException('Коллекция была изменена в другой вкладке. Обновите страницу.');
+        throw new ConflictException('Collection has been modified in another tab. Please refresh the page.');
       }
 
       return (this.prisma.contentCollection as any).findUnique({

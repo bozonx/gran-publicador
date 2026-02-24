@@ -21,6 +21,8 @@ import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
 import { PublicationsService } from '../publications/publications.service.js';
 import { UnsplashService } from './unsplash.service.js';
+import { ContentBulkService } from './content-bulk.service.js';
+import { ContentLibraryVirtualService } from './content-library-virtual.service.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -42,6 +44,8 @@ export class ContentLibraryController {
     private readonly itemsService: ContentItemsService,
     private readonly publicationsService: PublicationsService,
     private readonly unsplashService: UnsplashService,
+    private readonly bulkService: ContentBulkService,
+    private readonly virtualService: ContentLibraryVirtualService,
     private readonly prisma: PrismaService,
     private readonly apiTokenScope: ApiTokenScopeService,
   ) {}
@@ -141,134 +145,26 @@ export class ContentLibraryController {
     });
 
     if ((collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL') {
-      const parsedTags =
-        typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : [];
-      const sortField = sortBy === 'title' ? 'title' : 'chronology';
-
-      const res =
-        scope === 'project'
-          ? await this.publicationsService.findAll(projectId as string, req.user.userId, {
-              limit,
-              offset,
-              includeArchived: false,
-              archivedOnly: false,
-              search,
-              sortBy: sortField,
-              sortOrder,
-              tags: parsedTags.length > 0 ? parsedTags : undefined,
-              withMedia: withMedia === 'true',
-            })
-          : await this.publicationsService.findAllForUser(req.user.userId, {
-              limit,
-              offset,
-              includeArchived: false,
-              archivedOnly: false,
-              search,
-              sortBy: sortField,
-              sortOrder,
-              tags: parsedTags.length > 0 ? parsedTags : undefined,
-              withMedia: withMedia === 'true',
-            });
-
-      const mappedItems = (res.items ?? []).map((p: any) => {
-        const tagNames = Array.isArray(p.tags)
-          ? p.tags
-          : (p.tagObjects ?? []).map((t: any) => t.name).filter(Boolean);
-        const media = Array.isArray(p.media)
-          ? p.media
-              .slice()
-              .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-              .map((m: any, idx: number) => ({
-                mediaId: m.mediaId ?? m.media?.id,
-                hasSpoiler: m.hasSpoiler,
-                order: m.order ?? idx,
-                media: m.media,
-              }))
-          : [];
-
-        return {
-          id: p.id,
-          title: p.title,
-          text: p.content,
-          tags: tagNames,
-          createdAt: p.effectiveAt ?? p.createdAt,
-          archivedAt: null,
-          media,
-          _virtual: {
-            source: 'publication',
-            publicationId: p.id,
-          },
-        };
-      });
-
-      return {
-        items: mappedItems,
-        total: res.total,
-        totalUnfiltered: res.totalUnfiltered,
+      return this.virtualService.listPublicationItems({
+        scope,
+        projectId,
+        userId: req.user.userId,
+        search,
+        tags,
+        sortBy,
+        sortOrder,
         limit,
         offset,
-      };
+        withMedia: withMedia === 'true',
+      });
     }
 
     if ((collection.type as any) === 'UNSPLASH') {
-      const query = typeof search === 'string' ? search.trim() : '';
-      const page = Math.floor((offset ?? 0) / (limit ?? 20)) + 1;
-
-      const res = await this.unsplashService.searchPhotos({
-        query,
-        page,
-        perPage: limit ?? 20,
-        orderBy: 'relevant',
-      });
-
-      const mappedItems = res.items.map(photo => {
-        const title = photo.altDescription || photo.description || null;
-        const note = photo.description;
-
-        return {
-          id: photo.id,
-          title,
-          text: null,
-          note,
-          tags: photo.tags.map(t => t.title).filter(Boolean),
-          createdAt: photo.createdAt,
-          archivedAt: null,
-          media: [
-            {
-              order: 0,
-              hasSpoiler: false,
-              media: {
-                id: `unsplash-${photo.id}`,
-                type: 'IMAGE',
-                storageType: 'URL',
-                storagePath: photo.urls.small,
-                filename: `unsplash-${photo.id}.jpg`,
-              },
-            },
-          ],
-          _virtual: {
-            source: 'unsplash',
-            unsplashId: photo.id,
-            unsplashUser: photo.user.name,
-            unsplashUsername: photo.user.username,
-            unsplashUserUrl: photo.user.links.html,
-            unsplashUrl: photo.links.html,
-            thumbUrl: photo.urls.small,
-            regularUrl: photo.urls.regular,
-            likes: (photo as any).likes,
-            views: (photo as any).views,
-            downloads: (photo as any).downloads,
-          },
-        };
-      });
-
-      return {
-        items: mappedItems,
-        total: res.total,
-        totalUnfiltered: res.total,
+      return this.virtualService.listUnsplashItems({
+        search,
         limit,
         offset,
-      };
+      });
     }
 
     const query: FindContentItemsQueryDto = {
@@ -485,7 +381,7 @@ export class ContentLibraryController {
   public async bulkOperation(@Request() req: UnifiedAuthRequest, @Body() dto: BulkOperationDto) {
     await this.validateBulkContentItemsProjectScopeOrThrow(req, dto.ids);
     this.validateQueryProjectScopeOrThrow(req, dto.projectId);
-    return this.itemsService.bulkOperation(req.user.userId, dto);
+    return this.bulkService.bulkOperation(req.user.userId, dto);
   }
 
   @Delete('items/:id')
