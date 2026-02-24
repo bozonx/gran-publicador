@@ -26,6 +26,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from './common/redis/redis.module.js';
+import bullmqConfig, { BullMQConfig } from './config/bullmq.config.js';
 import { ApiTokensModule } from './modules/api-tokens/api-tokens.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ChannelsModule } from './modules/channels/channels.module.js';
@@ -107,6 +108,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
         redisConfig,
         mediaConfig,
         httpConfig,
+        bullmqConfig,
       ],
       envFilePath: [`.env.${process.env.NODE_ENV ?? 'development'}`, '.env'],
       cache: true,
@@ -235,6 +237,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         const config = configService.get<RedisConfig>('redis')!;
+        const bullmq = configService.get<BullMQConfig>('bullmq')!;
 
         const isUpstash = config.url.includes('upstash.io');
         const redisOptions: any = {
@@ -251,6 +254,10 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
             ...redisOptions,
           },
           prefix: config.keyPrefix,
+          defaultJobOptions: {
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
         };
       },
     }),

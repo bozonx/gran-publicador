@@ -13,7 +13,14 @@ export interface TelegramProcessMessageJobData {
 }
 
 @Processor(TELEGRAM_MESSAGES_QUEUE, {
-  concurrency: 5,
+  concurrency: process.env.BULL_CONCURRENCY ? parseInt(process.env.BULL_CONCURRENCY, 10) : 5,
+  stalledInterval: process.env.BULL_STALLED_CHECK_INTERVAL
+    ? parseInt(process.env.BULL_STALLED_CHECK_INTERVAL, 10)
+    : 30000,
+  lockDuration: process.env.BULL_LOCK_DURATION ? parseInt(process.env.BULL_LOCK_DURATION, 10) : 30000,
+  maxStalledCount: process.env.BULL_MAX_STALLED_COUNT
+    ? parseInt(process.env.BULL_MAX_STALLED_COUNT, 10)
+    : 1,
 })
 export class TelegramMessageProcessor extends WorkerHost {
   private readonly logger = new Logger(TelegramMessageProcessor.name);

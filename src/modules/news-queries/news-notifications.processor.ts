@@ -5,7 +5,14 @@ import { NEWS_NOTIFICATIONS_QUEUE, ProcessNewsQueryJobData } from './news-notifi
 import { NewsNotificationsScheduler } from './news-notifications.scheduler.js';
 
 @Processor(NEWS_NOTIFICATIONS_QUEUE, {
-  concurrency: 5,
+  concurrency: process.env.BULL_CONCURRENCY ? parseInt(process.env.BULL_CONCURRENCY, 10) : 5,
+  stalledInterval: process.env.BULL_STALLED_CHECK_INTERVAL
+    ? parseInt(process.env.BULL_STALLED_CHECK_INTERVAL, 10)
+    : 30000,
+  lockDuration: process.env.BULL_LOCK_DURATION ? parseInt(process.env.BULL_LOCK_DURATION, 10) : 30000,
+  maxStalledCount: process.env.BULL_MAX_STALLED_COUNT
+    ? parseInt(process.env.BULL_MAX_STALLED_COUNT, 10)
+    : 1,
 })
 export class NewsNotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NewsNotificationsProcessor.name);
