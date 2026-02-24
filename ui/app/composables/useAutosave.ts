@@ -63,6 +63,9 @@ export interface AutosaveOptions<T> {
   // Enable navigation guards (route leave + beforeunload). Disable when
   // another mechanism (e.g. useFormDirtyState) already handles guards.
   enableNavigationGuards?: boolean;
+
+  // Trigger immediate save on focusout/blur events
+  enableBlurSave?: boolean;
 }
 
 export interface SaveResult {
@@ -100,6 +103,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     skipInitial = true,
     isEqual = defaultIsEqual,
     enableNavigationGuards = true,
+    enableBlurSave = true,
   } = options;
 
   let t: (key: string) => string = key => key;
@@ -598,15 +602,32 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     }
   };
 
+  // Blur/focusout handler – flush immediately to avoid waiting debounce
+  const handleFocusOut = () => {
+    if (!enableBlurSave) return;
+    if (!data.value) return;
+    if (!isDirty.value && saveStatus.value !== 'unsaved') return;
+    void performSave(false);
+  };
+
   if (enableNavigationGuards) {
     onMounted(() => {
       window.addEventListener('beforeunload', handleBeforeUnload);
     });
   }
 
+  if (enableBlurSave) {
+    onMounted(() => {
+      window.addEventListener('focusout', handleFocusOut, true);
+    });
+  }
+
   onUnmounted(() => {
     if (enableNavigationGuards) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+    }
+    if (enableBlurSave) {
+      window.removeEventListener('focusout', handleFocusOut, true);
     }
     clearIndicatorTimers();
     clearRetryTimer();
