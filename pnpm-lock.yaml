@@ -224,6 +224,9 @@ importers:
       eslint-plugin-prettier:
         specifier: ^5.5.5
         version: 5.5.5(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.39.3(jiti@2.6.1)))(eslint@9.39.3(jiti@2.6.1))(prettier@3.8.1)
+      faker:
+        specifier: ^6.6.6
+        version: 6.6.6
       globals:
         specifier: ^16.4.0
         version: 16.5.0
@@ -5612,6 +5615,9 @@ packages:
   fake-indexeddb@6.2.5:
     resolution: {integrity: sha512-CGnyrvbhPlWYMngksqrSSUT1BAVP49dZocrHuK0SvtR0D5TMs5wP0o3j7jexDJW01KSadjBp1M/71o/KR3nD1w==}
     engines: {node: '>=18'}
+
+  faker@6.6.6:
+    resolution: {integrity: sha512-9tCqYEDHI5RYFQigXFwF1hnCwcWCOJl/hmll0lr5D2Ljjb0o4wphb69wikeJDz5qCEzXCoPvG6ss5SDP6IfOdg==}
 
   fast-check@3.23.2:
     resolution: {integrity: sha512-h5+1OzzfCC3Ef7VbtKdcv7zsstUQwUDlYpUTvjeUsJAssPgLn7QzbboPtL5ro04Mq0rPOsMzl7q5hIbRs2wD1A==}
@@ -15025,6 +15031,8 @@ snapshots:
   extend@3.0.2: {}
 
   fake-indexeddb@6.2.5: {}
+
+  faker@6.6.6: {}
 
   fast-check@3.23.2:
     dependencies:

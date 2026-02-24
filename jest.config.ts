@@ -65,6 +65,8 @@ const config: Config = {
       displayName: 'e2e',
       preset: 'ts-jest/presets/default-esm',
       testEnvironment: 'node',
+      globalSetup: '<rootDir>/test/setup/global-setup.ts',
+      globalTeardown: '<rootDir>/test/setup/global-teardown.ts',
       moduleFileExtensions,
       rootDir: '.',
       testMatch: ['<rootDir>/test/e2e/**/*.e2e-spec.ts'],
