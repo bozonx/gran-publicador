@@ -52,12 +52,12 @@ export class ContentLibraryVirtualService {
             withMedia,
           });
 
-    const mappedItems = (res.items ?? []).map((p: any) => {
+    const mappedItems = (res.items ?? []).map(p => {
       const tagNames = Array.isArray(p.tags)
-        ? p.tags
-        : (p.tagObjects ?? []).map((t: any) => t.name).filter(Boolean);
+        ? (p.tags as string[])
+        : (p.tagObjects as Array<{ name: string }> ?? []).map(t => t.name).filter(Boolean);
       const media = Array.isArray(p.media)
-        ? p.media
+        ? (p.media as any[])
             .slice()
             .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
             .map((m: any, idx: number) => ({
@@ -142,9 +142,9 @@ export class ContentLibraryVirtualService {
           unsplashUrl: photo.links.html,
           thumbUrl: photo.urls.small,
           regularUrl: photo.urls.regular,
-          likes: (photo as any).likes,
-          views: (photo as any).views,
-          downloads: (photo as any).downloads,
+          likes: photo.likes,
+          views: photo.views,
+          downloads: photo.downloads,
         },
       };
     });

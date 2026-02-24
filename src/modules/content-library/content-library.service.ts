@@ -3,27 +3,28 @@ import { Injectable } from '@nestjs/common';
 import { BulkOperationDto, CreateContentItemDto, FindContentItemsQueryDto } from './dto/index.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { ContentItemsService } from './content-items.service.js';
+import { ContentBulkService } from './content-bulk.service.js';
 
 @Injectable()
 export class ContentLibraryService {
   constructor(
     private readonly itemsService: ContentItemsService,
     private readonly collectionsService: ContentCollectionsService,
+    private readonly bulkService: ContentBulkService,
   ) {}
 
   public async assertGroupTabAccess(options: {
     groupId: string;
-    scope: 'project' | 'personal';
+    scope: 'personal' | 'project';
     projectId?: string;
     userId: string;
   }) {
-    return this.collectionsService.assertCollectionAccess({
-      collectionId: options.groupId,
+    return this.collectionsService.assertGroupAccess({
+      groupId: options.groupId,
       scope: options.scope,
       projectId: options.projectId,
       userId: options.userId,
-      expectedType: 'GROUP',
-    } as any);
+    });
   }
 
   public async assertCollectionAccess(options: {
@@ -37,7 +38,7 @@ export class ContentLibraryService {
       scope: options.scope,
       projectId: options.projectId,
       userId: options.userId,
-    } as any);
+    });
   }
 
   public async getAvailableTags(
@@ -71,7 +72,7 @@ export class ContentLibraryService {
   }
 
   public async bulkOperation(userId: string, dto: BulkOperationDto) {
-    return this.itemsService.bulkOperation(userId, dto);
+    return this.bulkService.bulkOperation(userId, dto);
   }
 
   public async create(dto: CreateContentItemDto, userId: string) {

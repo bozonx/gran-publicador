@@ -15,7 +15,7 @@ import { ContentCollectionsService } from './content-collections.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { MediaService } from '../media/media.service.js';
 import { ContentLibraryMapper } from './content-library.mapper.js';
- import { MediaType, StorageType } from '../../generated/prisma/index.js';
+ import { MediaType, StorageType, Prisma } from '../../generated/prisma/index.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -46,10 +46,6 @@ export class ContentItemsService {
       .filter(Boolean)
       .map(t => t.toLowerCase())
       .slice(0, 20);
-  }
-
-  private normalizeTags(tags?: string[]): string[] {
-    return this.mapper.mapTags(tags as any);
   }
 
   private mapIncomingMediaIds(dto: any): string[] {
@@ -203,7 +199,7 @@ export class ContentItemsService {
                   some: { normalizedName: { in: tagTokens.map(t => t.toLowerCase()) } },
                 },
               },
-            ] as any)
+            ] as Prisma.ContentItemWhereInput[])
           : []),
       ];
     }
@@ -272,7 +268,7 @@ export class ContentItemsService {
                   },
                 }
               : {}),
-          } as any,
+          } as Prisma.ContentItemCountArgs['where'],
         }),
       );
     }
@@ -284,7 +280,7 @@ export class ContentItemsService {
             userId: query.scope === 'personal' ? userId : undefined,
             projectId: query.scope === 'project' ? query.projectId : undefined,
             archivedAt: null,
-          } as any,
+          } as Prisma.ContentItemCountArgs['where'],
         }),
       );
     }
@@ -444,7 +440,7 @@ export class ContentItemsService {
     }
 
     const created = await this.prisma.$transaction(async tx => {
-      const contentItem = await (tx.contentItem as any).create({
+      const contentItem = await tx.contentItem.create({
         data: {
           userId: dto.scope === 'personal' ? userId : null,
           projectId: dto.scope === 'project' ? dto.projectId! : null,
@@ -464,7 +460,7 @@ export class ContentItemsService {
           ),
           note: dto.note,
           text: this.mapper.normalizeItemText(dto.text),
-          meta: (dto.meta ?? {}) as any,
+          meta: (dto.meta ?? {}) as Prisma.JsonObject,
           media: dto.media
             ? {
                 create: dto.media
@@ -488,7 +484,7 @@ export class ContentItemsService {
       });
 
       if (dto.publicationId) {
-        await (tx as any).publicationContentItem.create({
+        await tx.publicationContentItem.create({
           data: {
             publicationId: dto.publicationId,
             contentItemId: contentItem.id,
@@ -520,9 +516,9 @@ export class ContentItemsService {
     const updated = await this.prisma.$transaction(async tx => {
       if (dto.groupId !== undefined) {
         if (dto.groupId === null) {
-          await (tx as any).contentItemGroup.deleteMany({ where: { contentItemId: id } });
+          await tx.contentItemGroup.deleteMany({ where: { contentItemId: id } });
         } else {
-          await (tx as any).contentItemGroup.upsert({
+          await tx.contentItemGroup.upsert({
             where: {
               contentItemId_collectionId: {
                 contentItemId: id,
@@ -538,30 +534,35 @@ export class ContentItemsService {
         }
       }
       if (dto.version !== undefined) {
-        const { count } = await (tx.contentItem as any).updateMany({
+        const { count } = await tx.contentItem.updateMany({
           where: { id, version: dto.version },
           data: {
             version: { increment: 1 },
             title: dto.title,
-            tagObjects:
-              dto.tags !== undefined
-                ? await this.tagsService.prepareTagsConnectOrCreate(
-                    dto.tags ?? [],
-                    {
-                      projectId: item.projectId ?? undefined,
-                      userId: item.userId ?? undefined,
-                    },
-                    'CONTENT_LIBRARY',
-                    true,
-                  )
-                : undefined,
             note: dto.note,
           },
         });
         if (count === 0) {
           throw new ConflictException('Item has been modified in another tab. Please refresh the page.');
         }
-        return (tx.contentItem as any).findUnique({
+
+        if (dto.tags !== undefined) {
+          await tx.contentItem.update({
+            where: { id },
+            data: {
+              tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+                dto.tags ?? [],
+                {
+                  projectId: item.projectId ?? undefined,
+                  userId: item.userId ?? undefined,
+                },
+                'CONTENT_LIBRARY',
+                true,
+              ),
+            },
+          });
+        }
+        return tx.contentItem.findUnique({
           where: { id },
           include: {
             tagObjects: true,
@@ -573,7 +574,7 @@ export class ContentItemsService {
         });
       }
 
-      return (tx.contentItem as any).update({
+      return tx.contentItem.update({
         where: { id },
         data: {
           title: dto.title,
@@ -778,7 +779,7 @@ export class ContentItemsService {
       userId,
     });
 
-    await (this.prisma as any).contentItemGroup.upsert({
+    await this.prisma.contentItemGroup.upsert({
       where: {
         contentItemId_collectionId: {
           contentItemId,
@@ -820,7 +821,7 @@ export class ContentItemsService {
           note: dto.note,
           tagObjects: tagData,
           text: this.mapper.normalizeItemText(dto.text),
-          meta: dto.meta ? (dto.meta as any) : undefined,
+          meta: dto.meta ? (dto.meta as Prisma.JsonObject) : undefined,
         },
       });
 
@@ -828,7 +829,7 @@ export class ContentItemsService {
       if (incomingMediaIds) {
         const uniqueIncomingMediaIds = Array.from(new Set(incomingMediaIds));
         if (uniqueIncomingMediaIds.length > 0) {
-          const existing = await (tx as any).media.findMany({
+          const existing = await tx.media.findMany({
             where: { id: { in: uniqueIncomingMediaIds } },
             select: { id: true },
           });
@@ -839,13 +840,13 @@ export class ContentItemsService {
           }
         }
 
-        await (tx as any).contentItemMedia.deleteMany({ where: { contentItemId } });
+        await tx.contentItemMedia.deleteMany({ where: { contentItemId } });
         if (incomingMediaIds.length > 0) {
           const spoilerByMediaId = new Map<string, boolean>();
           for (const m of dto.media ?? []) {
             spoilerByMediaId.set(m.mediaId, !!m.hasSpoiler);
           }
-          await (tx as any).contentItemMedia.createMany({
+          await tx.contentItemMedia.createMany({
             data: incomingMediaIds.map((mediaId, idx) => ({
               contentItemId,
               mediaId,
@@ -863,7 +864,7 @@ export class ContentItemsService {
   public async unlinkItemFromGroup(contentItemId: string, collectionId: string, userId: string) {
     const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
 
-    const groupsCount = await (this.prisma as any).contentItemGroup.count({
+    const groupsCount = await this.prisma.contentItemGroup.count({
       where: { contentItemId },
     });
 
@@ -871,7 +872,7 @@ export class ContentItemsService {
       throw new BadRequestException('Cannot unlink the last group from the content item');
     }
 
-    await (this.prisma as any).contentItemGroup.delete({
+    await this.prisma.contentItemGroup.delete({
       where: {
         contentItemId_collectionId: {
           contentItemId,

@@ -23,6 +23,7 @@ import { PublicationsService } from '../publications/publications.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { ContentBulkService } from './content-bulk.service.js';
 import { ContentLibraryVirtualService } from './content-library-virtual.service.js';
+import { ContentCollectionType } from '../../generated/prisma/index.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -144,7 +145,7 @@ export class ContentLibraryController {
       userId: req.user.userId,
     });
 
-    if ((collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL') {
+    if (collection.type === ContentCollectionType.PUBLICATION_MEDIA_VIRTUAL) {
       return this.virtualService.listPublicationItems({
         scope,
         projectId,
@@ -159,7 +160,7 @@ export class ContentLibraryController {
       });
     }
 
-    if ((collection.type as any) === 'UNSPLASH') {
+    if (collection.type === ContentCollectionType.UNSPLASH) {
       return this.virtualService.listUnsplashItems({
         search,
         limit,
@@ -177,11 +178,12 @@ export class ContentLibraryController {
       sortOrder,
       tags:
         typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : undefined,
-      groupIds: (collection.type as any) === 'GROUP' ? [collection.id] : undefined,
-      orphansOnly: (collection.type as any) === 'SAVED_VIEW' ? orphansOnly === 'true' : undefined,
+      groupIds: collection.type === ContentCollectionType.GROUP ? [collection.id] : undefined,
+      orphansOnly:
+        collection.type === ContentCollectionType.SAVED_VIEW ? orphansOnly === 'true' : undefined,
       includeTotalInScope: true,
       includeTotalUnfiltered: true,
-    } as any;
+    };
 
     return this.itemsService.findAll(query, req.user.userId);
   }

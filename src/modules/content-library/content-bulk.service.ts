@@ -14,6 +14,7 @@ import {
   BulkOperationDto,
   BulkOperationType,
 } from './dto/index.js';
+import { ContentCollectionType, Prisma } from '../../generated/prisma/index.js';
 
 const TEXT_MERGE_SEPARATOR = '\n\n---\n\n';
 
@@ -35,7 +36,7 @@ export class ContentBulkService {
       return { count: 0 };
     }
 
-    const items = await (this.prisma.contentItem as any).findMany({
+    const items = await this.prisma.contentItem.findMany({
       where: { id: { in: ids } },
       select: {
         id: true,
@@ -145,7 +146,7 @@ export class ContentBulkService {
             const item = authorizedItems.get(id);
             const tagNames = (item?.tagObjects ?? []).map((t: any) => t.name);
 
-            return (this.prisma.contentItem as any).update({
+            return this.prisma.contentItem.update({
               where: { id },
               data: {
                 projectId: dto.projectId ?? null,
@@ -196,7 +197,7 @@ export class ContentBulkService {
           }),
         );
 
-        await (this.prisma as any).contentItemGroup.deleteMany({
+        await this.prisma.contentItemGroup.deleteMany({
           where: {
             contentItemId: { in: authorizedIds },
           },
@@ -205,7 +206,7 @@ export class ContentBulkService {
         if (dto.groupId) {
           await this.prisma.$transaction(
             authorizedIds.map(id =>
-              (this.prisma as any).contentItemGroup.create({
+              this.prisma.contentItemGroup.create({
                 data: {
                   contentItemId: id,
                   collectionId: dto.groupId!,
@@ -222,7 +223,7 @@ export class ContentBulkService {
           await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
         }
 
-        const fullItems = await (this.prisma.contentItem as any).findMany({
+        const fullItems = await this.prisma.contentItem.findMany({
           where: { id: { in: authorizedIds } },
           select: {
             id: true,
@@ -246,7 +247,7 @@ export class ContentBulkService {
             where: { id: dto.groupId },
             select: { id: true, type: true, projectId: true },
           });
-          if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+          if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
             throw new BadRequestException('Target group not found');
           }
 
@@ -276,7 +277,7 @@ export class ContentBulkService {
             const tagNames = (item?.tagObjects ?? []).map((t: any) => t.name);
             const mediaLinks = Array.isArray(item?.media) ? item.media : [];
 
-            const created = await (tx.contentItem as any).create({
+            const created = await tx.contentItem.create({
               data: {
                 title: item.title ?? null,
                 note: item.note ?? null,
@@ -297,7 +298,7 @@ export class ContentBulkService {
             });
 
             if (mediaLinks.length > 0) {
-              await (tx as any).contentItemMedia.createMany({
+              await tx.contentItemMedia.createMany({
                 data: mediaLinks
                   .filter((m: any) => !!m?.mediaId)
                   .map((m: any) => ({
@@ -310,7 +311,7 @@ export class ContentBulkService {
             }
 
             if (dto.groupId) {
-              await (tx as any).contentItemGroup.create({
+              await tx.contentItemGroup.create({
                 data: {
                   contentItemId: created.id,
                   collectionId: dto.groupId,
@@ -331,7 +332,7 @@ export class ContentBulkService {
         const targetId = authorizedIds[0];
         const sourceIds = authorizedIds.slice(1);
 
-        const fullItems = await (this.prisma.contentItem as any).findMany({
+        const fullItems = await this.prisma.contentItem.findMany({
           where: { id: { in: authorizedIds } },
           include: {
             tagObjects: true,
@@ -361,8 +362,8 @@ export class ContentBulkService {
           .filter(Boolean);
         const newNote = mergedNoteParts.join(TEXT_MERGE_SEPARATOR) || null;
 
-        const mergedTagNames = fullItems.flatMap((i: any) =>
-          (i.tagObjects ?? []).map((t: any) => t.name),
+        const mergedTagNames = fullItems.flatMap(i =>
+          (i.tagObjects ?? []).map((t: any) => t.name as string),
         );
         const newTags = Array.from(new Set(mergedTagNames.map(t => t.toLowerCase())));
 
@@ -370,8 +371,8 @@ export class ContentBulkService {
           typeof targetItem.meta === 'object' && targetItem.meta !== null
             ? (targetItem.meta as Record<string, any>)
             : {};
-        const existingMerged = Array.isArray((targetMeta as any).mergedContentItems)
-          ? (targetMeta as any).mergedContentItems
+        const existingMerged = Array.isArray((targetMeta as Prisma.JsonObject).mergedContentItems)
+          ? ((targetMeta as Prisma.JsonObject).mergedContentItems as any[])
           : [];
         const removedMetas = sourceItems
           .map((i: any) => i?.meta)
@@ -414,13 +415,13 @@ export class ContentBulkService {
           }));
 
         await this.prisma.$transaction(async tx => {
-          await (tx.contentItem as any).update({
+          await tx.contentItem.update({
             where: { id: targetId },
             data: {
               title: newTitle,
               text: newText,
               note: newNote,
-              meta: newMeta as any,
+              meta: newMeta as Prisma.JsonObject,
               tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
                 newTags,
                 {
@@ -433,9 +434,9 @@ export class ContentBulkService {
             },
           });
 
-          await (tx as any).contentItemMedia.deleteMany({ where: { contentItemId: targetId } });
+          await tx.contentItemMedia.deleteMany({ where: { contentItemId: targetId } });
           if (mergedMedia.length > 0) {
-            await (tx as any).contentItemMedia.createMany({
+            await tx.contentItemMedia.createMany({
               data: mergedMedia.map(m => ({
                 contentItemId: targetId,
                 mediaId: m.mediaId,
@@ -463,7 +464,7 @@ export class ContentBulkService {
           select: { id: true, type: true, projectId: true },
         });
 
-        if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+        if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
           throw new BadRequestException('Target group not found');
         }
 
@@ -500,7 +501,7 @@ export class ContentBulkService {
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
             if (alreadyLinkedItemIds.has(id)) continue;
-            await (tx as any).contentItemGroup.upsert({
+            await tx.contentItemGroup.upsert({
               where: {
                 contentItemId_collectionId: {
                   contentItemId: id,
@@ -535,7 +536,7 @@ export class ContentBulkService {
             select: { id: true, type: true, projectId: true },
           });
 
-          if (!targetGroup || (targetGroup.type as any) !== 'GROUP') {
+          if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
             throw new BadRequestException('Target group not found');
           }
 
@@ -584,7 +585,7 @@ export class ContentBulkService {
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
             if (dto.sourceGroupId && dto.sourceGroupId !== dto.groupId) {
-              await (tx as any).contentItemGroup.deleteMany({
+              await tx.contentItemGroup.deleteMany({
                 where: {
                   contentItemId: id,
                   collectionId: dto.sourceGroupId,
@@ -594,7 +595,7 @@ export class ContentBulkService {
 
             if (dto.groupId) {
               if (alreadyLinkedToTargetItemIds.has(id)) continue;
-              await (tx as any).contentItemGroup.upsert({
+              await tx.contentItemGroup.upsert({
                 where: {
                   contentItemId_collectionId: {
                     contentItemId: id,

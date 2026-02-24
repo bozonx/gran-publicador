@@ -10,7 +10,7 @@ import {
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ContentLibraryGroupType, Prisma } from '../../generated/prisma/index.js';
+import { ContentCollectionType, ContentLibraryGroupType, Prisma } from '../../generated/prisma/index.js';
 
 @Injectable()
 export class ContentCollectionsService {
@@ -46,21 +46,21 @@ export class ContentCollectionsService {
   }
 
   public resolveGroupType(collection: {
-    type: unknown;
-    groupType?: unknown;
+    type: ContentCollectionType;
+    groupType?: ContentLibraryGroupType | null;
     userId: string | null;
     projectId: string | null;
-  }): 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' {
-    if ((collection.type as any) !== 'GROUP') {
+  }): ContentLibraryGroupType {
+    if (collection.type !== ContentCollectionType.GROUP) {
       throw new BadRequestException('Collection is not a group');
     }
 
     if (
-      collection.groupType === 'PERSONAL_USER' ||
-      collection.groupType === 'PROJECT_USER' ||
-      collection.groupType === 'PROJECT_SHARED'
+      collection.groupType === ContentLibraryGroupType.PERSONAL_USER ||
+      collection.groupType === ContentLibraryGroupType.PROJECT_USER ||
+      collection.groupType === ContentLibraryGroupType.PROJECT_SHARED
     ) {
-      return collection.groupType as any;
+      return collection.groupType;
     }
 
     throw new BadRequestException('Invalid groupType: groupType is required for GROUP collections');
@@ -81,7 +81,7 @@ export class ContentCollectionsService {
       throw new NotFoundException('Group not found');
     }
 
-    if ((collection.type as any) !== 'GROUP') {
+    if (collection.type !== ContentCollectionType.GROUP) {
       throw new BadRequestException('Collection is not a group');
     }
 
@@ -139,9 +139,9 @@ export class ContentCollectionsService {
         throw new ForbiddenException('You do not have access to this collection');
       }
 
-      if ((collection.type as any) === 'GROUP') {
+      if (collection.type === ContentCollectionType.GROUP) {
         const groupType = this.resolveGroupType(collection);
-        if (groupType !== 'PERSONAL_USER') {
+        if (groupType !== ContentLibraryGroupType.PERSONAL_USER) {
           throw new ForbiddenException('You do not have access to this collection');
         }
       }
@@ -159,9 +159,9 @@ export class ContentCollectionsService {
     await this.permissions.checkProjectAccess(options.projectId, options.userId, true);
 
     if (
-      (collection.type as any) === 'SAVED_VIEW' ||
-      (collection.type as any) === 'PUBLICATION_MEDIA_VIRTUAL' ||
-      (collection.type as any) === 'UNSPLASH'
+      collection.type === ContentCollectionType.SAVED_VIEW ||
+      collection.type === ContentCollectionType.PUBLICATION_MEDIA_VIRTUAL ||
+      collection.type === ContentCollectionType.UNSPLASH
     ) {
       if (collection.userId !== options.userId) {
         throw new ForbiddenException('You do not have access to this collection');
@@ -173,12 +173,12 @@ export class ContentCollectionsService {
     }
 
     const groupType = this.resolveGroupType(collection);
-    if (groupType === 'PROJECT_USER' && collection.userId !== options.userId) {
+    if (groupType === ContentLibraryGroupType.PROJECT_USER && collection.userId !== options.userId) {
       throw new ForbiddenException('You do not have access to this collection');
     }
 
     if (options.requireMutationPermission) {
-      if (groupType === 'PROJECT_SHARED') {
+      if (groupType === ContentLibraryGroupType.PROJECT_SHARED) {
         await this.assertProjectOwnerOrAdmin(options.projectId, options.userId);
       } else {
         await this.assertNotViewer(options.projectId, options.userId);
@@ -253,7 +253,7 @@ export class ContentCollectionsService {
     scope: 'personal' | 'project';
     projectId?: string;
     userId: string;
-    childGroupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
+    childGroupType?: ContentLibraryGroupType;
   }): Promise<string | null | undefined> {
     if (options.parentId === undefined) {
       return undefined;
@@ -271,7 +271,7 @@ export class ContentCollectionsService {
     });
 
     if (options.childGroupType) {
-      const parentGroupType = this.resolveGroupType(parent as any);
+      const parentGroupType = this.resolveGroupType(parent);
       if (parentGroupType !== options.childGroupType) {
         throw new BadRequestException('Cannot mix group types in one hierarchy');
       }
@@ -351,7 +351,9 @@ export class ContentCollectionsService {
       orderBy: { order: 'asc' },
     });
 
-    const groupIds = collections.filter(c => c.type === 'GROUP').map(c => c.id);
+    const groupIds = collections
+      .filter(c => c.type === ContentCollectionType.GROUP)
+      .map(c => c.id);
 
     // Use a raw query to count items per collection, filtering by archivedAt
     const counts: Array<{ collectionId: string; count: bigint }> =
@@ -374,13 +376,13 @@ export class ContentCollectionsService {
       const visibility =
         query.scope === 'personal'
           ? 'PERSONAL'
-          : collection.type === 'GROUP'
-            ? this.resolveGroupType(collection as any) === 'PROJECT_SHARED'
+          : collection.type === ContentCollectionType.GROUP
+            ? this.resolveGroupType(collection) === ContentLibraryGroupType.PROJECT_SHARED
               ? 'PROJECT_SHARED'
               : 'PROJECT_PRIVATE'
             : 'PROJECT_PRIVATE';
 
-      if (collection.type !== 'GROUP') {
+      if (collection.type !== ContentCollectionType.GROUP) {
         return {
           ...collection,
           visibility,
@@ -399,8 +401,8 @@ export class ContentCollectionsService {
     dto: {
       scope: 'personal' | 'project';
       projectId?: string;
-      type: 'GROUP' | 'SAVED_VIEW' | 'PUBLICATION_MEDIA_VIRTUAL' | 'UNSPLASH';
-      groupType?: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED';
+      type: ContentCollectionType;
+      groupType?: ContentLibraryGroupType;
       parentId?: string;
       title: string;
       config?: unknown;
@@ -426,7 +428,7 @@ export class ContentCollectionsService {
             'groupType is required for GROUP collections in project scope',
           );
         }
-        if (dto.groupType === 'PROJECT_SHARED') {
+        if (dto.groupType === ContentLibraryGroupType.PROJECT_SHARED) {
           await this.assertProjectOwnerOrAdmin(dto.projectId!, userId);
         }
       }
@@ -443,12 +445,15 @@ export class ContentCollectionsService {
             projectId: dto.projectId,
             OR: [
               {
-                type: 'GROUP',
-                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
+                type: ContentCollectionType.GROUP,
+                OR: [
+                  { groupType: ContentLibraryGroupType.PROJECT_SHARED },
+                  { groupType: ContentLibraryGroupType.PROJECT_USER, userId },
+                ],
               },
-              { type: 'SAVED_VIEW', userId },
-              { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
-              { type: 'UNSPLASH', userId },
+              { type: ContentCollectionType.SAVED_VIEW, userId },
+              { type: ContentCollectionType.PUBLICATION_MEDIA_VIRTUAL, userId },
+              { type: ContentCollectionType.UNSPLASH, userId },
             ],
           };
 
@@ -456,15 +461,15 @@ export class ContentCollectionsService {
       throw new BadRequestException('Only groups can have parent groups');
     }
 
-    const resolvedChildGroupType: 'PERSONAL_USER' | 'PROJECT_USER' | 'PROJECT_SHARED' | undefined =
-      dto.type === 'GROUP'
+    const resolvedChildGroupType: ContentLibraryGroupType | undefined =
+      dto.type === ContentCollectionType.GROUP
         ? dto.scope === 'personal'
-          ? 'PERSONAL_USER'
+          ? ContentLibraryGroupType.PERSONAL_USER
           : dto.groupType
         : undefined;
 
     const parentId =
-      dto.type === 'GROUP'
+      dto.type === ContentCollectionType.GROUP
         ? await this.resolveParentGroupId({
             parentId: dto.parentId,
             scope: dto.scope,
@@ -484,11 +489,11 @@ export class ContentCollectionsService {
 
           const nextOrder = (maxOrder?._max?.order ?? -1) + 1;
 
-          return (tx.contentCollection as any).create({
+          return tx.contentCollection.create({
             data: {
               type: dto.type,
               title: dto.title,
-              groupType: dto.type === 'GROUP' ? (resolvedChildGroupType as any) : null,
+              groupType: dto.type === ContentCollectionType.GROUP ? resolvedChildGroupType : null,
               userId:
                 dto.scope === 'personal'
                   ? userId
@@ -496,13 +501,13 @@ export class ContentCollectionsService {
                       dto.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
                       dto.type === 'UNSPLASH'
                     ? userId
-                    : resolvedChildGroupType === 'PROJECT_SHARED'
+                    : resolvedChildGroupType === ContentLibraryGroupType.PROJECT_SHARED
                       ? null
                       : userId,
               projectId: dto.scope === 'project' ? dto.projectId! : null,
               parentId,
               order: nextOrder,
-              config: (dto.config ?? {}) as any,
+              config: (dto.config ?? {}) as Prisma.JsonObject,
             },
           });
         },
@@ -531,12 +536,12 @@ export class ContentCollectionsService {
       requireMutationPermission: true,
     });
 
-    if ((collection.type as any) !== 'GROUP' && dto.parentId !== undefined) {
+    if (collection.type !== ContentCollectionType.GROUP && dto.parentId !== undefined) {
       throw new BadRequestException('Only groups can have parent groups');
     }
 
     const childGroupType =
-      (collection.type as any) === 'GROUP' ? this.resolveGroupType(collection as any) : undefined;
+      collection.type === ContentCollectionType.GROUP ? this.resolveGroupType(collection) : undefined;
 
     const parentId = await this.resolveParentGroupId({
       parentId: dto.parentId,
@@ -556,12 +561,12 @@ export class ContentCollectionsService {
     const updateData: any = {
       parentId,
       title: dto.title,
-      config: dto.config as any,
+      config: dto.config as Prisma.JsonObject,
     };
 
     if (dto.version !== undefined) {
       updateData.version = { increment: 1 };
-      const { count } = await (this.prisma.contentCollection as any).updateMany({
+      const { count } = await this.prisma.contentCollection.updateMany({
         where: { id: collection.id, version: dto.version },
         data: updateData,
       });
@@ -570,12 +575,12 @@ export class ContentCollectionsService {
         throw new ConflictException('Collection has been modified in another tab. Please refresh the page.');
       }
 
-      return (this.prisma.contentCollection as any).findUnique({
+      return this.prisma.contentCollection.findUnique({
         where: { id: collection.id },
       });
     }
 
-    return (this.prisma.contentCollection as any).update({
+    return this.prisma.contentCollection.update({
       where: { id: collection.id },
       data: updateData,
     });
@@ -594,7 +599,7 @@ export class ContentCollectionsService {
       requireMutationPermission: true,
     });
 
-    if ((collection.type as any) !== 'GROUP') {
+    if (collection.type !== ContentCollectionType.GROUP) {
       return this.prisma.contentCollection.delete({ where: { id: collectionId } });
     }
 
@@ -666,12 +671,15 @@ export class ContentCollectionsService {
             projectId: dto.projectId,
             OR: [
               {
-                type: 'GROUP',
-                OR: [{ groupType: 'PROJECT_SHARED' }, { groupType: 'PROJECT_USER', userId }],
+                type: ContentCollectionType.GROUP,
+                OR: [
+                  { groupType: ContentLibraryGroupType.PROJECT_SHARED },
+                  { groupType: ContentLibraryGroupType.PROJECT_USER, userId },
+                ],
               },
-              { type: 'SAVED_VIEW', userId },
-              { type: 'PUBLICATION_MEDIA_VIRTUAL', userId },
-              { type: 'UNSPLASH', userId },
+              { type: ContentCollectionType.SAVED_VIEW, userId },
+              { type: ContentCollectionType.PUBLICATION_MEDIA_VIRTUAL, userId },
+              { type: ContentCollectionType.UNSPLASH, userId },
             ],
           };
 

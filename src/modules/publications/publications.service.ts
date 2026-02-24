@@ -122,14 +122,14 @@ export class PublicationsService {
   /**
    * Normalize tagObjects relation into a flat tags string array on a publication response.
    */
-  private normalizePublicationTags(publication: any): any {
+  private normalizePublicationTags<T>(publication: T): T & { tags: string[] } {
     return this.mapper.mapPublication(publication);
   }
 
   /**
    * Return meta object, ensuring it's an object.
    */
-  private parseMetaJson(meta: any): Record<string, any> {
+  private parseMetaJson(meta: Prisma.JsonValue): Record<string, any> {
     return this.mapper.parseMetaJson(meta);
   }
 
@@ -637,18 +637,18 @@ export class PublicationsService {
           media: isMediaUpdating
             ? [
                 ...(data.media || []).map(m => ({ type: m.type })),
-                ...((await this.prisma.media.findMany({
+                ...(await this.prisma.media.findMany({
                   where: {
                     id: {
                       in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id),
                     },
                   },
                   select: { type: true },
-                })) as any),
+                })),
               ]
             : publication.media
-                ?.filter((m: any) => m.media)
-                .map((m: any) => ({ type: m.media!.type })) || [],
+                ?.filter(m => m.media)
+                .map(m => ({ type: m.media!.type })) || [],
           postType: data.postType || publication.postType,
         });
 
@@ -713,12 +713,12 @@ export class PublicationsService {
           // In practice, if media is updating, we have the new array in DTO (merged in logic above)
           mediaArray = [
             ...(data.media || []).map(m => ({ type: m.type })),
-            ...((await this.prisma.media.findMany({
+            ...(await this.prisma.media.findMany({
               where: {
                 id: { in: (data.existingMediaIds || []).map(item => this.getMediaInput(item).id) },
               },
               select: { type: true },
-            })) as any),
+            })),
           ];
         }
 
