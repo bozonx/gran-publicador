@@ -59,7 +59,11 @@ const editForm = ref({
   media: JSON.parse(JSON.stringify(props.item.media || [])).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
 })
 
-const groups = ref(JSON.parse(JSON.stringify(props.item.groups || [])))
+const groups = ref(
+  (props.item.groups || [])
+    .filter(g => !!g && !!g.collection)
+    .map(g => JSON.parse(JSON.stringify(g)))
+)
 
 const autosaveForm = computed(() => {
   const { meta, ...rest } = editForm.value

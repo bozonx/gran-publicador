@@ -161,13 +161,16 @@ const unsplashUrl = computed(() => props.item._virtual?.unsplashUrl || firstMedi
 const displayedGroups = computed(() => {
   if (!props.item.groups) return []
   
+  // Filter out any potential null/undefined groups first for safety
+  const validGroups = props.item.groups.filter(g => !!g && !!g.collection)
+  
   if (props.activeCollectionType === 'GROUP') {
     // Show groups BUT excluding current one
-    return props.item.groups.filter(g => g.collectionId !== props.activeCollectionId)
+    return validGroups.filter(g => g.collectionId !== props.activeCollectionId)
   }
   
   // Show ALL groups in saved views or virtual collections
-  return props.item.groups
+  return validGroups
 })
 
 </script>
