@@ -141,30 +141,45 @@ async function initialFetch() {
   problemsOffset.value = 0
   publishedOffset.value = 0
   
-  await Promise.all([
-    fetchProject(projectId.value),
-    fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }),
-    fetchReady(projectId.value, { status: 'READY', limit: 5 }),
-    fetchPublished(projectId.value, { 
+  // 1. Fetch project first to get the summary
+  const project = await fetchProject(projectId.value)
+  if (!project) return
+
+  // 2. Fetch only necessary sections based on summary
+  const summary = project.publicationsSummary || { DRAFT: 0, READY: 0, SCHEDULED: 0, PUBLISHED: 0, ISSUES: 0 }
+  
+  const tasks: Promise<any>[] = [
+    fetchChannels({ projectId: projectId.value, limit: 100 })
+  ]
+
+  if (summary.DRAFT > 0) tasks.push(fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }))
+  if (summary.READY > 0) tasks.push(fetchReady(projectId.value, { status: 'READY', limit: 5 }))
+  if (summary.PUBLISHED > 0) {
+    tasks.push(fetchPublished(projectId.value, { 
       status: 'PUBLISHED', 
       limit: LIMIT,
       sortBy: 'byPublished',
       sortOrder: 'desc'
-    }),
-    fetchScheduled(projectId.value, { 
+    }))
+  }
+  if (summary.SCHEDULED > 0) {
+    tasks.push(fetchScheduled(projectId.value, { 
       status: 'SCHEDULED', 
       limit: LIMIT,
       sortBy: 'byScheduled',
       sortOrder: 'asc'
-    }),
-    fetchProblems(projectId.value, { 
+    }))
+  }
+  if (summary.ISSUES > 0) {
+    tasks.push(fetchProblems(projectId.value, { 
       status: ['PARTIAL', 'FAILED', 'EXPIRED'], 
       limit: LIMIT,
       sortBy: 'createdAt',
       sortOrder: 'desc'
-    }),
-    fetchChannels({ projectId: projectId.value, limit: 100 })
-  ])
+    }))
+  }
+
+  await Promise.all(tasks)
 }
 
 const activeDraftsCollection = ref('DRAFT')
@@ -489,7 +504,7 @@ async function handleDelete() {
       <!-- Publications Section -->
       <div class="space-y-6 mt-6">
         <PublicationsDraftsSection
-          
+          v-if="currentProject?.publicationsSummary && (currentProject.publicationsSummary.DRAFT > 0 || currentProject.publicationsSummary.READY > 0)"
           v-model:active-collection="activeDraftsCollection"
           :publications="currentDraftsPublications"
           :total-count="currentDraftsTotal"
@@ -502,6 +517,7 @@ async function handleDelete() {
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Scheduled Column -->
           <PublicationsInfiniteBlock
+            v-if="(currentProject?.publicationsSummary?.SCHEDULED ?? 0) > 0 || isScheduledLoading"
             :title="t('publicationStatus.scheduled')"
             icon="i-heroicons-clock"
             icon-color="text-sky-500"
@@ -517,6 +533,7 @@ async function handleDelete() {
 
           <!-- Problem Column -->
           <PublicationsInfiniteBlock
+            v-if="(currentProject?.publicationsSummary?.ISSUES ?? 0) > 0 || isProblemsLoading"
             :title="t('publication.filter.showIssuesOnly')"
             icon="i-heroicons-exclamation-triangle"
             icon-color="text-red-500"
@@ -535,6 +552,7 @@ async function handleDelete() {
 
         <!-- Published Section -->
         <PublicationsInfiniteBlock
+          v-if="(currentProject?.publicationsSummary?.PUBLISHED ?? 0) > 0 || isPublishedLoading"
           :title="t('publication.filter.published')"
           icon="i-heroicons-check-circle"
           icon-color="text-green-500"

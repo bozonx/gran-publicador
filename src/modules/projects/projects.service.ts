@@ -116,10 +116,14 @@ export class ProjectsService {
 
   private async createDefaultProjectTemplate(projectId: string, tx: Prisma.TransactionClient) {
     this.logger.debug(`Creating default project template for project ${projectId}`);
+    
+    // Use i18n for default template name if possible, fallback to 'Standard'
+    const name = this.i18n.t('project.default_template_name', { defaultValue: 'Стандартный' });
+
     return tx.projectTemplate.create({
       data: {
         projectId,
-        name: 'Стандартный',
+        name,
         language: null, // Applies to all languages
         order: 0,
         template: [
@@ -220,16 +224,30 @@ export class ProjectsService {
       }),
       isPostgres
         ? this.prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
-            SELECT c.project_id as "projectId", COUNT(c.id) as "count" FROM channels c JOIN projects p ON c.project_id = p.id
+            SELECT c.project_id as "projectId", COUNT(c.id) as "count" 
+            FROM channels c 
+            JOIN projects p ON c.project_id = p.id
+            JOIN (
+                SELECT channel_id, MAX(published_at) as last_published_at
+                FROM posts
+                WHERE published_at IS NOT NULL
+                GROUP BY channel_id
+            ) lp ON c.id = lp.channel_id
             WHERE c.project_id IN (${Prisma.join(projectIds)}) AND c.archived_at IS NULL
-              AND EXISTS (SELECT 1 FROM posts po WHERE po.channel_id = c.id AND po.published_at IS NOT NULL)
-              AND ( (SELECT MAX(published_at) FROM posts WHERE channel_id = c.id) < NOW() - (COALESCE((c.preferences->>'staleChannelsDays')::integer, (p.preferences->>'staleChannelsDays')::integer, ${DEFAULT_STALE_CHANNELS_DAYS}) || ' days')::interval )
+              AND lp.last_published_at < NOW() - (COALESCE((c.preferences->>'staleChannelsDays')::integer, (p.preferences->>'staleChannelsDays')::integer, ${DEFAULT_STALE_CHANNELS_DAYS}) || ' days')::interval
             GROUP BY c.project_id`
         : this.prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
-            SELECT c.project_id as projectId, COUNT(c.id) as count FROM channels c JOIN projects p ON c.project_id = p.id
+            SELECT c.project_id as projectId, COUNT(c.id) as count 
+            FROM channels c 
+            JOIN projects p ON c.project_id = p.id
+            JOIN (
+                SELECT channel_id, MAX(published_at) as last_published_at
+                FROM posts
+                WHERE published_at IS NOT NULL
+                GROUP BY channel_id
+            ) lp ON c.id = lp.channel_id
             WHERE c.project_id IN (${Prisma.join(projectIds)}) AND c.archived_at IS NULL
-              AND EXISTS (SELECT 1 FROM posts po WHERE po.channel_id = c.id AND po.published_at IS NOT NULL)
-              AND ( (SELECT MAX(published_at) FROM posts WHERE channel_id = c.id) < DATETIME('now', '-' || CAST(COALESCE(json_extract(c.preferences, '$.staleChannelsDays'), json_extract(p.preferences, '$.staleChannelsDays'), ${DEFAULT_STALE_CHANNELS_DAYS}) AS TEXT) || ' days') )
+              AND lp.last_published_at < DATETIME('now', '-' || CAST(COALESCE(json_extract(c.preferences, '$.staleChannelsDays'), json_extract(p.preferences, '$.staleChannelsDays'), ${DEFAULT_STALE_CHANNELS_DAYS}) AS TEXT) || ' days')
             GROUP BY c.project_id`,
       this.prisma.channel.findMany({
         where: {
@@ -511,7 +529,41 @@ export class ProjectsService {
         this.hasNoCredentials(c.credentials, c.socialMedia),
       ).length,
       inactiveChannelsCount: inactiveCount,
+      publicationsSummary: await this.getPublicationsSummary(projectId),
     };
+  }
+
+  private async getPublicationsSummary(projectId: string) {
+    const counts = await this.prisma.publication.groupBy({
+      by: ['status'],
+      where: { projectId, archivedAt: null },
+      _count: { id: true },
+    });
+
+    const summary = {
+      DRAFT: 0,
+      READY: 0,
+      SCHEDULED: 0,
+      PUBLISHED: 0,
+      ISSUES: 0, // PARTIAL, FAILED, EXPIRED
+    };
+
+    counts.forEach(c => {
+      const status = c.status;
+      if (status === PublicationStatus.DRAFT) summary.DRAFT = c._count.id;
+      else if (status === PublicationStatus.READY) summary.READY = c._count.id;
+      else if (status === PublicationStatus.SCHEDULED) summary.SCHEDULED = c._count.id;
+      else if (status === PublicationStatus.PUBLISHED) summary.PUBLISHED = c._count.id;
+      else if (
+        [PublicationStatus.PARTIAL, PublicationStatus.FAILED, PublicationStatus.EXPIRED].includes(
+          status,
+        )
+      ) {
+        summary.ISSUES += c._count.id;
+      }
+    });
+
+    return summary;
   }
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
@@ -971,11 +1023,8 @@ export class ProjectsService {
           data: { ownerId: data.targetUserId },
         });
 
-        // 2. Cascade ownership of publications created by old owner
-        await tx.publication.updateMany({
-          where: { projectId, createdBy: userId },
-          data: { createdBy: data.targetUserId },
-        });
+        // 2. Cascade ownership of publications is REMOVED to preserve audit history
+        // createdBy should remain the original creator
 
         // 3. Optional: Clear channel credentials
         if (data.clearCredentials) {

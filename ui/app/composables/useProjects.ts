@@ -417,6 +417,21 @@ export function useProjects() {
     return null;
   }
 
+  function getProjectProblemsSummary(project: Project | any) {
+    const problems = getProjectProblems(project);
+    const critical = problems.filter(p => p.type === 'critical');
+    const warnings = problems.filter(p => p.type === 'warning');
+
+    return {
+      problems,
+      errorsCount: critical.reduce((sum, p) => sum + (p.count || 1), 0),
+      warningsCount: warnings.reduce((sum, p) => sum + (p.count || 1), 0),
+      errorsTooltip: critical.map(p => t(`problems.project.${p.key}`, { count: p.count || 1 })).join(', '),
+      warningsTooltip: warnings.map(p => t(`problems.project.${p.key}`, { count: p.count || 1 })).join(', '),
+      level: critical.length > 0 ? 'critical' : warnings.length > 0 ? 'warning' : null
+    };
+  }
+
   async function transferProject(
     projectId: string,
     data: { targetUserId: string; projectName: string; clearCredentials: boolean },
@@ -490,5 +505,6 @@ export function useProjects() {
     // Problem detection
     getProjectProblems,
     getProjectProblemLevel,
+    getProjectProblemsSummary,
   };
 }

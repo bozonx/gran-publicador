@@ -15,15 +15,14 @@ const { projects, isLoading, error, fetchProjects, createProject } = useProjects
 
 const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
-const allProjects = ref<ProjectWithRole[]>([])
 const showArchived = ref(false)
 
 // Filter projects
 const filteredAllProjects = computed(() => {
-  if (!debouncedSearch.value) return allProjects.value
+  if (!debouncedSearch.value) return projects.value
   
   const query = debouncedSearch.value.toLowerCase()
-  return allProjects.value.filter(p => 
+  return projects.value.filter(p => 
     p.name.toLowerCase().includes(query) || 
     p.description?.toLowerCase().includes(query)
   )
@@ -51,8 +50,7 @@ const sortedArchivedProjects = computed(() => sortList(archivedProjects.value))
 
 // Fetch all projects (active and archived) in one request
 onMounted(async () => {
-  const data = await fetchProjects(true) // Include archived for the main projects list
-  allProjects.value = data
+  await fetchProjects(true) // Include archived for the main projects list
 })
 
 /**
@@ -262,6 +260,7 @@ async function onDragEnd() {
           :key="project.id"
           :project="project"
           :show-description="true"
+          :search-query="debouncedSearch"
         >
           <template v-if="sortBy === 'custom'" #leading>
             <div 
@@ -298,6 +297,7 @@ async function onDragEnd() {
               :key="project.id"
               :project="project"
               :show-description="true"
+              :search-query="debouncedSearch"
             />
           </div>
         </div>

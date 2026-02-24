@@ -15,6 +15,7 @@ export interface Project {
     mediaOptimization?: MediaOptimizationPreferences;
     [key: string]: any;
   };
+  version?: number;
 }
 
 export interface ProjectUpdateInput {
@@ -69,6 +70,13 @@ export interface ProjectWithRole extends ProjectWithOwner {
     socialMedia: string;
     isStale?: boolean;
   }[];
+  publicationsSummary?: {
+    DRAFT: number;
+    READY: number;
+    SCHEDULED: number;
+    PUBLISHED: number;
+    ISSUES: number;
+  };
 }
 
 export interface ProjectMemberWithUser extends ProjectMember {

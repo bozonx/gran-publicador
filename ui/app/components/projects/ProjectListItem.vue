@@ -5,17 +5,21 @@ import { getRoleBadgeColor } from '~/utils/roles'
 const props = defineProps<{
   project: ProjectWithRole
   showDescription?: boolean
+  searchQuery?: string
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
-const { getProjectProblemLevel, getProjectProblems } = useProjects()
+const { 
+  getProjectProblemsSummary 
+} = useProjects()
 const { getChannelProblemLevel } = useChannels()
 const { formatDateShort, formatDateWithTime } = useFormatters()
 
 // Problem detection
-const problems = computed(() => getProjectProblems(props.project))
-const problemLevel = computed(() => getProjectProblemLevel(props.project))
+const problemsSummary = computed(() => getProjectProblemsSummary(props.project))
+const problems = computed(() => problemsSummary.value.problems)
+const problemLevel = computed(() => problemsSummary.value.level)
 
 function getIndicatorColor(level: 'critical' | 'warning' | null) {
   if (level === 'critical') return 'bg-red-500'
@@ -23,35 +27,11 @@ function getIndicatorColor(level: 'critical' | 'warning' | null) {
   return 'bg-emerald-500'
 }
 
-// Errors category (critical issues)
-const errorsCount = computed(() => {
-  return problems.value
-    .filter(p => p.type === 'critical')
-    .reduce((sum, p) => sum + (p.count || 1), 0)
-})
-
-// Warnings category (non-critical issues)
-const warningsCount = computed(() => {
-  return problems.value
-    .filter(p => p.type === 'warning')
-    .reduce((sum, p) => sum + (p.count || 1), 0)
-})
-
-// Tooltip text for errors
-const errorsTooltip = computed(() => {
-  return problems.value
-    .filter(p => p.type === 'critical')
-    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
-    .join(', ')
-})
-
-// Tooltip text for warnings
-const warningsTooltip = computed(() => {
-  return problems.value
-    .filter(p => p.type === 'warning')
-    .map(p => t(`problems.project.${p.key}`, { count: p.count || 1 }))
-    .join(', ')
-})
+// Category counts and tooltips from summary
+const errorsCount = computed(() => problemsSummary.value.errorsCount)
+const warningsCount = computed(() => problemsSummary.value.warningsCount)
+const errorsTooltip = computed(() => problemsSummary.value.errorsTooltip)
+const warningsTooltip = computed(() => problemsSummary.value.warningsTooltip)
 </script>
 
 <template>
@@ -66,7 +46,7 @@ const warningsTooltip = computed(() => {
           <!-- Header: Name + Role + Problem Badges -->
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate max-w-full">
-              {{ project.name }}
+              <CommonSearchHighlight :text="project.name" :query="searchQuery || ''" />
             </h3>
             <UBadge 
               v-if="project.role" 
@@ -112,7 +92,7 @@ const warningsTooltip = computed(() => {
             v-if="showDescription && project.description" 
             class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2"
           >
-            {{ project.description }}
+            <CommonSearchHighlight :text="project.description" :query="searchQuery || ''" />
           </p>
           <!-- Metrics / Stats -->
           <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex-wrap">
@@ -176,7 +156,7 @@ const warningsTooltip = computed(() => {
                   :platform="channel.socialMedia" 
                   :show-background="true" 
                   :is-stale="channel.isStale"
-                  :problem-level="getChannelProblemLevel(channel)"
+                  :problem-level="getChannelProblemLevel(channel as any)"
                 />
               </NuxtLink>
             </UTooltip>

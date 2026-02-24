@@ -103,7 +103,12 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
       delete updateData.preferences.newsQueries
     }
   }
-  
+
+  if (props.project?.version !== undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (updateData as any).version = props.project.version
+  }
+
   return updateData
 }
 
