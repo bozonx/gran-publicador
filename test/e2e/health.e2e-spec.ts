@@ -1,18 +1,24 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createTestApp } from './test-app.factory.js';
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from '@jest/globals';
+import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
+import { truncateDatabase } from '../helpers/db-cleanup.js';
 
 describe('Health (e2e)', () => {
   let app: NestFastifyApplication;
+  let prisma: PrismaService;
 
-  beforeEach(async () => {
-    // Create fresh app instance for each test for better isolation
+  beforeAll(async () => {
     app = await createTestApp();
+    prisma = app.get(PrismaService);
   });
 
-  afterEach(async () => {
-    // Clean up app instance after each test
-    await app.close();
+  beforeEach(async () => {
+    await truncateDatabase(prisma);
+  });
+
+  afterAll(async () => {
+    if (app) await app.close();
   });
 
   describe('GET /api/v1/health', () => {
@@ -24,7 +30,7 @@ describe('Health (e2e)', () => {
 
       expect(response.statusCode).toBe(200);
       const body = JSON.parse(response.body);
-      expect(body).toEqual({ status: 'ok', database: 'connected' });
+      expect(body).toEqual({ status: 'ok', database: 'connected', version: '0.5.0' });
     });
   });
 });
