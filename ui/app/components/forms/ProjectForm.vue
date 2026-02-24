@@ -108,7 +108,7 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
 }
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline } = useAutosave({
   data: toRef(() => state),
   saveFn: async () => {
     if (!props.autosave) return { saved: false, skipped: true }
@@ -324,13 +324,11 @@ function handleReset() {
 
       <!-- Form actions -->
       <div class="flex justify-end pt-4">
-        <UiSaveStatusIndicator 
-          v-if="autosave" 
-          :status="indicatorStatus" 
+        <UiSaveStatusIndicator
+          v-if="props.autosave"
+          :status="indicatorStatus"
           :visible="isIndicatorVisible"
-          :error="saveError" 
-          show-retry
-          @retry="retrySave"
+          :error="saveError"
         />
         <UiFormActions
           v-else

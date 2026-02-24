@@ -208,6 +208,14 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
         title: t('common.error'),
         description: t('common.unsavedChanges'),
         color: 'error',
+        actions: [
+          {
+            label: t('common.retry'),
+            onClick: () => {
+              void performSave(true);
+            },
+          },
+        ],
       });
     }
   }
@@ -412,6 +420,19 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
               title: t('common.error'),
               description: saveError.value ?? undefined,
               color: 'error',
+              actions: [
+                {
+                  label: t('common.retry'),
+                  onClick: () => {
+                    errorToastShownForCycle = false;
+                    retryLimitToastShownForCycle = false;
+                    retryAttempts = 0;
+                    authToastShownForCycle = false;
+                    clearRetryTimer();
+                    void performSave(true);
+                  },
+                },
+              ],
             });
           }
         }
@@ -445,6 +466,19 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
             title: t('common.error'),
             description: saveError.value ?? undefined,
             color: 'error',
+            actions: [
+              {
+                label: t('common.retry'),
+                onClick: () => {
+                  errorToastShownForCycle = false;
+                  retryLimitToastShownForCycle = false;
+                  retryAttempts = 0;
+                  authToastShownForCycle = false;
+                  clearRetryTimer();
+                  void performSave(true);
+                },
+              },
+            ],
           });
         }
 

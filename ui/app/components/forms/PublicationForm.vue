@@ -388,7 +388,7 @@ onMounted(async () => {
 })
 
 // Auto-save setup
-const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, retrySave, flushSave } = useAutosave({
+const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline, flushSave } = useAutosave({
   data: toRef(() => state),
   saveFn: async (data) => {
     if (!props.autosave || !isEditMode.value) return { saved: false, skipped: true }
@@ -798,14 +798,12 @@ function handleReset() {
       </UiFormAdvancedSection>
 
       <div class="flex justify-end items-center gap-4">
-        <UiSaveStatusIndicator 
-          v-if="autosave && isEditMode" 
-          :status="indicatorStatus" 
-          :visible="isIndicatorVisible"
-          :error="saveError" 
-          show-retry
-          @retry="retrySave"
-        />
+        <UiSaveStatusIndicator
+        v-if="props.autosave"
+        :status="indicatorStatus"
+        :visible="isIndicatorVisible"
+        :error="saveError"
+      />
         <UiFormActions
           v-else
           ref="formActionsRef"

@@ -66,7 +66,7 @@ const autosaveForm = computed(() => {
   return rest
 })
 
-const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave, flushSave } = useAutosave({
+const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, flushSave } = useAutosave({
   data: toRef(() => autosaveForm.value as any),
   saveFn: async (data: any) => {
     await saveItem(data)
@@ -242,8 +242,6 @@ defineExpose({
               :status="indicatorStatus" 
               :visible="isIndicatorVisible"
               :error="saveError" 
-              show-retry
-              @retry="retrySave"
             />
           </span>
         </span>
@@ -252,6 +250,7 @@ defineExpose({
         v-model="editForm.title"
         :placeholder="t('contentLibrary.fields.titlePlaceholder')"
         class="w-full"
+        @blur="flushSave()"
       />
     </UFormField>
 

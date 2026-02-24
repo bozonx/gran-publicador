@@ -5,11 +5,6 @@ const props = defineProps<{
   status: SaveStatus
   visible: boolean
   error?: string | null
-  showRetry?: boolean
-}>()
-
-const emit = defineEmits<{
-  (e: 'retry'): void
 }>()
 
 const { t } = useI18n()
@@ -32,14 +27,6 @@ const { t } = useI18n()
           <span class="text-gray-500 dark:text-gray-400 font-medium">
             {{ t('common.unsavedChanges') || 'Unsaved changes' }}
           </span>
-          <UButton
-            v-if="props.showRetry"
-            size="xs"
-            color="neutral"
-            variant="soft"
-            :label="t('common.retry') || 'Retry'"
-            @click.stop="emit('retry')"
-          />
         </template>
 
         <template v-else-if="status === 'saved'">
@@ -63,14 +50,6 @@ const { t } = useI18n()
               {{ t('common.saveError') || 'Ошибка сохранения' }}
             </span>
           </UTooltip>
-          <UButton
-            v-if="props.showRetry"
-            size="xs"
-            color="neutral"
-            variant="soft"
-            :label="t('common.retry') || 'Retry'"
-            @click.stop="emit('retry')"
-          />
         </template>
       </div>
     </Transition>

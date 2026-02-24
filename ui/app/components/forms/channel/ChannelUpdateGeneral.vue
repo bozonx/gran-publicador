@@ -156,8 +156,6 @@ const currentProjectName = computed(() => {
         :status="indicatorStatus" 
         :visible="isIndicatorVisible"
         :error="saveError" 
-        show-retry
-        @retry="retrySave"
       />
       <UiFormActions
         v-else

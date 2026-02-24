@@ -1497,8 +1497,6 @@ const mediaValidation = computed(() => {
           :status="mediaIndicatorStatus" 
           :visible="isMediaIndicatorVisible"
           :error="mediaSaveError" 
-          show-retry
-          @retry="retrySaveMediaMeta"
         />
 
         <UButton

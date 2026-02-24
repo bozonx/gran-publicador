@@ -127,8 +127,6 @@ async function finishEditing() {
                 :status="indicatorStatus" 
                 :visible="isIndicatorVisible"
                 :error="saveError" 
-                show-retry
-                @retry="retrySave"
               />
           </div>
 

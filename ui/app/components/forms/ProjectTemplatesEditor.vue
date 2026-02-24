@@ -464,8 +464,6 @@ const allBlocks = computed(() => {
             :status="indicatorStatus"
             :visible="isIndicatorVisible"
             :error="saveError"
-            show-retry
-            @retry="retrySave"
           />
         </div>
       </template>

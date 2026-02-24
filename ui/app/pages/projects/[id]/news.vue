@@ -760,8 +760,6 @@ const sourcesTooltipText = computed(() => {
                   :status="indicatorStatus"
                   :visible="isIndicatorVisible"
                   :error="saveError"
-                  show-retry
-                  @retry="retrySave"
                 />
 
                 <UButton
