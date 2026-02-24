@@ -9,6 +9,9 @@ import { ContentLibraryModule } from '../content-library/content-library.module.
 import { PublicationsController } from './publications.controller.js';
 import { PublicationsService } from './publications.service.js';
 
+import { PublicationsLlmService } from './publications-llm.service.js';
+import { PublicationsMapper } from './publications.mapper.js';
+
 @Module({
   imports: [
     PrismaModule,
@@ -19,7 +22,7 @@ import { PublicationsService } from './publications.service.js';
     forwardRef(() => ContentLibraryModule),
   ],
   controllers: [PublicationsController],
-  providers: [PublicationsService],
-  exports: [PublicationsService],
+  providers: [PublicationsService, PublicationsLlmService, PublicationsMapper],
+  exports: [PublicationsService, PublicationsLlmService, PublicationsMapper],
 })
 export class PublicationsModule {}

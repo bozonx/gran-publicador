@@ -22,6 +22,9 @@ import { CreatePublicationDto } from '../../src/modules/publications/dto/create-
 import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { ContentItemsService } from '../../src/modules/content-library/content-items.service.js';
 import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
+import { PublicationsLlmService } from '../../src/modules/publications/publications-llm.service.js';
+import { PublicationsMapper } from '../../src/modules/publications/publications.mapper.js';
+import { createPrismaMock } from '../helpers/prisma.mock.js';
 
 describe('PublicationsService (unit)', () => {
   let service: PublicationsService;
@@ -106,6 +109,21 @@ describe('PublicationsService (unit)', () => {
     search: jest.fn() as any,
   };
 
+  const mockLlmChatService = {
+    chatWithLlm: jest.fn() as any,
+  };
+
+  const mockMapper = {
+    mapPublication: jest.fn((p: any) => ({
+      ...p,
+      meta: typeof p.meta === 'string' ? JSON.parse(p.meta || '{}') : p.meta,
+      tags: (p.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
+    })) as any,
+    mapTags: jest.fn((tagObjects: any[]) => (tagObjects ?? []).map((t: any) => t.name).filter(Boolean)) as any,
+    parseMetaJson: jest.fn((meta) => (typeof meta === 'object' && meta !== null ? meta : {})) as any,
+    normalizeAuthorSignature: jest.fn((v: string) => v.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim()) as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -142,6 +160,14 @@ describe('PublicationsService (unit)', () => {
           provide: UnsplashService,
           useValue: mockUnsplashService,
         },
+        {
+          provide: PublicationsLlmService,
+          useValue: mockLlmChatService,
+        },
+        {
+          provide: PublicationsMapper,
+          useValue: mockMapper,
+        },
       ],
     }).compile();
 
@@ -166,114 +192,21 @@ describe('PublicationsService (unit)', () => {
   });
 
   describe('chatWithLlm', () => {
-    it('should include context only for the first message and persist chat meta', async () => {
+    it('should delegate chat to PublicationsLlmService', async () => {
       const userId = 'user-1';
       const publicationId = 'pub-1';
+      const dto = { message: 'Hello' } as any;
 
-      jest
-        .spyOn(service, 'findOne')
-        .mockResolvedValue({ id: publicationId, createdBy: userId, meta: {} } as any);
+      const publication = { id: publicationId, projectId: 'p1' };
+      jest.spyOn(service, 'findOne').mockResolvedValue(publication as any);
 
-      let capturedUpdateMeta: any;
-      mockPrismaService.publication.update.mockImplementation(({ data }: any) => {
-        capturedUpdateMeta = data.meta;
-        return Promise.resolve({ id: publicationId, meta: data.meta });
-      });
+      await service.chatWithLlm(publicationId, userId, dto);
 
-      mockLlmService.extractContent.mockReturnValue('Assistant reply');
-      mockLlmService.generateChat.mockResolvedValue({
-        id: 'id',
-        object: 'chat.completion',
-        created: Date.now(),
-        model: 'test',
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: 'Assistant reply' },
-            finish_reason: 'stop',
-          },
-        ],
-        _router: { provider: 'test', model_name: 'test', attempts: 1, fallback_used: false },
-        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 },
-      });
-
-      await service.chatWithLlm(publicationId, userId, {
-        message: 'Hello',
-        context: {
-          content: 'Publication content',
-          mediaDescriptions: ['Image desc'],
-          contextLimitChars: 10000,
-        },
-      } as any);
-
-      expect(mockLlmService.generateChat).toHaveBeenCalled();
-      const messages = mockLlmService.generateChat.mock.calls[0][0] as any[];
-
-      expect(messages[0]).toEqual({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
-      expect(
-        messages.some(m => m.role === 'user' && String(m.content).includes('<source_content>')),
-      ).toBe(true);
-      expect(
-        messages.some(m => m.role === 'user' && String(m.content).includes('<image_description>')),
-      ).toBe(true);
-
-      expect(capturedUpdateMeta.llmPublicationContentGenerationChat).toBeTruthy();
-      expect(capturedUpdateMeta.llmPublicationContentGenerationChat.messages).toHaveLength(2);
-      expect(capturedUpdateMeta.llmPublicationContentGenerationChat.context).toBeTruthy();
-    });
-
-    it('should not include context for subsequent messages and normalize stored messages', async () => {
-      const userId = 'user-1';
-      const publicationId = 'pub-1';
-
-      const existingMeta = {
-        llmPublicationContentGenerationChat: {
-          messages: [
-            { role: 'user', content: 'Hello', contextSnapshot: [{ id: 'content:1' }] },
-            { role: 'assistant', content: 'Hi' },
-          ],
-          context: {
-            content: 'Publication content',
-            mediaDescriptions: ['Image desc'],
-            contextLimitChars: 10000,
-          },
-        },
-      };
-
-      jest
-        .spyOn(service, 'findOne')
-        .mockResolvedValue({ id: publicationId, createdBy: userId, meta: existingMeta } as any);
-
-      mockPrismaService.publication.update.mockResolvedValue({ id: publicationId } as any);
-
-      mockLlmService.extractContent.mockReturnValue('Assistant reply 2');
-      mockLlmService.generateChat.mockResolvedValue({
-        id: 'id',
-        object: 'chat.completion',
-        created: Date.now(),
-        model: 'test',
-        choices: [
-          {
-            index: 0,
-            message: { role: 'assistant', content: 'Assistant reply 2' },
-            finish_reason: 'stop',
-          },
-        ],
-      });
-
-      await service.chatWithLlm(publicationId, userId, {
-        message: 'Next',
-      } as any);
-
-      const messages = mockLlmService.generateChat.mock.calls[0][0] as any[];
-      expect(messages[0]).toEqual({ role: 'system', content: PUBLICATION_CHAT_SYSTEM_PROMPT });
-      expect(
-        messages.some(m => m.role === 'user' && String(m.content).includes('<source_content>')),
-      ).toBe(false);
-
-      const updatedMeta = mockPrismaService.publication.update.mock.calls[0][0].data.meta;
-      const savedMessages = updatedMeta.llmPublicationContentGenerationChat.messages;
-      expect(savedMessages[0]).toEqual({ role: 'user', content: 'Hello' });
+      expect(mockLlmChatService.chatWithLlm).toHaveBeenCalledWith(
+        publication,
+        dto,
+        expect.any(Object),
+      );
     });
   });
 

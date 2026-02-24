@@ -14,7 +14,8 @@ import { normalizeTags } from '../../common/utils/tags.util.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { MediaService } from '../media/media.service.js';
-import { MediaType, StorageType } from '../../generated/prisma/index.js';
+import { ContentLibraryMapper } from './content-library.mapper.js';
+ import { MediaType, StorageType } from '../../generated/prisma/index.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -35,6 +36,7 @@ export class ContentItemsService {
     private readonly collectionsService: ContentCollectionsService,
     private readonly mediaService: MediaService,
     private readonly unsplashService: UnsplashService,
+    private readonly mapper: ContentLibraryMapper,
   ) {}
 
   private normalizeSearchTokens(search: string): string[] {
@@ -47,32 +49,15 @@ export class ContentItemsService {
   }
 
   private normalizeTags(tags?: string[]): string[] {
-    return normalizeTags(tags ?? [], {
-      lowercase: true,
-      dedupe: true,
-      dedupeCaseInsensitive: true,
-      limit: 50,
-    });
+    return this.mapper.mapTags(tags as any);
   }
 
-  private normalizeItemText(text?: unknown): string | null {
-    if (typeof text !== 'string') return null;
-    const trimmed = text.trim();
-    return trimmed.length > 0 ? trimmed : '';
-  }
-
-  private mapIncomingMediaIds(dto: { mediaIds?: string[]; media?: Array<{ mediaId: string }> }) {
-    if (dto.mediaIds) return dto.mediaIds;
-    if (dto.media) return dto.media.map(m => m.mediaId);
-    return undefined;
+  private mapIncomingMediaIds(dto: any): string[] {
+    return this.mapper.mapIncomingMediaIds(dto);
   }
 
   private normalizeContentItemTags(item: any): any {
-    if (!item) return item;
-    return {
-      ...item,
-      tags: (item.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
-    };
+    return this.mapper.mapContentItem(item);
   }
 
   public async assertContentItemAccess(
@@ -478,7 +463,7 @@ export class ContentItemsService {
             'CONTENT_LIBRARY',
           ),
           note: dto.note,
-          text: this.normalizeItemText(dto.text),
+          text: this.mapper.normalizeItemText(dto.text),
           meta: (dto.meta ?? {}) as any,
           media: dto.media
             ? {
@@ -834,7 +819,7 @@ export class ContentItemsService {
           title: dto.title,
           note: dto.note,
           tagObjects: tagData,
-          text: this.normalizeItemText(dto.text),
+          text: this.mapper.normalizeItemText(dto.text),
           meta: dto.meta ? (dto.meta as any) : undefined,
         },
       });

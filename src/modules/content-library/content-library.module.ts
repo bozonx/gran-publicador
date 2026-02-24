@@ -13,6 +13,8 @@ import { UnsplashService } from './unsplash.service.js';
 import { ContentBulkService } from './content-bulk.service.js';
 import { ContentLibraryVirtualService } from './content-library-virtual.service.js';
 
+import { ContentLibraryMapper } from './content-library.mapper.js';
+
 @Module({
   imports: [
     ConfigModule,
@@ -29,6 +31,7 @@ import { ContentLibraryVirtualService } from './content-library-virtual.service.
     UnsplashService,
     ContentBulkService,
     ContentLibraryVirtualService,
+    ContentLibraryMapper,
   ],
   exports: [
     ContentCollectionsService,
@@ -37,6 +40,7 @@ import { ContentLibraryVirtualService } from './content-library-virtual.service.
     UnsplashService,
     ContentBulkService,
     ContentLibraryVirtualService,
+    ContentLibraryMapper,
   ],
 })
 export class ContentLibraryModule {}
