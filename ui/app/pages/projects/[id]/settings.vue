@@ -106,10 +106,6 @@ async function handleUpdate(data: Partial<ProjectWithRole>) {
  * Open delete confirmation modal
  */
 function confirmDelete() {
-  if (isProjectEmpty.value) {
-    handleDelete()
-    return
-  }
   deleteConfirmationInput.value = ''
   showDeleteModal.value = true
 }

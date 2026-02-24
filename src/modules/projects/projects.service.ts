@@ -116,7 +116,7 @@ export class ProjectsService {
 
   private async createDefaultProjectTemplate(projectId: string, tx: Prisma.TransactionClient) {
     this.logger.debug(`Creating default project template for project ${projectId}`);
-    
+
     // Use i18n for default template name if possible, fallback to 'Standard'
     const name = this.i18n.t('project.default_template_name', { defaultValue: 'Стандартный' });
 
@@ -411,93 +411,71 @@ export class ProjectsService {
   }
 
   public async findOne(projectId: string, userId: string, allowArchived = false): Promise<any> {
-    const project = await this.prisma.project.findFirst({
-      where: { id: projectId, ...(allowArchived ? {} : { archivedAt: null }) },
-      include: {
-        _count: {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        ownerId: true,
+        preferences: true,
+        createdAt: true,
+        updatedAt: true,
+        archivedAt: true,
+        archivedBy: true,
+        owner: {
           select: {
-            channels: { where: { archivedAt: null } },
-            publications: { where: { archivedAt: null } },
+            id: true,
+            fullName: true,
+            telegramUsername: true,
           },
         },
-        publications: {
-          where: { status: PublicationStatus.PUBLISHED, archivedAt: null },
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-          select: { id: true, createdAt: true },
-        },
-        channels: {
-          where: { archivedAt: null },
-          include: {
-            _count: {
-              select: {
-                posts: {
-                  where: { status: PostStatus.PUBLISHED, publication: { archivedAt: null } },
-                },
-              },
-            },
-            posts: {
-              where: { status: PostStatus.PUBLISHED, publication: { archivedAt: null } },
-              take: 1,
-              orderBy: { publishedAt: 'desc' },
-              select: { publishedAt: true, createdAt: true },
-            },
-          },
-        },
-        members: { include: { user: true } },
       },
     });
 
-    if (!project) throw new NotFoundException('Project not found');
+    if (!project || (!allowArchived && project.archivedAt)) {
+      throw new NotFoundException('Project not found');
+    }
 
     const role = await this.permissions.getUserProjectRole(projectId, userId);
     if (!role) throw new ForbiddenException('You are not a member of this project');
 
     const projectPrefs = (project.preferences as any) || {};
-    let staleChannelsCount = 0;
-    const channelIds = project.channels.map(c => c.id);
-    const failedPostCounts =
-      channelIds.length > 0
-        ? await this.prisma.post.groupBy({
-            by: ['channelId'],
-            where: {
-              channelId: { in: channelIds },
-              status: PostStatus.FAILED,
-              publication: { archivedAt: null },
-            },
-            _count: { id: true },
-          })
-        : [];
-    const failedCountsMap = new Map<string, number>();
-    failedPostCounts.forEach(pc => failedCountsMap.set(pc.channelId, pc._count.id));
-
-    const mappedChannels = project.channels.map(channel => {
-      const channelPrefs = (channel.preferences as any) || {};
-      const lastPublishedAt = channel.posts.find(p => (p as any).publishedAt)?.publishedAt || null;
-      let isStale = false;
-      if (lastPublishedAt) {
-        const staleDays =
-          channelPrefs.staleChannelsDays ||
-          projectPrefs.staleChannelsDays ||
-          DEFAULT_STALE_CHANNELS_DAYS;
-        const diffDays = Math.ceil(
-          Math.abs(Date.now() - new Date(lastPublishedAt).getTime()) / (1000 * 60 * 60 * 24),
-        );
-        isStale = diffDays > staleDays;
-      }
-      if (isStale) staleChannelsCount++;
-      return {
-        ...channel,
-        postsCount: (channel as any)._count.posts,
-        failedPostsCount: failedCountsMap.get(channel.id) || 0,
-        lastPostAt:
-          (channel as any).posts[0]?.publishedAt || (channel as any).posts[0]?.createdAt || null,
-        isStale,
-        preferences: channelPrefs,
-      };
-    });
-
-    const [problemCount, inactiveCount] = await Promise.all([
+    const [
+      memberCountRaw,
+      channelCount,
+      publicationsCount,
+      lastPublication,
+      channels,
+      problemCount,
+      inactiveCount,
+      publicationsSummary,
+      languagesRaw,
+      failedPostsCount,
+    ] = await Promise.all([
+      this.prisma.projectMember.count({ where: { projectId } }),
+      this.prisma.channel.count({ where: { projectId, archivedAt: null } }),
+      this.prisma.publication.count({ where: { projectId, archivedAt: null } }),
+      this.prisma.publication.findFirst({
+        where: { projectId, status: PublicationStatus.PUBLISHED, archivedAt: null },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, createdAt: true },
+      }),
+      this.prisma.channel.findMany({
+        where: { projectId, archivedAt: null },
+        select: {
+          id: true,
+          socialMedia: true,
+          credentials: true,
+          preferences: true,
+          posts: {
+            where: { status: PostStatus.PUBLISHED, publication: { archivedAt: null } },
+            take: 1,
+            orderBy: { publishedAt: 'desc' },
+            select: { publishedAt: true, createdAt: true },
+          },
+        },
+      }),
       this.prisma.publication.count({
         where: {
           projectId,
@@ -507,29 +485,65 @@ export class ProjectsService {
           archivedAt: null,
         },
       }),
-      // No credentials count calculated below from loaded channels
       this.prisma.channel.count({ where: { projectId, archivedAt: null, isActive: false } }),
+      this.getPublicationsSummary(projectId),
+      this.prisma.channel.groupBy({
+        by: ['language'],
+        where: { projectId, archivedAt: null },
+      }),
+      this.prisma.post.count({
+        where: {
+          status: PostStatus.FAILED,
+          publication: { archivedAt: null },
+          channel: { projectId, archivedAt: null },
+        },
+      }),
     ]);
+
+    let staleChannelsCount = 0;
+    let noCredentialsChannelsCount = 0;
+    const nowMs = Date.now();
+
+    for (const channel of channels) {
+      if (this.hasNoCredentials(channel.credentials as any, channel.socialMedia)) {
+        noCredentialsChannelsCount++;
+      }
+
+      const channelPrefs = (channel.preferences as any) || {};
+      const lastPostAt = channel.posts[0]?.publishedAt || channel.posts[0]?.createdAt || null;
+      if (!lastPostAt) continue;
+
+      const staleDays =
+        channelPrefs.staleChannelsDays ||
+        projectPrefs.staleChannelsDays ||
+        DEFAULT_STALE_CHANNELS_DAYS;
+      const diffDays = Math.ceil(
+        Math.abs(nowMs - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
+      );
+      if (diffDays > staleDays) staleChannelsCount++;
+    }
+
+    const memberCount = memberCountRaw + 1;
+    const languages = languagesRaw
+      .map(l => l.language)
+      .filter((l): l is string => typeof l === 'string' && l.length > 0);
 
     return {
       ...project,
-      channels: mappedChannels,
       role: role.toLowerCase(),
-      channelCount: project._count.channels,
-      publicationsCount: project._count.publications,
-      memberCount: project.members.length,
-      lastPublicationAt: project.publications[0]?.createdAt || null,
-      lastPublicationId: project.publications[0]?.id || null,
+      channelCount,
+      publicationsCount,
+      memberCount,
+      lastPublicationAt: lastPublication?.createdAt || null,
+      lastPublicationId: lastPublication?.id || null,
       preferences: projectPrefs,
       staleChannelsCount,
-      failedPostsCount: Array.from(failedCountsMap.values()).reduce((a, b) => a + b, 0),
+      failedPostsCount,
       problemPublicationsCount: problemCount,
-      // Calculate no credentials count from mapped channels
-      noCredentialsChannelsCount: mappedChannels.filter(c =>
-        this.hasNoCredentials(c.credentials, c.socialMedia),
-      ).length,
+      noCredentialsChannelsCount,
       inactiveChannelsCount: inactiveCount,
-      publicationsSummary: await this.getPublicationsSummary(projectId),
+      publicationsSummary,
+      languages,
     };
   }
 
@@ -555,11 +569,9 @@ export class ProjectsService {
       else if (status === PublicationStatus.SCHEDULED) summary.SCHEDULED = c._count.id;
       else if (status === PublicationStatus.PUBLISHED) summary.PUBLISHED = c._count.id;
       else if (
-        [
-          PublicationStatus.PARTIAL,
-          PublicationStatus.FAILED,
-          PublicationStatus.EXPIRED,
-        ].includes(status as any)
+        [PublicationStatus.PARTIAL, PublicationStatus.FAILED, PublicationStatus.EXPIRED].includes(
+          status as any,
+        )
       ) {
         summary.ISSUES += c._count.id;
       }

@@ -1,12 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { eventBus } from '~/utils/events'
 import { useProjects } from '~/composables/useProjects'
-import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
-import { isChannelCredentialsEmpty } from '~/utils/channels'
 
 definePageMeta({
   middleware: 'auth',
@@ -111,11 +107,6 @@ async function loadMorePublished() {
   }, { append: true })
 }
 
-const {
-  channels,
-  fetchChannels,
-} = useChannels()
-
 const projectId = computed(() => {
   const id = route.params.id
   return (Array.isArray(id) ? id[0] : id) || ''
@@ -127,14 +118,20 @@ onMounted(async () => {
   if (projectId.value) {
     await initialFetch()
   }
-  eventBus.on('channel:created', handleChannelCreatedEvent)
 })
 
 // Clean up on unmount
 onUnmounted(() => {
   clearCurrentProject()
-  eventBus.off('channel:created', handleChannelCreatedEvent)
 })
+
+watch(
+  projectId,
+  async (newId, oldId) => {
+    if (!newId || newId === oldId) return
+    await initialFetch()
+  },
+)
 
 async function initialFetch() {
   scheduledOffset.value = 0
@@ -148,9 +145,7 @@ async function initialFetch() {
   // 2. Fetch only necessary sections based on summary
   const summary = project.publicationsSummary || { DRAFT: 0, READY: 0, SCHEDULED: 0, PUBLISHED: 0, ISSUES: 0 }
   
-  const tasks: Promise<any>[] = [
-    fetchChannels({ projectId: projectId.value, limit: 100 })
-  ]
+  const tasks: Promise<any>[] = []
 
   if (summary.DRAFT > 0) tasks.push(fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }))
   if (summary.READY > 0) tasks.push(fetchReady(projectId.value, { status: 'READY', limit: 5 }))
@@ -188,13 +183,6 @@ const currentDraftsTotal = computed(() => activeDraftsCollection.value === 'DRAF
 const isCurrentDraftsLoading = computed(() => activeDraftsCollection.value === 'DRAFT' ? isDraftsLoading.value : isReadyLoading.value)
 const currentDraftsViewAllLink = computed(() => `/publications?projectId=${projectId.value}&status=${activeDraftsCollection.value}`)
 
-function handleChannelCreatedEvent(channel: any) {
-  if (channel && channel.projectId === projectId.value) {
-    // We only need to refresh channels specifically
-    fetchChannels({ projectId: projectId.value, limit: 100 })
-  }
-}
-
 /**
  * Navigate back to projects list
  */
@@ -211,10 +199,9 @@ import { getRoleBadgeColor } from '~/utils/roles'
  * Get unique languages from project channels
  */
 const availableLanguages = computed(() => {
-  if (!channels.value || channels.value.length === 0) return []
-  
-  const languagesSet = new Set(channels.value.map(ch => ch.language))
-  return Array.from(languagesSet).sort()
+  const langs = currentProject.value?.languages
+  if (!langs || langs.length === 0) return []
+  return [...langs].sort()
 })
 
 
@@ -250,30 +237,9 @@ const {
   getProjectProblems 
 } = useProjects()
 
-const { 
-  getChannelProblems, 
-  getChannelProblemLevel 
-} = useChannels()
-
 const projectProblems = computed(() => {
   if (!currentProject.value) return []
-  const problems = getProjectProblems(currentProject.value)
-
-  // Enrich with locally loaded channels data if available
-  // This ensures missing credentials problems are shown even if project stats are incomplete
-  if (channels.value && channels.value.length > 0) {
-     const noCredsCount = channels.value.filter(c => isChannelCredentialsEmpty(c.credentials, c.socialMedia)).length
-     
-     // Update or add 'noCredentials' problem
-     const existingProblem = problems.find(p => p.key === 'noCredentials')
-     if (existingProblem) {
-         existingProblem.count = noCredsCount
-     } else if (noCredsCount > 0) {
-         problems.push({ type: 'critical', key: 'noCredentials', count: noCredsCount })
-     }
-  }
-
-  return problems
+  return getProjectProblems(currentProject.value)
 })
 
 // Delete Publication Logic

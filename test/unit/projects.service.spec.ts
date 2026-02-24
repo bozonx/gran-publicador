@@ -21,15 +21,9 @@ describe('ProjectsService (unit)', () => {
       create: jest.fn() as any,
       findMany: jest.fn() as any,
       findUnique: jest.fn() as any,
+      findFirst: jest.fn() as any,
       update: jest.fn() as any,
       delete: jest.fn() as any,
-    },
-    projectMember: {
-      create: jest.fn() as any,
-      findUnique: jest.fn() as any,
-      update: jest.fn() as any,
-      delete: jest.fn() as any,
-      findMany: jest.fn() as any,
     },
     user: {
       findFirst: jest.fn() as any,
@@ -38,14 +32,24 @@ describe('ProjectsService (unit)', () => {
     publication: {
       groupBy: jest.fn() as any,
       count: jest.fn() as any,
+      findFirst: jest.fn() as any,
     },
     post: {
       groupBy: jest.fn() as any,
+      count: jest.fn() as any,
     },
     channel: {
       findMany: jest.fn() as any,
       count: jest.fn() as any,
       groupBy: jest.fn() as any,
+    },
+    projectMember: {
+      create: jest.fn() as any,
+      findUnique: jest.fn() as any,
+      update: jest.fn() as any,
+      delete: jest.fn() as any,
+      findMany: jest.fn() as any,
+      count: jest.fn() as any,
     },
   };
 
@@ -103,6 +107,101 @@ describe('ProjectsService (unit)', () => {
 
     // Silence logger for tests
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
+  });
+
+  describe('findOne', () => {
+    it('should return project details with computed counters', async () => {
+      const projectId = 'project-1';
+      const userId = 'user-1';
+
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        name: 'Test Project',
+        description: null,
+        ownerId: userId,
+        preferences: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        archivedAt: null,
+        archivedBy: null,
+        owner: { id: userId, fullName: null, telegramUsername: 'u1' },
+      });
+
+      mockPermissionsService.getUserProjectRole.mockResolvedValue('OWNER');
+
+      mockPrismaService.projectMember.count.mockResolvedValue(0);
+      mockPrismaService.channel.count.mockResolvedValue(2);
+      mockPrismaService.publication.count.mockResolvedValueOnce(5).mockResolvedValueOnce(1);
+
+      mockPrismaService.publication.findFirst.mockResolvedValue({
+        id: 'pub-1',
+        createdAt: new Date('2025-01-01'),
+      });
+
+      mockPrismaService.channel.findMany.mockResolvedValue([
+        {
+          id: 'ch-1',
+          socialMedia: 'telegram',
+          credentials: { token: 'x' },
+          preferences: {},
+          posts: [{ publishedAt: new Date('2025-01-02'), createdAt: new Date('2025-01-02') }],
+        },
+        {
+          id: 'ch-2',
+          socialMedia: 'telegram',
+          credentials: {},
+          preferences: {},
+          posts: [],
+        },
+      ]);
+
+      mockPrismaService.channel.groupBy.mockResolvedValue([
+        { language: 'en-US' },
+        { language: 'ru-RU' },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(3);
+      mockPrismaService.publication.groupBy.mockResolvedValue([
+        { status: 'DRAFT', _count: { id: 2 } },
+        { status: 'PUBLISHED', _count: { id: 1 } },
+      ]);
+
+      const result = await service.findOne(projectId, userId, true);
+
+      expect(result).toMatchObject({
+        id: projectId,
+        role: 'owner',
+        channelCount: 2,
+        publicationsCount: 5,
+        memberCount: 1,
+        lastPublicationId: 'pub-1',
+        failedPostsCount: 3,
+        problemPublicationsCount: 1,
+      });
+      expect(result.languages).toEqual(expect.arrayContaining(['en-US', 'ru-RU']));
+      expect(result.publicationsSummary).toMatchObject({
+        DRAFT: 2,
+        PUBLISHED: 1,
+      });
+    });
+
+    it('should throw NotFoundException when archived and allowArchived=false', async () => {
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: 'project-archived',
+        name: 'Archived',
+        description: null,
+        ownerId: 'u1',
+        preferences: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        archivedAt: new Date(),
+        archivedBy: 'u1',
+        owner: { id: 'u1', fullName: null, telegramUsername: 'u1' },
+      });
+
+      await expect(service.findOne('project-archived', 'u1', false)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
   });
 
   afterAll(async () => {
