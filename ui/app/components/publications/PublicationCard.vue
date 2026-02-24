@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { PublicationWithRelations } from '~/composables/usePublications'
+import type { PublicationWithRelations } from '~/types/publications'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import CommonThumb from '~/components/common/Thumb.vue'
 import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'

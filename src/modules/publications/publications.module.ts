@@ -11,6 +11,8 @@ import { PublicationsService } from './publications.service.js';
 
 import { PublicationsLlmService } from './publications-llm.service.js';
 import { PublicationsMapper } from './publications.mapper.js';
+import { PublicationsMediaService } from './publications-media.service.js';
+import { PublicationsBulkService } from './publications-bulk.service.js';
 
 @Module({
   imports: [
@@ -22,7 +24,19 @@ import { PublicationsMapper } from './publications.mapper.js';
     forwardRef(() => ContentLibraryModule),
   ],
   controllers: [PublicationsController],
-  providers: [PublicationsService, PublicationsLlmService, PublicationsMapper],
-  exports: [PublicationsService, PublicationsLlmService, PublicationsMapper],
+  providers: [
+    PublicationsService,
+    PublicationsLlmService,
+    PublicationsMapper,
+    PublicationsMediaService,
+    PublicationsBulkService,
+  ],
+  exports: [
+    PublicationsService,
+    PublicationsLlmService,
+    PublicationsMapper,
+    PublicationsMediaService,
+    PublicationsBulkService,
+  ],
 })
 export class PublicationsModule {}

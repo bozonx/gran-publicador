@@ -19,6 +19,9 @@ import type {
   PublicationLlmChatResponse
 } from '~/types/publications';
 
+// Re-export for backward compatibility with existing imports
+export type { PublicationWithRelations } from '~/types/publications';
+
 function resolvePublicationTags(publication: PublicationWithRelations): string[] {
   const rawTags = (publication as { tags?: unknown }).tags;
 
@@ -71,75 +74,10 @@ export function usePublications() {
     { value: 'EXPIRED', label: t('publicationStatus.expired') },
   ]);
 
-  async function fetchPublicationsByProject(
-    projectId: string,
-    filters: PublicationsFilter = {},
-    options: { append?: boolean } = {},
-  ): Promise<PaginatedPublications> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const params: Record<string, any> = { projectId };
-      if (filters.status) {
-        params.status = Array.isArray(filters.status) ? filters.status.join(',') : filters.status;
-      }
-      if (filters.limit) params.limit = filters.limit;
-      if (filters.offset) params.offset = filters.offset;
-      applyArchiveQueryFlags(params, {
-        includeArchived: filters.includeArchived,
-        archivedOnly: filters.archivedOnly,
-      });
-      if (filters.sortBy) params.sortBy = filters.sortBy;
-      if (filters.sortOrder) params.sortOrder = filters.sortOrder;
-      if (filters.search) params.search = filters.search;
-      if (filters.language) params.language = filters.language;
-      if (filters.ownership && filters.ownership !== 'all') params.ownership = filters.ownership;
-      if (filters.issueType && filters.issueType !== 'all') params.issueType = filters.issueType;
-      if (filters.socialMedia) params.socialMedia = filters.socialMedia;
-      if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter;
-      if (filters.tags) params.tags = filters.tags;
-
-      const data = await api.get<PaginatedPublications>('/publications', { params });
-      const normalizedItems = data.items.map(normalizePublication);
-      const normalizedData = { ...data, items: normalizedItems };
-
-      if (options.append) {
-        publications.value = [...publications.value, ...normalizedItems];
-      } else {
-        publications.value = normalizedItems;
-      }
-
-      totalCount.value = data.meta.total;
-      totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
-      return normalizedData;
-    } catch (err: any) {
-      logger.error('[usePublications] fetchPublicationsByProject error', err);
-      error.value = err.message || 'Failed to fetch publications';
-      publications.value = [];
-      totalCount.value = 0;
-      return {
-        items: [],
-        meta: { total: 0, limit: filters.limit || 50, offset: filters.offset || 0 },
-      };
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function publicationLlmChat(
-    publicationId: string,
-    payload: PublicationLlmChatInput,
-    options: Parameters<typeof api.post>[2] = {},
-  ): Promise<PublicationLlmChatResponse> {
-    return await api.post<PublicationLlmChatResponse>(
-      `/publications/${publicationId}/llm/chat`,
-      payload,
-      options,
-    );
-  }
-
-  async function fetchUserPublications(
+  /**
+   * Unified fetch method for both project-specific and user-wide publications.
+   */
+  async function fetchPublications(
     filters: PublicationsFilter = {},
     options: { append?: boolean } = {},
   ): Promise<PaginatedPublications> {
@@ -148,17 +86,20 @@ export function usePublications() {
 
     try {
       const params: Record<string, any> = {};
+      
+      if (filters.projectId) params.projectId = filters.projectId;
       if (filters.status) {
         params.status = Array.isArray(filters.status) ? filters.status.join(',') : filters.status;
       }
       if (filters.channelId) params.channelId = filters.channelId;
-      if (filters.projectId) params.projectId = filters.projectId;
       if (filters.limit) params.limit = filters.limit;
       if (filters.offset) params.offset = filters.offset;
+      
       applyArchiveQueryFlags(params, {
         includeArchived: filters.includeArchived,
         archivedOnly: filters.archivedOnly,
       });
+
       if (filters.sortBy) params.sortBy = filters.sortBy;
       if (filters.sortOrder) params.sortOrder = filters.sortOrder;
       if (filters.search) params.search = filters.search;
@@ -183,10 +124,12 @@ export function usePublications() {
       totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
       return normalizedData;
     } catch (err: any) {
-      logger.error('[usePublications] fetchUserPublications error', err);
+      logger.error('[usePublications] fetchPublications error', err);
       error.value = err.message || 'Failed to fetch publications';
-      publications.value = [];
-      totalCount.value = 0;
+      if (!options.append) {
+        publications.value = [];
+        totalCount.value = 0;
+      }
       return {
         items: [],
         meta: { total: 0, limit: filters.limit || 50, offset: filters.offset || 0 },
@@ -196,12 +139,24 @@ export function usePublications() {
     }
   }
 
+  /**
+   * @deprecated Use fetchPublications
+   */
+  async function fetchUserPublications(filters: PublicationsFilter = {}, options: { append?: boolean } = {}) {
+    return fetchPublications(filters, options);
+  }
+
+  /**
+   * @deprecated Use fetchPublications
+   */
+  async function fetchPublicationsByProject(projectId: string, filters: PublicationsFilter = {}, options: { append?: boolean } = {}) {
+    return fetchPublications({ ...filters, projectId }, options);
+  }
+
   async function fetchPublication(id: string): Promise<PublicationWithRelations | null> {
-    // Clear current publication if ID is different to prevent state leakage
     if (currentPublication.value?.id !== id) {
       currentPublication.value = null;
     }
-
     isLoading.value = true;
     error.value = null;
 
@@ -219,18 +174,19 @@ export function usePublications() {
     }
   }
 
-  function getStatusDisplayName(status: string): string {
-    return utilGetStatusDisplayName(status, t);
-  }
-
-  function getStatusColor(status: string) {
-    return utilGetStatusUiColor(status);
+  async function searchTags(q: string, options: { projectId?: string; limit?: number } = {}) {
+    try {
+      return await api.get<Array<{ name: string }>>('/publications/tags/search', {
+        params: { q, ...options }
+      });
+    } catch (err) {
+      logger.error('[usePublications] searchTags error', err);
+      return [];
+    }
   }
 
   async function createPublication(data: any): Promise<PublicationWithRelations> {
     isLoading.value = true;
-    error.value = null;
-
     try {
       const result = await api.post<PublicationWithRelations>('/publications', data);
       const normalized = normalizePublication(result);
@@ -238,114 +194,65 @@ export function usePublications() {
       return normalized;
     } catch (err: any) {
       logger.error('[usePublications] createPublication error', err);
-      error.value = err.message || 'Failed to create publication';
       throw err;
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function updatePublication(
-    id: string,
-    data: any,
-    options: { silent?: boolean } = {},
-  ): Promise<PublicationWithRelations> {
-    if (!options.silent) {
-      isLoading.value = true;
-    }
-    error.value = null;
-
+  async function updatePublication(id: string, data: any, options: { silent?: boolean } = {}): Promise<PublicationWithRelations> {
+    if (!options.silent) isLoading.value = true;
     try {
       const result = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
       const normalized = normalizePublication(result);
-      const index = publications.value.findIndex((p: PublicationWithRelations) => p.id === id);
-      if (index !== -1) {
-        publications.value[index] = normalized;
-      }
-      if (currentPublication.value?.id === id) {
-        currentPublication.value = normalized;
-      }
+      const index = publications.value.findIndex(p => p.id === id);
+      if (index !== -1) publications.value[index] = normalized;
+      if (currentPublication.value?.id === id) currentPublication.value = normalized;
       return normalized;
     } catch (err: any) {
       logger.error('[usePublications] updatePublication error', err);
-      error.value = err.message || 'Failed to update publication';
       throw err;
     } finally {
-      if (!options.silent) {
-        isLoading.value = false;
-      }
+      if (!options.silent) isLoading.value = false;
     }
   }
 
   async function deletePublication(id: string): Promise<boolean> {
     isLoading.value = true;
-    error.value = null;
-
     try {
       await api.delete(`/publications/${id}`);
-      publications.value = publications.value.filter((p: PublicationWithRelations) => p.id !== id);
-      if (currentPublication.value?.id === id) {
-        currentPublication.value = null;
-      }
-      toast.add({
-        title: t('common.success'),
-        description: t('publication.deleted', 'Publication deleted successfully'),
-        color: 'success',
-      });
+      publications.value = publications.value.filter(p => p.id !== id);
+      if (currentPublication.value?.id === id) currentPublication.value = null;
+      toast.add({ title: t('common.success'), color: 'success' });
       return true;
     } catch (err: any) {
       logger.error('[usePublications] deletePublication error', err);
-      error.value = err.message || 'Failed to delete publication';
-      toast.add({
-        title: t('common.error'),
-        description: error.value || 'Failed to delete publication',
-        color: 'error',
-      });
+      toast.add({ title: t('common.error'), description: err.message, color: 'error' });
       return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function bulkOperation(
-    ids: string[],
-    operation: string,
-    status?: string,
-    targetProjectId?: string,
-  ): Promise<boolean> {
+  async function bulkOperation(ids: string[], operation: string, status?: string, targetProjectId?: string): Promise<boolean> {
     isLoading.value = true;
-    error.value = null;
-
     try {
       const payload: any = { ids, operation, status, targetProjectId };
-      // Remove undefined/null values to avoid issues with whitelist: true, forbidNonWhitelisted: true
-      Object.keys(payload).forEach(
-        key =>
-          (payload[key] === undefined ||
-            payload[key] === null) &&
-          delete payload[key],
-      );
-
+      Object.keys(payload).forEach(key => (payload[key] === undefined || payload[key] === null) && delete payload[key]);
       await api.post('/publications/bulk', payload);
-
-      toast.add({
-        title: t('common.success'),
-        description: t(`publication.bulk.${operation}Success`, { count: ids.length }),
-        color: 'success',
-      });
+      toast.add({ title: t('common.success'), color: 'success' });
       return true;
     } catch (err: any) {
       logger.error('[usePublications] bulkOperation error', err);
-      error.value = err.message || 'Bulk operation failed';
-      toast.add({
-        title: t('common.error'),
-        description: error.value || 'Bulk operation failed',
-        color: 'error',
-      });
+      toast.add({ title: t('common.error'), description: err.message, color: 'error' });
       return false;
     } finally {
       isLoading.value = false;
     }
+  }
+
+  async function publicationLlmChat(publicationId: string, payload: PublicationLlmChatInput, options: any = {}) {
+    return await api.post<PublicationLlmChatResponse>(`/publications/${publicationId}/llm/chat`, payload, options);
   }
 
   async function createPostsFromPublication(params: {
@@ -357,15 +264,11 @@ export function usePublications() {
     projectTemplateId?: string;
   }): Promise<any> {
     isLoading.value = true;
-    error.value = null;
-
     try {
       const { id, ...body } = params;
-      const result = await api.post(`/publications/${id}/posts`, body);
-      return result;
+      return await api.post(`/publications/${id}/posts`, body);
     } catch (err: any) {
       logger.error('[usePublications] createPostsFromPublication error', err);
-      error.value = err.message || 'Failed to create posts';
       throw err;
     } finally {
       isLoading.value = false;
@@ -373,58 +276,19 @@ export function usePublications() {
   }
 
   async function toggleArchive(publicationId: string, isArchived: boolean) {
-    isLoading.value = true;
-    try {
-      if (isArchived) {
-        await restoreEntity(ArchiveEntityType.PUBLICATION, publicationId);
-      } else {
-        await archiveEntity(ArchiveEntityType.PUBLICATION, publicationId);
-      }
-      // Refresh
-      if (currentPublication.value?.id === publicationId) {
-        await fetchPublication(publicationId);
-      } else {
-        const idx = publications.value.findIndex(
-          (p: PublicationWithRelations) => p.id === publicationId,
-        );
-        if (idx !== -1) {
-          const pub = publications.value[idx];
-          if (pub && pub.projectId) {
-            await fetchPublicationsByProject(pub.projectId, { includeArchived: true });
-          }
-        }
-      }
-    } catch (e) {
-      // handled by useArchive
-    } finally {
-      isLoading.value = false;
+    if (isArchived) {
+      await restoreEntity(ArchiveEntityType.PUBLICATION, publicationId);
+    } else {
+      await archiveEntity(ArchiveEntityType.PUBLICATION, publicationId);
     }
   }
 
-  function hasFailedPosts(publication: PublicationWithRelations): boolean {
-    if (!publication.posts || publication.posts.length === 0) return false;
-    return publication.posts.some((post: any) => post.status === 'FAILED');
-  }
-
-  async function copyPublication(
-    id: string,
-    projectId: string | null,
-  ): Promise<PublicationWithRelations> {
-    isLoading.value = true;
-    error.value = null;
-
+  async function copyPublication(id: string, targetProjectId: string): Promise<PublicationWithRelations> {
     try {
-      const payload: { projectId?: string } = {};
-      if (projectId) payload.projectId = projectId;
-
-      const result = await api.post<PublicationWithRelations>(`/publications/${id}/copy`, payload);
-      return result;
+      return await api.post<PublicationWithRelations>(`/publications/${id}/copy`, { targetProjectId });
     } catch (err: any) {
       logger.error('[usePublications] copyPublication error', err);
-      error.value = err.message || 'Failed to copy publication';
       throw err;
-    } finally {
-      isLoading.value = false;
     }
   }
 
@@ -436,23 +300,22 @@ export function usePublications() {
     totalCount,
     totalUnfilteredCount,
     statusOptions,
-    fetchPublicationsByProject,
+    fetchPublications,
     fetchUserPublications,
+    fetchPublicationsByProject,
     fetchPublication,
+    searchTags,
     createPublication,
     updatePublication,
-    copyPublication,
-    publicationLlmChat,
     deletePublication,
     bulkOperation,
+    publicationLlmChat,
     createPostsFromPublication,
-    getStatusDisplayName,
-    getStatusColor,
-    getStatusIcon,
     toggleArchive,
-    // Problem detection
-    hasFailedPosts,
-
+    copyPublication,
+    getStatusDisplayName: (s: string) => utilGetStatusDisplayName(s, t),
+    getStatusColor: (s: string) => utilGetStatusUiColor(s),
+    getStatusIcon,
     getPublicationProblems,
     getPublicationProblemLevel,
     getPostProblemLevel,

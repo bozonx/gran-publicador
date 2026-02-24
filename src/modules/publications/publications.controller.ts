@@ -69,33 +69,19 @@ export class PublicationsController {
       throw new BadRequestException('Exactly one of projectId or userId must be provided');
     }
 
-    if (userId) {
-      if (userId !== req.user.userId) {
-        throw new BadRequestException('userId must match the authenticated user');
+    if (userId && userId !== req.user.userId) {
+      throw new BadRequestException('userId must match the authenticated user');
+    }
+
+    if (projectId) {
+      if (req.user.allProjects !== undefined) {
+        this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
+      } else {
+        await this.permissions.checkProjectAccess(projectId, req.user.userId);
       }
-
-      const tags = await this.tagsService.searchByDomain({
-        q,
-        userId,
-        limit,
-        domain: 'PUBLICATIONS',
-      });
-      return (tags ?? []).map((t: any) => ({ name: t.name }));
     }
 
-    if (req.user.allProjects !== undefined) {
-      this.apiTokenScope.validateProjectScopeOrThrow(req, projectId!);
-    } else {
-      await this.permissions.checkProjectAccess(projectId!, req.user.userId);
-    }
-
-    const tags = await this.tagsService.searchByDomain({
-      q,
-      projectId: projectId!,
-      limit,
-      domain: 'PUBLICATIONS',
-    });
-    return (tags ?? []).map((t: any) => ({ name: t.name }));
+    return this.publicationsService.searchTags(req.user.userId, q, { projectId, limit });
   }
 
   /**
