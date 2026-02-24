@@ -21,7 +21,7 @@ const {
   totalCount,
   totalUnfilteredCount,
   fetchChannels, 
-  isLoading,
+  isFetchingList: isLoading,
   getSocialMediaIcon,
   getSocialMediaColor,
 } = useChannels()
@@ -88,8 +88,9 @@ function parseSortOrder(value: unknown): 'asc' | 'desc' {
   return (ALLOWED_SORT_ORDER as readonly string[]).includes(v) ? (v as 'asc' | 'desc') : 'asc'
 }
 
-const sortBy = ref<SortBy>(parseSortBy(route.query.sortBy))
-const sortOrder = ref<'asc' | 'desc'>(parseSortOrder(route.query.sortOrder))
+// Sorting using useLocalStorage for persistent defaults
+const sortBy = useLocalStorage<SortBy>(SORT_BY_STORAGE_KEY, parseSortBy(route.query.sortBy))
+const sortOrder = useLocalStorage<'asc' | 'desc'>(SORT_ORDER_STORAGE_KEY, parseSortOrder(route.query.sortOrder))
 
 // View mode (list or cards)
 const { viewMode, isListView, isCardsView } = useViewMode('channels-view', 'list')
@@ -125,40 +126,15 @@ async function loadMore() {
 
 // Fetch on mount
 onMounted(async () => {
-    if (import.meta.client) {
-      const hasSortByInUrl = route.query.sortBy !== undefined
-      const hasSortOrderInUrl = route.query.sortOrder !== undefined
-
-      if (!hasSortByInUrl) {
-        const storedSortBy = localStorage.getItem(SORT_BY_STORAGE_KEY)
-        if (storedSortBy && (ALLOWED_SORT_BY as readonly string[]).includes(storedSortBy)) {
-          sortBy.value = storedSortBy as SortBy
-        }
-      }
-
-      if (!hasSortOrderInUrl) {
-        const storedSortOrder = localStorage.getItem(SORT_ORDER_STORAGE_KEY)
-        if (storedSortOrder && (ALLOWED_SORT_ORDER as readonly string[]).includes(storedSortOrder)) {
-          sortOrder.value = storedSortOrder as 'asc' | 'desc'
-        }
-      }
-    }
+    // If URL has params, they take precedence over localStorage via our initialization
+    if (route.query.sortBy) sortBy.value = parseSortBy(route.query.sortBy)
+    if (route.query.sortOrder) sortOrder.value = parseSortOrder(route.query.sortOrder)
 
     await Promise.all([
         loadChannels(),
         fetchProjects(true) // including archived projects
     ])
 })
-
-if (import.meta.client) {
-  watch(sortBy, (val) => {
-    localStorage.setItem(SORT_BY_STORAGE_KEY, val)
-  })
-
-  watch(sortOrder, (val) => {
-    localStorage.setItem(SORT_ORDER_STORAGE_KEY, val)
-  })
-}
 
 // Update URL when filters change
 watch(
@@ -322,8 +298,19 @@ const showPagination = computed(() => {
         </h1>
       </div>
 
-      <!-- Sorting and view controls -->
+      <!-- Sorting, view controls and create button -->
       <div class="flex items-center gap-2">
+        <UButton
+          color="primary"
+          icon="i-heroicons-plus"
+          size="sm"
+          :to="`/projects`"
+        >
+          {{ t('channel.createNew') }}
+        </UButton>
+
+        <div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+
         <CommonViewToggle v-model="viewMode" />
 
         <USelectMenu

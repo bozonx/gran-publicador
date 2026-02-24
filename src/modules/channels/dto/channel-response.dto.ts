@@ -9,6 +9,12 @@ export class ChannelProjectDto {
   public preferences!: Record<string, any>;
 }
 
+export class ChannelProblem {
+  public type!: 'critical' | 'warning';
+  public key!: string;
+  public count?: number;
+}
+
 export class ChannelResponseDto {
   public id!: string;
   public projectId!: string;
@@ -39,4 +45,9 @@ export class ChannelResponseDto {
   public lastPublicationId!: string | null;
 
   public isStale!: boolean;
+
+  public hasCredentials!: boolean;
+
+  @Type(() => ChannelProblem)
+  public problems!: ChannelProblem[];
 }

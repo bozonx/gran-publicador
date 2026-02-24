@@ -87,6 +87,8 @@ export interface ChannelWithProject extends Channel {
   lastPostAt?: string;
   lastPostId?: string | null;
   lastPublicationId?: string | null;
+  hasCredentials?: boolean;
+  problems?: Array<{ type: 'critical' | 'warning'; key: string; count?: number }>;
 }
 
 export interface ChannelCreateInput {

@@ -12,12 +12,14 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateChannelDto, UpdateChannelDto, ChannelResponseDto } from './dto/index.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
+import { ChannelsMapper } from './channels.mapper.js';
 
 @Injectable()
 export class ChannelsService {
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
+    private mapper: ChannelsMapper,
   ) {}
 
   private normalizeLanguage(code?: string | null): string {
@@ -287,7 +289,7 @@ export class ChannelsService {
       countsMap.set(pc.channelId, current);
     });
 
-    return channels.map(channel => this.mapToDto(channel, countsMap.get(channel.id)));
+    return channels.map(channel => this.mapper.mapToDto(channel, countsMap.get(channel.id)));
   }
 
   // ... (skip findAllForUser as it iterates projects)
@@ -610,7 +612,7 @@ export class ChannelsService {
 
     const items = channels.map(channel => {
       const failed = failedCountsMap.get(channel.id) ?? 0;
-      return this.mapToDto(channel, {
+      return this.mapper.mapToDto(channel, {
         published: channel._count.posts,
         failed,
       });
@@ -640,7 +642,7 @@ export class ChannelsService {
       orderBy: { archivedAt: 'desc' },
     });
 
-    return channels.map(channel => this.mapToDto(channel));
+    return channels.map(channel => this.mapper.mapToDto(channel));
   }
 
   public async findArchivedForUser(userId: string): Promise<ChannelResponseDto[]> {
@@ -663,7 +665,7 @@ export class ChannelsService {
       orderBy: { archivedAt: 'desc' },
     });
 
-    return channels.map(channel => this.mapToDto(channel));
+    return channels.map(channel => this.mapper.mapToDto(channel));
   }
 
   public async findOne(
@@ -699,49 +701,11 @@ export class ChannelsService {
     const publishedCount = pc.find(p => p.status === 'PUBLISHED')?._count.id ?? 0;
     const failedCount = pc.find(p => p.status === 'FAILED')?._count.id ?? 0;
 
-    return this.mapToDto(
+    return this.mapper.mapToDto(
       channel,
       { published: publishedCount, failed: failedCount },
       role ?? undefined,
     );
   }
 
-  private mapToDto(
-    channel: any,
-    counts: { published: number; failed: number } = { published: 0, failed: 0 },
-    role?: string,
-  ): ChannelResponseDto {
-    const { posts, credentials, preferences, project, _count, ...channelData } = channel;
-    const channelPrefs = this.getChannelPreferences(preferences);
-    const projectPrefs = this.getJsonObject(project?.preferences);
-    const lastPostAt = posts?.[0]?.publishedAt ?? posts?.[0]?.createdAt ?? null;
-
-    let isStale = false;
-    if (lastPostAt && !channelData.archivedAt) {
-      const staleDays =
-        channelPrefs.staleChannelsDays ??
-        (typeof projectPrefs.staleChannelsDays === 'number'
-          ? projectPrefs.staleChannelsDays
-          : undefined) ??
-        DEFAULT_STALE_CHANNELS_DAYS;
-      const diffDays = Math.ceil(
-        Math.abs(Date.now() - new Date(lastPostAt).getTime()) / (1000 * 60 * 60 * 24),
-      );
-      isStale = diffDays > staleDays;
-    }
-
-    return {
-      ...channelData,
-      project,
-      credentials: this.getJsonObject(credentials),
-      role: role?.toLowerCase(),
-      postsCount: counts.published,
-      failedPostsCount: counts.failed,
-      lastPostAt,
-      lastPostId: posts?.[0]?.id ?? null,
-      lastPublicationId: posts?.[0]?.publicationId ?? null,
-      isStale,
-      preferences: channelPrefs,
-    };
-  }
 }

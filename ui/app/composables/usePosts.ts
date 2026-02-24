@@ -91,6 +91,8 @@ export interface PostsFilter {
   offset?: number;
   includeArchived?: boolean;
   publicationStatus?: PublicationStatus | PublicationStatus[] | null;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export function usePosts() {

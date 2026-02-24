@@ -34,17 +34,22 @@ const quickCreateTypeOptions = computed(() => {
 const {
   fetchChannel,
   currentChannel: channel,
-  isLoading: isChannelLoading,
+  isFetchingChannel: isChannelLoading,
   getSocialMediaIcon,
   getSocialMediaColor,
   getSocialMediaDisplayName,
   toggleChannelActive,
   unarchiveChannel,
-  // Problem detection
-  getChannelProblems,
-  getChannelProblemLevel,
-  fetchChannels
+  // Use backend diagnostic data
 } = useChannels()
+
+// Compute problems and problem level from channel data
+const channelProblems = computed(() => channel.value?.problems || [])
+const channelProblemLevel = computed(() => {
+    if (channelProblems.value.some(p => p.type === 'critical')) return 'critical'
+    if (channelProblems.value.some(p => p.type === 'warning')) return 'warning'
+    return null
+})
 
 const {
   posts: postsBatch,
@@ -83,14 +88,14 @@ const hasMoreProblems = computed(() => problemPosts.value.length < problemPostsT
 async function loadMoreScheduled() {
   if (isScheduledLoading.value || !hasMoreScheduled.value) return
   scheduledPage.value++
-  setScheduledFilter({ page: scheduledPage.value })
+  setScheduledFilter({ offset: (scheduledPage.value - 1) * 5 })
   await fetchScheduledPosts(projectId.value, { append: true })
 }
 
 async function loadMoreProblems() {
   if (isProblemsLoading.value || !hasMoreProblems.value) return
   problemsPage.value++
-  setProblemFilter({ page: problemsPage.value })
+  setProblemFilter({ offset: (problemsPage.value - 1) * 5 })
   await fetchProblemPosts(projectId.value, { append: true })
 }
 
@@ -181,49 +186,55 @@ async function loadMore() {
 // Initialization
 onMounted(async () => {
     if (channelId.value) {
+        // Sequentially fetch main data to avoid loading state flicker
         await fetchChannel(channelId.value)
+        
         // Fetch only published posts, latest first, limited to 12
         await resetAndFetchPosts()
         
-        // Fetch failed posts (Problematic)
-        problemsPage.value = 1
-        setProblemFilter({
-            channelId: channelId.value,
-            status: 'FAILED' as PostStatus,
-            limit: 5,
-            offset: 0,
-            sortBy: 'createdAt',
-            sortOrder: 'desc'
-        })
-        await fetchProblemPosts(projectId.value)
+        // Parallel fetch secondary data
+        Promise.all([
+          // Failed posts (Problematic)
+          (async () => {
+            problemsPage.value = 1
+            setProblemFilter({
+                channelId: channelId.value,
+                status: 'FAILED' as PostStatus,
+                limit: 5,
+                offset: 0
+            })
+            await fetchProblemPosts(projectId.value)
+          })(),
 
-        // Fetch scheduled posts (Pending) - only those from ready/scheduled/processing publications
-        scheduledPage.value = 1
-        setScheduledFilter({
-            channelId: channelId.value,
-            status: 'PENDING' as PostStatus,
-            publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
-            limit: 5,
-            offset: 0,
-            sortBy: 'scheduledAt',
-            sortOrder: 'asc'
-        })
-        await fetchScheduledPosts(projectId.value)
+          // Scheduled posts (Pending)
+          (async () => {
+             scheduledPage.value = 1
+              setScheduledFilter({
+                  channelId: channelId.value,
+                  status: 'PENDING' as PostStatus,
+                  publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
+                  limit: 5,
+                  offset: 0
+              })
+              await fetchScheduledPosts(projectId.value)
+          })(),
 
-        // Fetch drafts
-        await fetchDrafts(projectId.value, { 
-            channelId: channelId.value, 
-            status: 'DRAFT', 
-            limit: 5 
-        })
-        await fetchReady(projectId.value, { 
-            channelId: channelId.value, 
-            status: 'READY', 
-            limit: 5 
-        })
+          // Drafts
+          fetchDrafts(projectId.value, { 
+              channelId: channelId.value, 
+              status: 'DRAFT', 
+              limit: 5 
+          }),
+          
+          fetchReady(projectId.value, { 
+              channelId: channelId.value, 
+              status: 'READY', 
+              limit: 5 
+          }),
 
-        // Fetch project templates
-        await fetchProjectTemplates(projectId.value)
+          // Project templates
+          fetchProjectTemplates(projectId.value)
+        ])
     }
 })
 
@@ -233,15 +244,13 @@ const currentDraftsTotal = computed(() => activeDraftsCollection.value === 'DRAF
 const currentDraftsLoading = computed(() => activeDraftsCollection.value === 'DRAFT' ? draftsLoading.value : isReadyLoading.value)
 const currentDraftsViewAllLink = computed(() => `/publications?channelId=${channelId.value}&status=${activeDraftsCollection.value}`)
 
-function goToPost(postId: string) {
-  // Find the post to get its publicationId
-  const post = postsBatch.value.find(p => p.id === postId)
-  if (post?.publicationId) {
+function navigateToPost(post: PostWithRelations) {
+  if (post.publicationId) {
     router.push(`/publications/${post.publicationId}`)
   }
 }
 
-function goToPublication(pub: PublicationWithRelations) {
+function goToPublication(pub: any) {
     router.push(`/publications/${pub.id}`)
 }
 
@@ -338,69 +347,6 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'
 }
-
-function getDisplayPostTitle(post: PostWithRelations): string {
-  return getPublicationDisplayTitle(mapPostToPublication(post))
-}
-
-function mapPostToPublication(post: PostWithRelations): PublicationWithRelations {
-  const basePublication = post.publication || {
-     id: post.publicationId,
-     projectId: post.channel?.projectId || '',
-     title: t('post.untitled'),
-     content: '',
-     status: 'DRAFT',
-     language: user.value?.language || channel.value?.language || 'en-US',
-     postType: 'POST',
-     mediaFiles: '[]',
-     meta: '{}',
-     createdAt: post.createdAt, 
-     updatedAt: post.updatedAt,
-     createdBy: null,
-     archivedAt: null,
-     archivedBy: null,
-     tags: post.tags,
-     description: null,
-     authorComment: null,
-     postDate: null,
-     note: null
-  }
-
-  // Create a minimal creator object if ID exists, to avoid errors if component checks it
-  const creator = basePublication.createdBy ? { id: basePublication.createdBy } as any : undefined
-
-  return {
-      ...basePublication,
-      // Visualize the Post's status as the Publication's status in this view
-      status: (post.status as unknown) as PublicationStatus, 
-      createdAt: post.createdAt,
-      postScheduledAt: post.scheduledAt,
-      posts: [post],
-      _count: { posts: 1 },
-      creator,
-      note: (basePublication as any).note || null
-  } as PublicationWithRelations
-}
-
-
-const hasCredentials = computed(() => {
-    if (!channel.value?.credentials) return false
-    return Object.keys(channel.value.credentials).length > 0
-})
-
-const daysSinceActivity = computed(() => {
-    if (!channel.value) return 0
-    const lastDate = channel.value.lastPostAt || channel.value.createdAt
-    if (!lastDate) return 0
-    const diffTime = Math.abs(new Date().getTime() - new Date(lastDate).getTime())
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24))
-})
-
-// Channel problems detection
-const channelProblems = computed(() => {
-  if (!channel.value) return []
-  return getChannelProblems(channel.value)
-})
 
 </script>
 
@@ -604,39 +550,68 @@ const channelProblems = computed(() => {
                 @delete="confirmDeletePublication"
             />
 
-            <!-- Scheduled and Problems Columns -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Scheduled Column -->
-                <PublicationsInfiniteBlock
-                  :title="t('publicationStatus.scheduled')"
-                  icon="i-heroicons-clock"
-                  icon-color="text-sky-500"
-                  :publications="scheduledPosts.map(mapPostToPublication)"
-                  :total-count="scheduledPostsTotal"
-                  :loading="isScheduledLoading"
-                  :has-more="hasMoreScheduled"
-                  :view-all-to="`/publications?channelId=${channelId}&status=READY,SCHEDULED,PROCESSING&sortBy=scheduledAt&sortOrder=asc`"
-                  show-date
-                  date-type="scheduled"
-                  @load-more="loadMoreScheduled"
+            <!-- Problematic Posts -->
+            <div v-if="problemPosts.length > 0" class="mb-10">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-red-600 dark:text-red-400 flex items-center gap-2">
+                  <UIcon name="i-heroicons-exclamation-circle" class="w-5 h-5" />
+                  {{ t('channel.problem_posts', 'Failed Posts') }}
+                  <span class="text-xs bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">{{ problemPostsTotal }}</span>
+                </h3>
+              </div>
+              <div class="space-y-3">
+                <PostsPostListItem
+                  v-for="post in problemPosts"
+                  :key="post.id"
+                  :post="post"
+                  @click="navigateToPost"
+                  @delete="confirmDeletePost"
                 />
-
-                <!-- Problem Column -->
-                <PublicationsInfiniteBlock
-                  :title="t('publication.filter.showIssuesOnly')"
-                  icon="i-heroicons-exclamation-triangle"
-                  icon-color="text-red-500"
-                  :publications="problemPosts.map(mapPostToPublication)"
-                  :total-count="problemPostsTotal"
+              </div>
+              <!-- load more for problems -->
+              <div v-if="hasMoreProblems" class="mt-4 flex justify-center">
+                <UButton
+                  variant="ghost"
+                  color="error"
+                  size="sm"
                   :loading="isProblemsLoading"
-                  :has-more="hasMoreProblems"
-                  :view-all-to="`/publications?channelId=${channelId}&status=FAILED&sortBy=createdAt&sortOrder=desc`"
-                  show-status
-                  show-date
-                  date-type="scheduled"
-                  is-problematic
-                  @load-more="loadMoreProblems"
+                  @click="loadMoreProblems"
+                >
+                  {{ t('common.loadMore') }} ({{ problemPostsTotal - problemPosts.length }})
+                </UButton>
+              </div>
+            </div>
+
+            <!-- Scheduled Posts -->
+            <div v-if="scheduledPosts.length > 0" class="mb-10">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                  <UIcon name="i-heroicons-clock" class="w-5 h-5" />
+                  {{ t('channel.scheduled_posts', 'Scheduled & Pending') }}
+                  <span class="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full">{{ scheduledPostsTotal }}</span>
+                </h3>
+              </div>
+              <div class="space-y-3">
+                <PostsPostListItem
+                  v-for="post in scheduledPosts"
+                  :key="post.id"
+                  :post="post"
+                  @click="navigateToPost"
+                  @delete="confirmDeletePost"
                 />
+              </div>
+              <!-- load more for scheduled -->
+              <div v-if="hasMoreScheduled" class="mt-4 flex justify-center">
+                <UButton
+                  variant="ghost"
+                  color="warning"
+                  size="sm"
+                  :loading="isScheduledLoading"
+                  @click="loadMoreScheduled"
+                >
+                  {{ t('common.loadMore') }} ({{ scheduledPostsTotal - scheduledPosts.length }})
+                </UButton>
+              </div>
             </div>
 
             <!-- Posts Panel -->
@@ -677,25 +652,25 @@ const channelProblems = computed(() => {
                 >
                     <!-- Posts List View -->
                     <div v-if="isListView" class="space-y-4">
-                        <PublicationsPublicationListItem
-                            v-for="post in postsBatch"
-                            :key="post.id"
-                            :publication="mapPostToPublication(post)"
-                            @click="goToPost(post.id)"
-                            @delete="handleDeletePostFromPublication"
-                        />
-                    </div>
+                <PostsPostListItem
+                  v-for="post in postsBatch"
+                  :key="post.id"
+                  :post="post"
+                  :active-channel-id="channelId"
+                  @click="navigateToPost"
+                  @delete="confirmDeletePost"
+                />
+              </div>
 
-                    <!-- Posts Cards View -->
-                    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        <PublicationsPublicationCard
-                            v-for="post in postsBatch"
-                            :key="post.id"
-                            :publication="mapPostToPublication(post)"
-                            @click="goToPost(post.id)"
-                            @delete="handleDeletePostFromPublication"
-                        />
-                    </div>
+              <div v-if="isCardsView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <PostsPostCard
+                  v-for="post in postsBatch"
+                  :key="post.id"
+                  :post="post"
+                  @click="navigateToPost"
+                  @delete="confirmDeletePost"
+                />
+              </div>
                 </CommonInfiniteList>
              </div>
         </div>

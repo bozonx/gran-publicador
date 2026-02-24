@@ -277,6 +277,13 @@ export class PostsService {
 
     this.applyCommonFilters(where, filters);
 
+    const orderBy: any = {};
+    if (filters?.sortBy) {
+      orderBy[filters.sortBy] = filters.sortOrder || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
     const [items, total, totalUnfiltered] = await Promise.all([
       this.prisma.post.findMany({
         where,
@@ -296,7 +303,7 @@ export class PostsService {
           },
           tagObjects: true,
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         take: filters?.limit,
         skip: filters?.offset,
       }),

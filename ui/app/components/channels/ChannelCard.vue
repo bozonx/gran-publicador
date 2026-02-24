@@ -12,10 +12,9 @@ const props = defineProps<{
 const { t } = useI18n()
 const { formatDateShort } = useFormatters()
 
-const hasCredentials = computed(() => !isChannelCredentialsEmpty(props.channel.credentials, props.channel.socialMedia))
-
-const { getChannelProblemLevel } = useChannels()
+const { getChannelProblemLevel, getChannelProblems } = useChannels()
 const channelProblemLevel = computed(() => getChannelProblemLevel(props.channel))
+const problems = computed(() => getChannelProblems(props.channel))
 const route = useRoute()
 const isChannelArchived = computed(() => (props.isArchived || !!props.channel.archivedAt) && route.query.archived !== 'true')
 </script>
@@ -49,35 +48,27 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
     <!-- Description -->
     <CommonCardDescription :text="channel.description" />
 
-    <!-- Status badges and warnings -->
     <div class="flex flex-wrap items-center gap-2 mb-3">
+      <!-- Status badges -->
       <UBadge 
         v-if="!channel.isActive" 
-        color="warning" 
+        color="neutral" 
         variant="subtle" 
         size="xs"
       >
         {{ t('channel.inactive') }}
       </UBadge>
       
-      <UTooltip v-if="channel.isStale" :text="t('settings.staleChannelsWarning')">
+      <!-- Problems from backend -->
+      <UTooltip 
+        v-for="problem in problems" 
+        :key="problem.key"
+        :text="t(`problems.channel.${problem.key}`, problem.count ? { count: problem.count } : {})"
+      >
         <UIcon 
-          name="i-heroicons-clock" 
-          class="w-4 h-4 text-orange-500" 
-        />
-      </UTooltip>
-
-      <UTooltip v-if="!hasCredentials" :text="t('channel.noCredentials')">
-        <UIcon 
-          name="i-heroicons-exclamation-triangle" 
-          class="w-4 h-4 text-red-500" 
-        />
-      </UTooltip>
-
-      <UTooltip v-if="channel.failedPostsCount && channel.failedPostsCount > 0" :text="`${channel.failedPostsCount} ${t('channel.failedPosts').toLowerCase()}`">
-        <UIcon 
-          name="i-heroicons-exclamation-circle" 
-          class="w-4 h-4 text-red-500" 
+          :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : 'i-heroicons-exclamation-triangle'" 
+          :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
+          class="w-4 h-4"
         />
       </UTooltip>
     </div>
