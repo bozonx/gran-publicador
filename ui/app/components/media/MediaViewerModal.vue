@@ -43,7 +43,6 @@ function handleClose() {
   emit('close')
 }
 
-import { DialogTitle, DialogDescription } from 'reka-ui'
 </script>
 
 <template>
@@ -56,12 +55,12 @@ import { DialogTitle, DialogDescription } from 'reka-ui'
   >
     <template #header>
       <div class="flex items-center justify-between gap-4 w-full">
-        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate flex-1 min-w-0">
           {{ props.title || t('media.preview', 'Media Preview') }}
-        </DialogTitle>
-        <DialogDescription class="sr-only">
+        </h2>
+        <div class="sr-only">
           {{ t('media.preview', 'Media Preview') }}
-        </DialogDescription>
+        </div>
         <div class="flex items-center gap-2 shrink-0">
           <span v-if="props.counterText" class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
             {{ props.counterText }}

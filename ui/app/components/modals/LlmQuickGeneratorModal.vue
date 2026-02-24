@@ -4,7 +4,6 @@ import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
 import type { MediaItem } from '~/composables/useMedia'
-import { DialogTitle } from 'reka-ui'
 import { LlmErrorType } from '~/composables/useLlm'
 import {
   getAggregatedMaxTextLength,
@@ -253,9 +252,9 @@ async function handleGenerate() {
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
           {{ t('llm.quickGenerate') }}
-        </DialogTitle>
+        </h2>
       </div>
     </template>
 

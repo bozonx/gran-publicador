@@ -6,7 +6,6 @@ import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplateP
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
 import type { MediaItem } from '~/composables/useMedia'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
-import { DialogTitle, DialogDescription } from 'reka-ui'
 import { LlmErrorType } from '~/composables/useLlm'
 import {
   getAggregatedMaxTextLength,
@@ -985,12 +984,12 @@ async function confirmResetChat() {
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <DialogTitle class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
           {{ t('llm.generate') }}
-        </DialogTitle>
-        <DialogDescription class="sr-only">
+        </h2>
+        <div class="sr-only">
           {{ modalDescription }}
-        </DialogDescription>
+        </div>
       </div>
     </template>
     <div ref="modalRootRef" :class="FORM_SPACING.section">
