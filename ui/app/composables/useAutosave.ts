@@ -294,20 +294,30 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   async function performSave(force = false) {
     if (!data.value) return;
 
+    // Abort the previous request immediately (outside the queue)
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    const abortController = new AbortController();
+    currentAbortController = abortController;
+    const signal = abortController.signal;
+
+    // Capture snapshot of data to prevent partial saves
+    const snapshot = deepCloneOrNull(data.value);
+    if (!snapshot) return; // If clone fails, we can't save safely
+
     // Add to queue to ensure sequential execution
     saveQueue = saveQueue.then(async () => {
-      // Check equality inside the queue to avoid duplicate saves
-      // when multiple performSave calls pass the check before entering the queue
-      if (
-        !force &&
-        lastSavedState.value &&
-        data.value &&
-        isEqual(data.value, lastSavedState.value)
-      ) {
+      // If this request was aborted by a newer one before starting, just skip
+      if (signal.aborted) {
         return;
       }
 
-      if (!data.value) return;
+      // Check equality inside the queue to avoid duplicate saves
+      // when multiple performSave calls pass the check before entering the queue
+      if (!force && lastSavedState.value && isEqual(snapshot, lastSavedState.value)) {
+        return;
+      }
 
       saveStatus.value = 'saving';
       saveError.value = null;
@@ -318,18 +328,14 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       // Start delay timer for "Saving..." indicator
       clearIndicatorTimers();
       indicatorDelayTimer = setTimeout(() => {
-        indicatorStatus.value = 'saving';
-        isIndicatorVisible.value = true;
+        if (!signal.aborted) {
+          indicatorStatus.value = 'saving';
+          isIndicatorVisible.value = true;
+        }
       }, AUTOSAVE_INDICATOR_DELAY_MS);
 
-      if (currentAbortController) {
-        currentAbortController.abort();
-      }
-      currentAbortController = new AbortController();
-      const signal = currentAbortController.signal;
-
       try {
-        const result = await saveFn(data.value!, signal);
+        const result = await saveFn(snapshot as T, signal);
 
         // If this request was aborted by a newer one, just ignore the result
         if (signal.aborted) {
@@ -345,7 +351,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
 
         if (wasSaved) {
           // Update last saved state
-          lastSavedState.value = deepCloneOrNull(data.value!);
+          lastSavedState.value = deepCloneOrNull(snapshot);
           saveStatus.value = 'saved';
           lastSavedAt.value = new Date();
           isDirty.value = false;
@@ -405,6 +411,11 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
           }
         }
       } catch (err: any) {
+        // Ignore aborted requests
+        if (signal.aborted || err?.name === 'AbortError') {
+          return;
+        }
+
         logger.error('Auto-save failed', err);
         saveStatus.value = 'error';
         saveError.value = t('common.saveError');
