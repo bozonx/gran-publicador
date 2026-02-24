@@ -64,12 +64,6 @@ export interface ProjectWithRole extends ProjectWithOwner {
   lastPublicationAt?: string | null;
   lastPublicationId?: string | null;
   languages?: string[];
-  channels?: {
-    id: string;
-    name: string;
-    socialMedia: string;
-    isStale?: boolean;
-  }[];
   publicationsSummary?: {
     DRAFT: number;
     READY: number;
