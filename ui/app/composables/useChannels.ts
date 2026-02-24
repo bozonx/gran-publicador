@@ -21,7 +21,7 @@ import {
 } from '~/utils/channels';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter };
+export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, SocialMedia };
 
 export function useChannels() {
   const api = useApi();

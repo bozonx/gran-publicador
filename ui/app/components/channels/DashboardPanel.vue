@@ -1,45 +1,24 @@
 <script setup lang="ts">
-import { useChannels, type SocialMedia } from '~/composables/useChannels'
+import type { SocialMedia } from '~/types/socialMedia'
+
+const props = defineProps<{
+  summary?: {
+    totalCount: number
+    grouped: Array<{ count: number, socialMedia: SocialMedia }>
+  }
+  isLoading?: boolean
+}>()
 
 const { t } = useI18n()
 const { 
-  channels, 
-  fetchChannels, 
-  isLoading, 
   getSocialMediaIcon, 
   getSocialMediaColor, 
   getSocialMediaDisplayName 
 } = useChannels()
 
-// Fetch all user channels on mount
-onMounted(async () => {
-    await fetchChannels()
-})
-
-const activeChannels = computed(() => {
-    return channels.value.filter(c => c.isActive && !c.archivedAt)
-})
-
-const totalCount = computed(() => activeChannels.value.length)
-
-const groupedChannels = computed(() => {
-    const groups: Record<string, { count: number, socialMedia: SocialMedia }> = {}
-    
-    activeChannels.value.forEach(channel => {
-        if (!groups[channel.socialMedia]) {
-            groups[channel.socialMedia] = {
-                count: 0,
-                socialMedia: channel.socialMedia
-            }
-        }
-        const group = groups[channel.socialMedia]
-        if (group) {
-            group.count++
-        }
-    })
-    
-    return Object.values(groups).sort((a, b) => b.count - a.count)
-})
+const totalCount = computed(() => props.summary?.totalCount || 0)
+const groupedChannels = computed(() => props.summary?.grouped || [])
+const isLoading = computed(() => props.isLoading)
 </script>
 
 <template>
@@ -56,12 +35,12 @@ const groupedChannels = computed(() => {
         
         <div class="p-6 flex-1 overflow-y-auto">
             <!-- Loading -->
-            <div v-if="isLoading && channels.length === 0" class="flex items-center justify-center py-8">
+            <div v-if="isLoading && !summary" class="flex items-center justify-center py-8">
                 <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
             </div>
 
             <!-- Empty state -->
-            <div v-else-if="activeChannels.length === 0" class="text-center py-8">
+            <div v-else-if="totalCount === 0" class="text-center py-8">
                 <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-3">
                     <UIcon
                         name="i-heroicons-hashtag"

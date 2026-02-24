@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { NewsItem } from '~/composables/useNews'
 import { dump } from 'js-yaml'
+import { newsMapper } from '~/utils/news'
 import CommonThumb from '~/components/common/Thumb.vue'
 
 const props = defineProps<{
@@ -29,29 +30,25 @@ function formatDate(dateString: string) {
   }
 }
 
-
 // Format score as percentage
 function formatScore(score: number) {
   return `${Math.round(score * 100)}%`
 }
 
-
-
-
 const displayDate = computed(() => {
-  const dateStr = props.item._savedAt || props.item.savedAt || props.item.date || props.item.publishedAt
+  const dateStr = newsMapper.getDisplayDate(props.item)
   if (!dateStr) return ''
   return formatDate(dateStr)
 })
 
 const displaySource = computed(() => {
-  const source = props.item.publisher || props.item._source
+  const source = newsMapper.getDisplaySource(props.item)
   if (!source) return ''
   return source.length > 30 ? source.slice(0, 30) + '…' : source
 })
 
 const displayText = computed(() => {
-  const text = props.item.description || props.item.content || ''
+  const text = newsMapper.getDisplayText(props.item)
   if (!text) return ''
   return text.length > 500 ? text.slice(0, 500) + '...' : text
 })

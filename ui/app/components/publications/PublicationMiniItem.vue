@@ -5,7 +5,7 @@ const props = defineProps<{
   publication: PublicationWithRelations
   showStatus?: boolean
   showDate?: boolean
-  dateType?: 'scheduled' | 'created'
+  dateType?: 'scheduled' | 'created' | 'published'
   isProblematic?: boolean
 }>()
 
@@ -23,6 +23,12 @@ const displayDate = computed(() => {
     return formatDateWithTime(date)
   }
   
+  if (props.dateType === 'published') {
+    const date = (props.publication as any).publishedAt
+    if (!date) return null
+    return formatDateWithTime(date)
+  }
+
   if (props.dateType === 'created') {
     return formatDateWithTime(props.publication.createdAt)
   }

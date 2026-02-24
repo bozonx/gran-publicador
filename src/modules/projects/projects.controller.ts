@@ -166,6 +166,7 @@ export class ProjectsController {
     @Param('id') id: string,
     @Query() query: SearchNewsQueryDto,
   ) {
+    this.apiTokenScope.validateProjectScopeOrThrow(req, id);
     return this.projectsService.searchNews(id, req.user.userId, query);
   }
 

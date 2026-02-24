@@ -7,8 +7,6 @@ import { ProjectsService } from '../projects/projects.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { I18nService } from 'nestjs-i18n';
 import { NewsConfig } from '../../config/news.config.js';
-import { Prisma } from '../../generated/prisma/index.js';
-import { randomUUID } from 'crypto';
 import { RedisService } from '../../common/redis/redis.service.js';
 import {
   NEWS_NOTIFICATIONS_QUEUE,
@@ -360,45 +358,40 @@ export class NewsNotificationsScheduler {
       return [];
     }
 
-    return this.prisma.$queryRaw<NewsNotificationState[]>`
-      SELECT
-        user_id AS "userId",
-        query_id AS "queryId",
-        last_sent_saved_at AS "lastSentSavedAt",
-        last_sent_news_id AS "lastSentNewsId"
-      FROM news_notification_user_states
-      WHERE query_id = ${queryId}
-        AND user_id IN (${Prisma.join(userIds)})
-    `;
+    const states = await this.prisma.newsNotificationUserState.findMany({
+      where: {
+        queryId,
+        userId: { in: userIds },
+      },
+      select: {
+        userId: true,
+        queryId: true,
+        lastSentSavedAt: true,
+        lastSentNewsId: true,
+      },
+    });
+
+    return states as NewsNotificationState[];
   }
 
   private async upsertUserState(state: NewsNotificationState): Promise<void> {
-    const stateId = randomUUID();
-
-    await this.prisma.$executeRaw`
-      INSERT INTO news_notification_user_states (
-        id,
-        user_id,
-        query_id,
-        last_sent_saved_at,
-        last_sent_news_id,
-        created_at,
-        updated_at
-      )
-      VALUES (
-        ${stateId},
-        ${state.userId},
-        ${state.queryId},
-        ${state.lastSentSavedAt},
-        ${state.lastSentNewsId},
-        NOW(),
-        NOW()
-      )
-      ON CONFLICT (user_id, query_id)
-      DO UPDATE SET
-        last_sent_saved_at = EXCLUDED.last_sent_saved_at,
-        last_sent_news_id = EXCLUDED.last_sent_news_id,
-        updated_at = NOW()
-    `;
+    await this.prisma.newsNotificationUserState.upsert({
+      where: {
+        userId_queryId: {
+          userId: state.userId,
+          queryId: state.queryId,
+        },
+      },
+      update: {
+        lastSentSavedAt: state.lastSentSavedAt,
+        lastSentNewsId: state.lastSentNewsId,
+      },
+      create: {
+        userId: state.userId,
+        queryId: state.queryId,
+        lastSentSavedAt: state.lastSentSavedAt,
+        lastSentNewsId: state.lastSentNewsId,
+      },
+    });
   }
 }

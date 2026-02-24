@@ -5,14 +5,19 @@ import AppModal from '~/components/ui/AppModal.vue'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 
+const props = defineProps<{
+  items: any[]
+  isLoading?: boolean
+}>()
+
+const items = computed(() => props.items)
+const isLoading = computed(() => props.isLoading)
+
 const { t } = useI18n()
 const { formatDateWithSeconds } = useFormatters()
 const api = useApi()
 const router = useRouter()
 const toast = useToast()
-
-const items = ref<any[]>([])
-const isLoading = ref(false)
 
 const isEditModalOpen = ref(false)
 const activeItem = ref<any | null>(null)
@@ -30,28 +35,12 @@ const publicationData = ref({
   contentItemIds: [] as string[]
 })
 
-async function fetchRecentContent() {
-  isLoading.value = true
-  try {
-    const res = await api.get<any>('/content-library/items', {
-      params: {
-        scope: 'personal',
-        limit: 10,
-        offset: 0,
-      },
-    })
-    items.value = res.items
-  } catch (error) {
-    console.error('Failed to fetch recent content:', error)
-  } finally {
-    isLoading.value = false
-  }
-}
-
 function openEditModal(item: any) {
   activeItem.value = item
   isEditModalOpen.value = true
 }
+
+const emit = defineEmits(['refresh'])
 
 async function handleCloseEditModal() {
   if (editorRef.value) {
@@ -59,7 +48,7 @@ async function handleCloseEditModal() {
   }
   isEditModalOpen.value = false
   activeItem.value = null
-  await fetchRecentContent()
+  emit('refresh')
 }
 
 const isArchivingId = ref<string | null>(null)
@@ -67,7 +56,7 @@ async function handleArchive(item: any) {
   isArchivingId.value = item.id
   try {
     await api.post(`/content-library/items/${item.id}/archive`)
-    await fetchRecentContent()
+    emit('refresh')
     toast.add({ 
       title: t('common.success'), 
       description: t('contentLibrary.actions.moveToTrashSuccess'), 
@@ -102,10 +91,6 @@ function handleCreatePublication(item: any) {
   }
   isCreatePublicationModalOpen.value = true
 }
-
-onMounted(() => {
-  fetchRecentContent()
-})
 </script>
 
 <template>
@@ -127,9 +112,9 @@ onMounted(() => {
       </UButton>
     </div>
 
-    <div class="relative overflow-hidden">
+    <div class="relative group/scroll">
       <!-- Horizontal scroll container -->
-      <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1">
+      <div class="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-1 px-1 scroll-smooth">
         <div 
           v-for="i in 5" 
           v-if="isLoading && items.length === 0" 
@@ -153,6 +138,10 @@ onMounted(() => {
           />
         </div>
       </div>
+      
+      <!-- Fade indicators for horizontal scroll -->
+      <div class="absolute left-0 top-0 bottom-4 w-8 bg-linear-to-r from-gray-50 dark:from-gray-900 to-transparent pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity"></div>
+      <div class="absolute right-0 top-0 bottom-4 w-8 bg-linear-to-l from-gray-50 dark:from-gray-900 to-transparent pointer-events-none opacity-0 group-hover/scroll:opacity-100 transition-opacity"></div>
     </div>
 
     <!-- Modals -->
@@ -167,7 +156,7 @@ onMounted(() => {
         ref="editorRef"
         :item="activeItem"
         scope="personal"
-        @refresh="fetchRecentContent"
+        @refresh="emit('refresh')"
       />
       
       <template #footer>

@@ -17,6 +17,8 @@ import {
 import { PublicationStatus, SocialMedia } from '../../generated/prisma/index.js';
 
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { ProjectScopeGuard } from '../../common/guards/project-scope.guard.js';
+import { CheckProjectScope } from '../../common/decorators/project-scope.decorator.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -33,7 +35,6 @@ import {
   IssueType,
   ReorderMediaDto,
   BulkOperationDto,
-  PublicationLlmChatDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
@@ -43,7 +44,7 @@ import { TagsService } from '../tags/tags.service.js';
  * Controller for managing publications (content that can be distributed to multiple channels).
  */
 @Controller('publications')
-@UseGuards(JwtOrApiTokenGuard)
+@UseGuards(JwtOrApiTokenGuard, ProjectScopeGuard)
 export class PublicationsController {
   private readonly MAX_LIMIT = 1000;
 
@@ -56,6 +57,7 @@ export class PublicationsController {
   ) {}
 
   @Get('tags/search')
+  @CheckProjectScope()
   public async searchTags(
     @Request() req: UnifiedAuthRequest,
     @Query('q') q: string,
@@ -74,9 +76,8 @@ export class PublicationsController {
     }
 
     if (projectId) {
-      if (req.user.allProjects !== undefined) {
-        this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
-      } else {
+      if (req.user.allProjects === undefined) {
+        // For non-API token users, check project access
         await this.permissions.checkProjectAccess(projectId, req.user.userId);
       }
     }
@@ -88,14 +89,11 @@ export class PublicationsController {
    * Create a new publication.
    */
   @Post()
+  @CheckProjectScope({ source: 'body' })
   public async create(
     @Request() req: UnifiedAuthRequest,
     @Body() createPublicationDto: CreatePublicationDto,
   ) {
-    // Validate project scope for API token users if projectId is provided
-    if (createPublicationDto.projectId && req.user.allProjects === false && req.user.projectIds) {
-      this.apiTokenScope.validateProjectScopeOrThrow(req, createPublicationDto.projectId);
-    }
     return this.publicationsService.create(createPublicationDto, req.user.userId);
   }
 
@@ -103,6 +101,7 @@ export class PublicationsController {
    * Get all publications for a project or user with filtering and sorting.
    */
   @Get()
+  @CheckProjectScope()
   public async findAll(
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindPublicationsQueryDto,
@@ -191,31 +190,6 @@ export class PublicationsController {
   }
 
   /**
-   * Chat with LLM for a publication.
-   * POST /api/v1/publications/:id/llm/chat
-   */
-  @Post(':id/llm/chat')
-  public async llmChat(
-    @Request() req: UnifiedAuthRequest,
-    @Param('id') id: string,
-    @Body() dto: PublicationLlmChatDto,
-  ) {
-    const controller = new AbortController();
-    const rawReq: any = (req as any).raw ?? (req as any).req ?? req;
-
-    rawReq?.on?.('aborted', () => {
-      controller.abort();
-    });
-    rawReq?.on?.('close', () => {
-      controller.abort();
-    });
-
-    return this.publicationsService.chatWithLlm(id, req.user.userId, dto, {
-      signal: controller.signal,
-    });
-  }
-
-  /**
    * Delete a publication.
    */
   @Delete(':id')
@@ -243,12 +217,6 @@ export class PublicationsController {
     @Param('id') id: string,
     @Body() createPostsDto: CreatePostsDto,
   ) {
-    // Validate project scope for API token users
-    const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      this.apiTokenScope.validateProjectScopeOrThrow(req, publication.projectId);
-    }
-
     return this.publicationsService.createPostsFromPublication(
       id,
       createPostsDto.channelIds,
@@ -317,12 +285,6 @@ export class PublicationsController {
     @Param('id') id: string,
     @Query('force', new DefaultValuePipe(false), ParseBoolPipe) force: boolean,
   ) {
-    // Validate project scope for API token users
-    const publication = await this.publicationsService.findOne(id, req.user.userId);
-    if (publication.projectId && req.user.allProjects === false && req.user.projectIds) {
-      this.apiTokenScope.validateProjectScopeOrThrow(req, publication.projectId);
-    }
-
     return this.socialPostingService.enqueuePublication(id, { force });
   }
 
@@ -330,16 +292,12 @@ export class PublicationsController {
    * Copy a publication to another project.
    */
   @Post(':id/copy')
+  @CheckProjectScope({ source: 'body' })
   public async copy(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
     @Body() body: { projectId: string },
   ) {
-    // Validate project scope for API token users
-    if (body.projectId && req.user.allProjects === false && req.user.projectIds) {
-      this.apiTokenScope.validateProjectScopeOrThrow(req, body.projectId);
-    }
-
     return this.publicationsService.copy(id, body.projectId, req.user.userId);
   }
 }

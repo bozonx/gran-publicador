@@ -249,6 +249,8 @@ export class PostsService {
       limit?: number;
       offset?: number;
       publicationStatus?: PublicationStatus | string | string[];
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
     },
   ) {
     // Check project permission (owner/admin/editor/viewer)
@@ -335,6 +337,8 @@ export class PostsService {
       limit?: number;
       offset?: number;
       publicationStatus?: PublicationStatus | string | string[];
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
     },
   ) {
     const where: any = {};

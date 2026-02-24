@@ -86,14 +86,15 @@ export class NewsQueriesService {
       where: { id },
     });
 
-    if (query?.projectId !== projectId) {
+    if (!query || query.projectId !== projectId) {
       throw new NotFoundException('Query not found');
     }
 
-    const { name, isNotificationEnabled, ...settingsUpdate } = dto;
+    const { name, isNotificationEnabled, version, ...settingsUpdate } = dto;
 
-    // Merge existing settings with updates
-    const currentSettings = query.settings as any;
+    // Direct merge for simplicity, but we can also handle deletions if needed
+    // Note: If we want to allow deleting fields, we'd need a different DTO structure
+    const currentSettings = (query.settings as Record<string, any>) || {};
     const newSettings = { ...currentSettings, ...settingsUpdate };
 
     const updateData: any = {
@@ -102,10 +103,10 @@ export class NewsQueriesService {
       settings: newSettings,
     };
 
-    if (dto.version !== undefined) {
+    if (version !== undefined) {
       updateData.version = { increment: 1 };
       const { count } = await this.prisma.projectNewsQuery.updateMany({
-        where: { id, version: dto.version },
+        where: { id, version: version },
         data: updateData,
       });
 
@@ -170,29 +171,11 @@ export class NewsQueriesService {
 
   // Helper to flatten the response so frontend gets a similar shape as before
   private mapToResponse(query: any) {
-    const settings = query.settings || {};
+    const settings = (query.settings as Record<string, any>) || {};
     return {
-      id: query.id,
-      projectId: query.projectId,
-      name: query.name,
-      isNotificationEnabled: query.isNotificationEnabled,
-      order: query.order,
-      createdAt: query.createdAt,
-      updatedAt: query.updatedAt,
-      // Flatten settings
-      q: settings.q,
-      mode: settings.mode,
-      lang: settings.lang,
-      sourceTags: settings.sourceTags,
-      source: settings.source,
-      sources: settings.sources,
-      newsTags: settings.newsTags,
-      minScore: settings.minScore,
-      since: settings.since,
-      savedFrom: settings.savedFrom,
-      savedTo: settings.savedTo,
-      orderBy: settings.orderBy,
-      note: settings.note,
+      ...query,
+      settings: undefined, // Remove nested settings
+      ...settings, // Flatten all settings fields automatically
     };
   }
 }

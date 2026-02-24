@@ -555,9 +555,11 @@ export class ProjectsService {
       else if (status === PublicationStatus.SCHEDULED) summary.SCHEDULED = c._count.id;
       else if (status === PublicationStatus.PUBLISHED) summary.PUBLISHED = c._count.id;
       else if (
-        [PublicationStatus.PARTIAL, PublicationStatus.FAILED, PublicationStatus.EXPIRED].includes(
-          status,
-        )
+        [
+          PublicationStatus.PARTIAL,
+          PublicationStatus.FAILED,
+          PublicationStatus.EXPIRED,
+        ].includes(status as any)
       ) {
         summary.ISSUES += c._count.id;
       }

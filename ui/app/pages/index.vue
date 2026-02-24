@@ -1,19 +1,15 @@
 <script setup lang="ts">
-import { useProjects } from '~/composables/useProjects'
-import { usePublications } from '~/composables/usePublications'
-import { useChannels } from '~/composables/useChannels'
-import type { ProjectWithRole } from '~/stores/projects'
+import { useDashboardStore } from '~/stores/dashboard'
 import type { PublicationWithRelations } from '~/composables/usePublications'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
-import { DEFAULT_PAGE_SIZE } from '~/constants'
 
 definePageMeta({
   middleware: 'auth',
 })
 
-const { t, d } = useI18n()
+const { t } = useI18n()
 const { displayName } = useAuth()
 const router = useRouter()
+const dashboardStore = useDashboardStore()
 
 const isCreateModalOpen = ref(false)
 function openCreateModal() {
@@ -24,95 +20,22 @@ function handleProjectCreated(projectId: string) {
   router.push(`/projects/${projectId}`)
 }
 
-// Projects data
-const { projects, fetchProjects, isLoading: projectsLoading } = useProjects()
-
-
-
-// Scheduled data
-const { 
-  publications: scheduledPublications, 
-  fetchUserPublications: fetchScheduled, 
-  totalCount: scheduledCount, 
-  isLoading: scheduledLoading 
-} = usePublications()
-
-// Problems data
-const { 
-  publications: problemPublications, 
-  fetchUserPublications: fetchProblems, 
-  totalCount: problemsCount, 
-  isLoading: problemsLoading,
-} = usePublications()
-
-// Recently Published data
-const {
-  publications: publishedPublications,
-  fetchUserPublications: fetchRecentPublished,
-  totalCount: publishedCount,
-  isLoading: publishedLoading
-} = usePublications()
-
 // Fetch data on mount
 onMounted(async () => {
-  try {
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    await Promise.all([
-      fetchProjects(),
-
-      fetchRecentPublished({ 
-        status: 'PUBLISHED', 
-        publishedAfter: yesterday,
-        limit: 10,
-        sortBy: 'byPublished',
-        sortOrder: 'desc'
-      }),
-      fetchScheduled({ status: 'SCHEDULED', limit: DEFAULT_PAGE_SIZE }),
-      fetchProblems({ status: ['PARTIAL', 'FAILED', 'EXPIRED'], limit: DEFAULT_PAGE_SIZE })
-    ])
-  } catch (err) {
-    console.error('Dashboard initialization error:', err)
-  }
+  await dashboardStore.fetchSummary()
 })
 
-const { getPublicationDisplayTitle, formatDateWithTime } = useFormatters()
-
-// Group scheduled publications by project
-const scheduledByProject = computed(() => {
-  const groups: Record<string, { project: { id: string, name: string }, publications: PublicationWithRelations[] }> = {}
-  
-  scheduledPublications.value.forEach(pub => {
-    if (!pub.project) return
-    if (!groups[pub.project.id]) {
-      groups[pub.project.id] = { project: pub.project, publications: [] }
-    }
-    groups[pub.project.id]!.publications.push(pub)
-  })
-  
-  return Object.values(groups).sort((a, b) => a.project.name.localeCompare(b.project.name))
-})
-
-// Group problem publications by project
-const problemsByProject = computed(() => {
-  const groups: Record<string, { project: { id: string, name: string }, publications: PublicationWithRelations[] }> = {}
-  
-  problemPublications.value.forEach(pub => {
-    if (!pub.project) return
-    if (!groups[pub.project.id]) {
-      groups[pub.project.id] = { project: pub.project, publications: [] }
-    }
-    groups[pub.project.id]!.publications.push(pub)
-  })
-  
-  return Object.values(groups).sort((a, b) => a.project.name.localeCompare(b.project.name))
-})
+const isLoading = computed(() => dashboardStore.isLoading)
+const summary = computed(() => dashboardStore.summary)
+const error = computed(() => dashboardStore.error)
 
 // Projects grouped by role (kept from original)
-const totalProjects = computed(() => projects.value.length)
+const totalProjects = computed(() => summary.value?.projects.length || 0)
 const projectsByRole = computed(() => {
-  const groups: Record<string, ProjectWithRole[]> = {}
+  if (!summary.value) return []
+  const groups: Record<string, any[]> = {}
   
-  projects.value.forEach(p => {
+  summary.value.projects.forEach(p => {
     const role = p.role || 'viewer'
     if (!groups[role]) groups[role] = []
     groups[role].push(p)
@@ -126,14 +49,6 @@ const projectsByRole = computed(() => {
       projects: groups[role]!.sort((a, b) => a.name.localeCompare(b.name))
     }))
 })
-
-function goToPublication(pub: PublicationWithRelations) {
-    if (pub.id) {
-        router.push(`/publications/${pub.id}`)
-    }
-}
-
-
 </script>
 
 <template>
@@ -148,13 +63,32 @@ function goToPublication(pub: PublicationWithRelations) {
       </p>
     </div>
 
+    <!-- Error Alert -->
+    <UAlert
+      v-if="error"
+      icon="i-heroicons-exclamation-circle"
+      color="red"
+      variant="soft"
+      :title="t('dashboard.summary_error', 'Failed to load dashboard data')"
+      :description="error"
+      class="mb-6"
+    >
+      <template #footer>
+        <UButton size="xs" color="red" variant="ghost" @click="dashboardStore.fetchSummary()">
+          {{ t('common.retry') }}
+        </UButton>
+      </template>
+    </UAlert>
+
     <div class="space-y-6 sm:space-y-8">
       <!-- Recent Content Widget -->
-      <DashboardRecentContentWidget />
+      <DashboardRecentContentWidget 
+        :items="summary?.recentContent || []" 
+        :is-loading="isLoading"
+        @refresh="dashboardStore.fetchSummary()"
+      />
 
-
-
-      <!-- 2. Scheduled and Problems Columns -->
+      <!-- Scheduled and Problems Columns -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Scheduled Section -->
@@ -163,10 +97,10 @@ function goToPublication(pub: PublicationWithRelations) {
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
               {{ t('publicationStatus.scheduled') }}
-              <CommonCountBadge :count="scheduledCount" />
+              <CommonCountBadge :count="summary?.publications.scheduled.total || 0" />
             </h3>
             <UButton
-              v-if="scheduledCount > 0"
+              v-if="(summary?.publications.scheduled.total || 0) > 0"
               to="/publications?status=SCHEDULED&sortBy=byScheduled"
               variant="ghost"
               size="xs"
@@ -178,18 +112,18 @@ function goToPublication(pub: PublicationWithRelations) {
             </UButton>
           </div>
 
-          <div v-if="scheduledLoading && !scheduledPublications.length" class="flex justify-center py-4">
+          <div v-if="isLoading && !summary" class="flex justify-center py-4">
             <UiLoadingSpinner size="sm" />
           </div>
           
-          <div v-else-if="scheduledByProject.length > 0" class="space-y-6">
+          <div v-else-if="summary?.publications.scheduled.groupedByProject.length" class="space-y-6">
             <!-- Group by Project -->
-            <div v-for="group in scheduledByProject" :key="group.project.id">
+            <div v-for="group in summary.publications.scheduled.groupedByProject" :key="group.project.id">
               <div class="flex items-center gap-2 mb-2 px-2">
                 <UIcon name="i-heroicons-briefcase" class="w-4 h-4 text-gray-400" />
-                <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                <NuxtLink :to="`/projects/${group.project.id}`" class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-500 transition-colors">
                   {{ group.project.name }}
-                </h4>
+                </NuxtLink>
               </div>
               
               <div class="grid grid-cols-1 gap-2">
@@ -215,22 +149,22 @@ function goToPublication(pub: PublicationWithRelations) {
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
               <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
               {{ t('publication.filter.showIssuesOnly') }}
-              <CommonCountBadge :count="problemsCount" color="error" />
+              <CommonCountBadge :count="summary?.publications.problems.total || 0" color="error" />
             </h3>
           </div>
 
-          <div v-if="problemsLoading && !problemPublications.length" class="flex justify-center py-4">
+          <div v-if="isLoading && !summary" class="flex justify-center py-4">
             <UiLoadingSpinner size="sm" />
           </div>
           
-          <div v-else-if="problemsByProject.length > 0" class="space-y-6">
+          <div v-else-if="summary?.publications.problems.groupedByProject.length" class="space-y-6">
              <!-- Group by Project -->
-            <div v-for="group in problemsByProject" :key="group.project.id">
+            <div v-for="group in summary.publications.problems.groupedByProject" :key="group.project.id">
               <div class="flex items-center gap-2 mb-2 px-2">
                 <UIcon name="i-heroicons-briefcase" class="w-4 h-4 text-gray-400" />
-                <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                <NuxtLink :to="`/projects/${group.project.id}`" class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-500 transition-colors">
                   {{ group.project.name }}
-                </h4>
+                </NuxtLink>
               </div>
               
               <div class="grid grid-cols-1 gap-2">
@@ -248,7 +182,7 @@ function goToPublication(pub: PublicationWithRelations) {
           </div>
           
           <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-            {{ t('common.noData') }}
+            {{ t('dashboard.noProblems') }}
           </div>
         </div>
       </div>
@@ -258,11 +192,11 @@ function goToPublication(pub: PublicationWithRelations) {
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
-            {{ t('dashboard.published_last_24h', 'Published last 24h') }}
-            <CommonCountBadge :count="publishedCount" color="success" />
+            {{ t('dashboard.published_last_24h') }}
+            <CommonCountBadge :count="summary?.publications.recentPublished.total || 0" color="success" />
           </h3>
           <UButton
-            v-if="publishedCount > 0"
+            v-if="(summary?.publications.recentPublished.total || 0) > 0"
             to="/publications?status=PUBLISHED&sortBy=byPublished"
             variant="ghost"
             size="xs"
@@ -274,40 +208,49 @@ function goToPublication(pub: PublicationWithRelations) {
           </UButton>
         </div>
 
-        <div v-if="publishedLoading && !publishedPublications.length" class="flex justify-center py-4">
+        <div v-if="isLoading && !summary" class="flex justify-center py-4">
           <UiLoadingSpinner size="sm" />
         </div>
 
-        <div v-else-if="publishedPublications.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div v-else-if="summary?.publications.recentPublished.items.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <PublicationsPublicationMiniItem
-            v-for="pub in publishedPublications"
+            v-for="pub in summary.publications.recentPublished.items"
             :key="pub.id"
             :publication="pub"
             show-date
-            date-type="scheduled"
+            date-type="published"
           />
         </div>
 
         <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-          {{ t('dashboard.no_published_last_24h', 'No publications were published in the last 24 hours') }}
+          {{ t('dashboard.no_published_last_24h') }}
         </div>
       </div>
 
-      <!-- 3. Projects (Bottom) -->
+      <!-- Projects and Channels Section -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
          <div class="lg:col-span-2 space-y-6">
             <div class="app-card">
-              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
                   {{ t('project.titlePlural') }}
                   <CommonCountBadge :count="totalProjects" :title="t('project.projectsCount')" />
                 </h2>
+                <UButton
+                  variant="ghost"
+                  size="xs"
+                  color="primary"
+                  icon="i-heroicons-plus"
+                  @click="openCreateModal"
+                >
+                  {{ t('project.createProject') }}
+                </UButton>
               </div>
               <div class="p-4 sm:p-5">
-                <div v-if="projectsLoading && projects.length === 0" class="flex items-center justify-center py-4">
+                <div v-if="isLoading && !summary" class="flex items-center justify-center py-4">
                   <UiLoadingSpinner />
                 </div>
-                <div v-else-if="projects.length === 0" class="text-center py-8">
+                <div v-else-if="totalProjects === 0" class="text-center py-8">
                   <UIcon name="i-heroicons-briefcase" class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
                   <p class="text-gray-500 dark:text-gray-400 mb-4">{{ t('project.noProjectsDescription') }}</p>
                   <UButton icon="i-heroicons-plus" size="sm" @click="openCreateModal">{{ t('project.createProject') }}</UButton>
@@ -333,15 +276,14 @@ function goToPublication(pub: PublicationWithRelations) {
 
          <!-- Widgets Sidebar -->
          <div class="lg:col-span-1 space-y-6">
-
-           <ChannelsDashboardPanel />
+           <ChannelsDashboardPanel :summary="summary?.channelsSummary" :is-loading="isLoading" />
          </div>
       </div>
-      </div>
-      <ModalsCreateProjectModal
-        v-model:open="isCreateModalOpen"
-        @created="handleProjectCreated"
-      />
+    </div>
 
+    <ModalsCreateProjectModal
+      v-model:open="isCreateModalOpen"
+      @created="handleProjectCreated"
+    />
   </div>
 </template>
