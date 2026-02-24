@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:modelValue': [value: Record<string, any> | null]
+  blur: []
 }>()
 
 const { t } = useI18n()
@@ -118,6 +119,7 @@ function startEditing() {
 
 function stopEditing() {
   isEditing.value = false
+  emit('blur')
 }
 
 const displayValue = computed({

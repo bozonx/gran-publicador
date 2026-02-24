@@ -61,8 +61,13 @@ const editForm = ref({
 
 const groups = ref(JSON.parse(JSON.stringify(props.item.groups || [])))
 
+const autosaveForm = computed(() => {
+  const { meta, ...rest } = editForm.value
+  return rest
+})
+
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, retrySave, flushSave } = useAutosave({
-  data: toRef(() => editForm.value),
+  data: toRef(() => autosaveForm.value as any),
   saveFn: async (data: any) => {
     await saveItem(data)
     return { saved: true }
@@ -83,6 +88,12 @@ const saveItem = async (formData: typeof editForm.value) => {
       mediaId: m.mediaId || m.media?.id,
       hasSpoiler: m.hasSpoiler ? true : undefined,
     })),
+  })
+}
+
+const saveMeta = async () => {
+  await api.post(`/content-library/items/${editForm.value.id}/sync`, {
+    meta: editForm.value.meta || {},
   })
 }
 
@@ -295,6 +306,7 @@ defineExpose({
         :model-value="editForm.meta || {}"
         :label="t('common.meta')"
         @update:model-value="(newMeta: any) => (editForm.meta = newMeta)"
+        @blur="saveMeta"
       />
     </div>
 

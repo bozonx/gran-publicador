@@ -1,6 +1,6 @@
 // Auto-save debounce time in milliseconds
 // Standard value for form auto-save functionality
-export const AUTO_SAVE_DEBOUNCE_MS = 1000;
+export const AUTO_SAVE_DEBOUNCE_MS = 3000;
 
 // Minimum duration of save operation to show "Saving..." indicator
 export const AUTOSAVE_INDICATOR_DELAY_MS = 400;
