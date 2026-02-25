@@ -13,6 +13,7 @@ import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 import type { MediaItem } from '~/composables/useMedia'
 import { usePublicationActions } from '~/composables/usePublicationActions'
+import { useLanguages } from '~/composables/useLanguages'
 
 
 definePageMeta({
@@ -27,6 +28,8 @@ const { validatePostContent } = useSocialMediaValidation()
 const { 
   fetchPublication, 
   currentPublication, 
+  currentPublicationPlatforms: linkedSocialMedia,
+  currentPublicationProblems: publicationProblems,
   isLoading: isPublicationLoading, 
   deletePublication, 
   updatePublication,
@@ -36,7 +39,6 @@ const {
   applyLlmResult: applyLlmViaService,
   getStatusColor,
   getStatusIcon,
-  getPublicationProblems, 
   getPublicationProblemLevel 
 } = usePublications()
 
@@ -51,49 +53,6 @@ const { canGoBack, goBack } = useNavigation()
 const projectId = computed(() => currentPublication.value?.projectId || null)
 const publicationId = computed(() => route.params.id as string)
 
-// Publication problems detection
-
-const linkedSocialMedia = computed(() => {
-    if (!currentPublication.value?.posts) return []
-    const platforms = currentPublication.value.posts.map((p: any) => p.channel?.socialMedia).filter(Boolean)
-    return [...new Set(platforms)]
-})
-
-const supportedTypeOptions = computed(() => {
-  return getPostTypeOptionsForPlatforms({
-    t,
-    platforms: linkedSocialMedia.value as any,
-  })
-})
-
-const publicationProblems = computed(() => {
-  if (!currentPublication.value) return []
-  const problems = getPublicationProblems(currentPublication.value)
-  
-  // Media validation problems for publication-level media
-  if (currentPublication.value.media && currentPublication.value.media.length > 0) {
-      const mediaCount = currentPublication.value.media.length
-      const mediaArray = currentPublication.value.media.map(m => ({ type: m.media?.type || 'UNKNOWN' }))
-      const postType = currentPublication.value.postType
-      
-      let hasMediaError = false
-      for (const platform of linkedSocialMedia.value) {
-          const result = validatePostContent('', mediaCount, platform as any, mediaArray, postType)
-          if (!result.isValid) {
-              hasMediaError = true
-              break
-          }
-      }
-      
-      if (hasMediaError) {
-          problems.push({ type: 'critical', key: 'mediaValidation' })
-      }
-  }
-  
-  return problems
-})
-
-
 const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
 })
@@ -101,22 +60,24 @@ const hasMediaValidationErrors = computed(() => {
 const isLocked = computed(() => currentPublication.value?.status === 'READY')
 
 
+const isDuplicateModalOpen = ref(false)
+const isProjectModalOpen = ref(false)
+const isTemplateModalOpen = ref(false)
+const isRelationsModalOpen = ref(false)
+const showLlmModal = ref(false)
 const isDeleteModalOpen = ref(false)
-const isDeleting = ref(false)
 const isRepublishModalOpen = ref(false)
 const isArchiveWarningModalOpen = ref(false)
-const archiveWarningMessage = ref('')
-
-const { updatePost } = usePosts()
-const toast = useToast()
 const isScheduleModalOpen = ref(false)
-const newScheduledDate = ref('')
-const isBulkScheduling = ref(false)
-const showLlmModal = ref(false)
-const llmModalRef = ref<{ onApplySuccess: () => void; onApplyError: () => void } | null>(null)
-
 const isContentActionModalOpen = ref(false)
+
+const newProjectId = ref<string | undefined>(undefined)
+const newTemplateId = ref<string | undefined>(undefined)
+const newScheduledDate = ref('')
+const archiveWarningMessage = ref('')
 const contentActionMode = ref<'copy' | 'move'>('copy')
+
+const modalsRef = ref<any>(null)
 
 // Social posting
 const { 
@@ -231,32 +192,40 @@ watch(projectId, async (newId) => {
     }
 })
 
+const { updatePost } = usePosts()
+const toast = useToast()
+const { languageOptions } = useLanguages()
+const { typeOptions } = usePosts()
+const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
+
+async function handleApplyLlm(data: any) {
+  await applyLlm(data)
+}
+
+function openScheduleModal() {
+    const now = new Date()
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()) // Adjust for local input
+    newScheduledDate.value = now.toISOString().slice(0, 16)
+    modalsRef.value?.setNewScheduledDate(newScheduledDate.value)
+    isScheduleModalOpen.value = true
+}
+
 /**
  * Handle successful publication update
  */
 async function handleSuccess(id: string) {
-  // Refresh publication data to keep page-level computed properties in sync
-  // (e.g. isContentOrMediaMissing, publicationProblems)
-  if (publicationId.value) {
-    await fetchPublication(publicationId.value)
-  }
+  // refresh is automatic via usePublications
 }
-
-
 
 /**
  * Handle post deletion
  */
 async function handlePostDeleted() {
-    // Refresh publication to remove deleted post
     if (publicationId.value) {
         await fetchPublication(publicationId.value)
     }
 }
 
-/**
- * Handle cancel
- */
 function handleCancel() {
   goBack()
 }
@@ -267,92 +236,61 @@ const collections = computed(() => [
 ])
 
 async function handleArchiveToggle() {
-    if (!currentPublication.value) return
-    await fetchPublication(currentPublication.value.id)
+    // No explicit refetch needed
 }
-async function handleDelete() {
-    if (!currentPublication.value) return
-    
-    const pid = projectId.value // Capture project ID
-    
-    isDeleting.value = true
-    const success = await deletePublication(currentPublication.value.id)
-    isDeleting.value = false
-    if (success) {
-        isDeleteModalOpen.value = false
-        // Navigate to project page or drafts page
-        if (pid) {
-            router.push(`/projects/${pid}`)
-        } else {
-            router.push('/publications')
-        }
+
+const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
+
+const displayStatusOptions = computed(() => {
+    const options = [
+        { value: 'DRAFT', label: t('publicationStatus.draft') },
+        { value: 'READY', label: t('publicationStatus.ready') }
+    ]
+    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
+        options.push({
+            value: currentPublication.value.status,
+            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
+            isSystem: true
+        } as any)
     }
-}
+    return options
+})
 
-async function handleApplyLlm(data: any) {
-  await applyLlm(data, {
-    onSuccess: () => llmModalRef.value?.onApplySuccess(),
-    onError: () => llmModalRef.value?.onApplyError()
-  })
-}
-
-function openScheduleModal() {
-    const now = new Date()
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset()) // Adjust for local input
-    newScheduledDate.value = now.toISOString().slice(0, 16)
-    isScheduleModalOpen.value = true
-}
-
-async function handleBulkSchedule() {
-    if (!currentPublication.value) return
-    if (!newScheduledDate.value) return
-
-    isBulkScheduling.value = true
+async function handleUpdateStatusOption(status: PublicationStatus) {
+    if (!currentPublication.value || currentPublication.value.status === status) return
+    if (status === 'READY' && isReallyEmpty.value) {
+        toast.add({ title: t('common.error'), description: t('publication.validation.contentOrMediaRequired'), color: 'error' })
+        return
+    }
     try {
-        // Update only the publication's scheduledAt
-        await updatePublication(currentPublication.value.id, {
-            scheduledAt: new Date(newScheduledDate.value).toISOString()
-        })
-        
-        toast.add({
-            title: t('common.success'),
-            description: t('publication.scheduleUpdated'),
-            color: 'success'
-        })
-
-        isScheduleModalOpen.value = false
-        // Refresh publication
-        if (currentPublication.value) {
-            await fetchPublication(currentPublication.value.id)
-        }
+        await updatePublication(currentPublication.value.id, { status })
     } catch (err: any) {
-        console.error('Failed to schedule publication:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isBulkScheduling.value = false
+        console.error('Failed to update status:', err)
+        toast.add({ title: t('common.error'), description: t('common.saveError'), color: 'error' })
     }
 }
 
-// Language and Type Editing
-const { languageOptions } = useLanguages()
-const { typeOptions } = usePosts()
-const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
+const templateOptions = computed(() => filteredProjectTemplates.value.map((tpl: any) => ({ value: tpl.id, label: tpl.name })))
 
-const isDuplicateModalOpen = ref(false)
-const isProjectModalOpen = ref(false)
-const isTemplateModalOpen = ref(false)
-const newProjectId = ref<string | undefined>(undefined)
-const newTemplateId = ref<string | undefined>(undefined)
-const isUpdatingProject = ref(false)
-const isUpdatingTemplate = ref(false)
-const isRelationsModalOpen = ref(false)
+const filteredProjectTemplates = computed(() => {
+    const pubLang = currentPublication.value?.language
+    const pubType = currentPublication.value?.postType
+    return projectTemplates.value.filter((tpl: any) => {
+        const langMatch = !tpl.language || tpl.language === pubLang
+        const typeMatch = !tpl.postType || tpl.postType === pubType
+        return langMatch && typeMatch
+    })
+})
+
+async function handleDeleteSuccess(pid?: string | null) {
+    if (pid) {
+        router.push(`/projects/${pid}`)
+    } else {
+        router.push('/publications')
+    }
+}
 
 function openDuplicateModal() {
-    if (!currentPublication.value) return
     isDuplicateModalOpen.value = true
 }
 
@@ -362,148 +300,17 @@ function handleDuplicateSuccess(id: string) {
 }
 
 function openProjectModal() {
-    if (!currentPublication.value) return
-    newProjectId.value = currentPublication.value.projectId || undefined
+    if (!currentProject.value) return
+    newProjectId.value = currentProject.value.id
+    modalsRef.value?.setNewProjectId(newProjectId.value)
     isProjectModalOpen.value = true
 }
 
 function openTemplateModal() {
     if (!currentPublication.value) return
     newTemplateId.value = currentPublication.value.projectTemplateId || undefined
+    modalsRef.value?.setNewTemplateId(newTemplateId.value)
     isTemplateModalOpen.value = true
-}
-
-async function handleUpdateProject() {
-    if (!currentPublication.value) return
-    isUpdatingProject.value = true
-    try {
-        if (!newProjectId.value) return
-
-        const success = await bulkOperation(
-          [currentPublication.value.id],
-          'MOVE',
-          undefined,
-          newProjectId.value,
-        )
-
-        if (!success) return
-
-        isProjectModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update project:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingProject.value = false
-    }
-}
-
-async function handleUpdateTemplate(templateId: string) {
-    if (!currentPublication.value) return
-    if (currentPublication.value.projectTemplateId === templateId) {
-        isTemplateModalOpen.value = false
-        return
-    }
-    newTemplateId.value = templateId
-    isUpdatingTemplate.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            projectTemplateId: templateId
-        })
-        isTemplateModalOpen.value = false
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update template:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingTemplate.value = false
-    }
-}
-
-const projectOptions = computed(() => {
-    return projects.value.map(p => ({
-        value: p.id,
-        label: p.name
-    }))
-})
-
-const templateOptions = computed(() => {
-    return filteredProjectTemplates.value.map(tpl => ({ value: tpl.id, label: tpl.name }))
-})
-
-const filteredProjectTemplates = computed(() => {
-    const pubLang = currentPublication.value?.language
-    const pubType = currentPublication.value?.postType
-    return projectTemplates.value.filter((tpl) => {
-        const langMatch = !tpl.language || tpl.language === pubLang
-        const typeMatch = !tpl.postType || tpl.postType === pubType
-        return langMatch && typeMatch
-    })
-})
-
-const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
-
-const displayStatusOptions = computed(() => {
-    const options = [
-        { value: 'DRAFT', label: t('publicationStatus.draft') },
-        { value: 'READY', label: t('publicationStatus.ready') }
-    ]
-    
-    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
-        options.push({
-            value: currentPublication.value.status,
-            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
-            isSystem: true
-        } as any)
-    }
-    
-    return options
-})
-
-const newStatus = ref<PublicationStatus>('DRAFT')
-const isUpdatingStatus = ref(false)
-
-async function handleUpdateStatusOption(status: PublicationStatus) {
-    if (!currentPublication.value) return
-    if (currentPublication.value.status === status) {
-        return
-    }
-    
-    // Check content or media requirement for READY status
-    if (status === 'READY' && isReallyEmpty.value) {
-        toast.add({
-            title: t('common.error'),
-            description: t('publication.validation.contentOrMediaRequired'),
-            color: 'error'
-        })
-        return
-    }
-
-    newStatus.value = status
-    isUpdatingStatus.value = true
-    try {
-        await updatePublication(currentPublication.value.id, {
-            status: status
-        })
-        await fetchPublication(currentPublication.value.id)
-    } catch (err: any) {
-        console.error('Failed to update status:', err)
-        toast.add({
-            title: t('common.error'),
-            description: t('common.saveError'),
-            color: 'error'
-        })
-    } finally {
-        isUpdatingStatus.value = false
-    }
 }
 
 const moreActions = computed(() => [
@@ -731,139 +538,32 @@ async function executePublish(force: boolean) {
         </UDropdownMenu>
       </div>
     </div>
-    <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
-      v-if="isDeleteModalOpen"
-      v-model:open="isDeleteModalOpen"
-      :title="t('publication.deleteConfirm')"
-      :description="t('publication.deleteCascadeWarning')"
-      :confirm-text="t('common.delete')"
-      color="error"
-      icon="i-heroicons-exclamation-triangle"
-      :loading="isDeleting"
-      @confirm="handleDelete"
-    />
-
-    <!-- Republish Confirmation Modal -->
-    <UiConfirmModal
-      v-if="isRepublishModalOpen"
-      v-model:open="isRepublishModalOpen"
-      :title="t('publication.republishConfirm')"
-      :description="currentPublication?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishWarning')"
-      :confirm-text="t('publication.republish', 'Republish')"
-      color="warning"
-      icon="i-heroicons-exclamation-triangle"
-      :loading="isPublishing"
-      @confirm="handleConfirmRepublish"
-    />
-
-    <!-- Archive Warning Modal -->
-    <UiConfirmModal
-      v-if="isArchiveWarningModalOpen"
-      v-model:open="isArchiveWarningModalOpen"
-      :title="t('publication.archiveWarning.title')"
-      :description="archiveWarningMessage + '\n\n' + t('publication.archiveWarning.confirm')"
-      :confirm-text="t('publication.archiveWarning.publishAnyway')"
-      color="warning"
-      icon="i-heroicons-exclamation-triangle"
-      :loading="isPublishing"
-      @confirm="handleConfirmArchivePublish"
-    />
-
-    <!-- Schedule Modal -->
-    <UiAppModal v-if="isScheduleModalOpen" v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
-      <p class="text-gray-500 dark:text-gray-400 mb-4">
-        {{ t('publication.changeScheduleInfo') }}
-      </p>
-
-      <UFormField :label="t('publication.newScheduleTime')" required>
-        <UInput v-model="newScheduledDate" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
-      </UFormField>
-
-      <template #footer>
-        <UButton
-          color="neutral"
-          variant="ghost"
-          :label="t('common.cancel')"
-          @click="isScheduleModalOpen = false"
-        />
-        <UButton
-          color="primary"
-          :label="t('common.save')"
-          :loading="isBulkScheduling"
-          @click="handleBulkSchedule"
-        />
-      </template>
-    </UiAppModal>
-
-    <!-- Duplicate Publication Modal -->
-    <ModalsCreatePublicationModal
+    <!-- Publication Modals -->
+    <PublicationsPublicationEditModals
       v-if="currentPublication"
-      v-model:open="isDuplicateModalOpen"
-      :project-id="projectId || undefined"
-      :preselected-language="currentPublication.language"
-      :preselected-post-type="currentPublication.postType as any"
-      :preselected-channel-ids="currentPublication.posts?.map((p: any) => p.channelId)"
-      allow-project-selection
-      :prefilled-title="currentPublication.title || ''"
-      :prefilled-description="currentPublication.description || ''"
-      :prefilled-author-comment="currentPublication.authorComment || ''"
-      :prefilled-content="currentPublication.content || ''"
-      :prefilled-tags="currentPublication.tags"
-      :prefilled-meta="normalizedPublicationMeta"
-      :prefilled-note="currentPublication.note || ''"
-      :prefilled-media-ids="currentPublication.media?.map((m: any) => ({ id: m.media?.id, hasSpoiler: m.hasSpoiler }))"
-      :prefilled-content-item-ids="currentPublication.contentItems?.map((ci: any) => ci.contentItemId)"
-      :prefilled-author-signature-id="currentPublication.authorSignatureId || undefined"
-      :prefilled-project-template-id="currentPublication.projectTemplateId || undefined"
-      @success="handleDuplicateSuccess"
+      ref="modalsRef"
+      v-model:delete-modal="isDeleteModalOpen"
+      v-model:republish-modal="isRepublishModalOpen"
+      v-model:archive-warning-modal="isArchiveWarningModalOpen"
+      v-model:schedule-modal="isScheduleModalOpen"
+      v-model:duplicate-modal="isDuplicateModalOpen"
+      v-model:project-modal="isProjectModalOpen"
+      v-model:template-modal="isTemplateModalOpen"
+      v-model:llm-modal="showLlmModal"
+      v-model:relations-modal="isRelationsModalOpen"
+      v-model:content-action-modal="isContentActionModalOpen"
+      :publication="currentPublication"
+      :project-id="projectId"
+      :template-options="templateOptions"
+      :normalized-publication-meta="normalizedPublicationMeta"
+      @refresh="() => fetchPublication(publicationId)"
+      @deleted="handleDeleteSuccess"
+      @duplicate-success="handleDuplicateSuccess"
+      @apply-llm="handleApplyLlm"
+      @confirm-republish="handleConfirmRepublish"
+      @confirm-archive-publish="handleConfirmArchivePublish"
     />
 
-    <!-- Project Change Modal -->
-    <UiAppModal
-      v-model:open="isProjectModalOpen"
-      :title="t('project.title')"
-      :ui="{ content: 'sm:max-w-md' }"
-    >
-      <div class="space-y-4">
-        <UFormField :label="t('project.title')">
-          <CommonProjectSelect v-model="newProjectId" class="w-full" />
-        </UFormField>
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isProjectModalOpen = false">{{ t('common.cancel') }}</UButton>
-        <UButton color="primary" :loading="isUpdatingProject" @click="handleUpdateProject">{{ t('common.save') }}</UButton>
-      </template>
-    </UiAppModal>
-
-    <!-- Template Change Modal -->
-    <UiAppModal
-      v-model:open="isTemplateModalOpen"
-      :title="t('projectTemplates.title', 'Publication Template')"
-      :ui="{ content: 'sm:max-w-md' }"
-    >
-      <div class="space-y-4">
-        <UFormField :label="t('projectTemplates.title', 'Publication Template')">
-          <USelectMenu
-            v-model="newTemplateId"
-            :items="templateOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-      </div>
-
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isTemplateModalOpen = false">{{ t('common.cancel') }}</UButton>
-        <UButton color="primary" :loading="isUpdatingTemplate" :disabled="!newTemplateId" @click="handleUpdateTemplate(newTemplateId!)">{{ t('common.save') }}</UButton>
-      </template>
-    </UiAppModal>
-
-    <!-- Status Change Modal removed in favor of button group -->
-
-    <!-- Loading state -->
     <div v-if="isPublicationLoading && !currentPublication" class="flex items-center justify-center py-12">
         <UiLoadingSpinner size="md" />
     </div>
@@ -1017,7 +717,7 @@ async function executePublish(force: boolean) {
                                 <div class="flex items-center gap-2">
                                     <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
                                     <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ languageOptions.find(l => l.value === currentPublication?.language)?.label || currentPublication?.language }}
+                                        {{ languageOptions.find((l: any) => l.value === currentPublication?.language)?.label || currentPublication?.language }}
                                     </span>
                                 </div>
                             </div>
@@ -1030,7 +730,7 @@ async function executePublish(force: boolean) {
                                 <div class="flex items-center gap-2">
                                     <UIcon name="i-heroicons-document-duplicate" class="w-5 h-5 text-gray-400" />
                                     <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ typeOptions.find(t => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
+                                        {{ typeOptions.find((t: any) => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
                                     </span>
                                 </div>
                             </div>
@@ -1207,45 +907,5 @@ async function executePublish(force: boolean) {
     <div v-else class="text-center py-12">
         <p class="text-gray-500">{{ t('errors.notFound') }}</p>
     </div>
-    <!-- LLM Generator Modal -->
-    <ModalsLlmGeneratorModal
-      v-if="currentPublication"
-      ref="llmModalRef"
-      v-model:open="showLlmModal"
-      :publication-id="currentPublication.id"
-      :content="currentPublication.content || undefined"
-      :title="currentPublication.title || undefined"
-      :media="((currentPublication.media || []).map(m => m.media).filter(Boolean) as any)"
-      :project-id="projectId || undefined"
-      :publication-meta="normalizedPublicationMeta"
-      :post-type="currentPublication.postType || undefined"
-      :publication-language="currentPublication.language || undefined"
-      :post-channels="(currentPublication.posts || []).map((p: any) => ({
-        channelId: p.channelId,
-        channelName: p.channel?.name || '',
-        language: p.channel?.language || currentPublication!.language,
-        tags: p.channel?.tags ? p.channel.tags.split(',').map((t: string) => t.trim()).filter(Boolean) : [],
-        socialMedia: p.channel?.socialMedia,
-      }))"
-      @apply="handleApplyLlm"
-    />
-
-    <!-- Publication Relations Modal -->
-    <ModalsPublicationRelationsModal
-      v-if="currentPublication && projectId"
-      v-model:open="isRelationsModalOpen"
-      :publication="currentPublication"
-      :project-id="projectId"
-      @updated="() => fetchPublication(publicationId)"
-    />
-
-    <!-- Content Action Modal (Copy/Move to Content Library) -->
-    <ContentCreateItemFromPublicationModal
-      v-model:open="isContentActionModalOpen"
-      :publication-id="publicationId"
-      :scope="projectId ? 'project' : 'personal'"
-      :project-id="projectId || undefined"
-      :mode="contentActionMode"
-    />
   </div>
 </template>

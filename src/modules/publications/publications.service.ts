@@ -279,6 +279,38 @@ export class PublicationsService {
     });
   }
 
+  /**
+   * Internal method to handle post resets when publication status changes.
+   * Only resets non-published posts to avoid data loss.
+   */
+  private async handleStatusChange(publicationId: string, newStatus: PublicationStatus, previousStatus: PublicationStatus) {
+    if (newStatus === previousStatus) return;
+
+    // If moving to READY or DRAFT, reset pending/failed posts
+    if (newStatus === PublicationStatus.DRAFT || newStatus === PublicationStatus.READY) {
+      await this.prisma.post.updateMany({
+        where: {
+          publicationId,
+          status: { not: PostStatus.PUBLISHED },
+          publishedAt: null,
+        },
+        data: {
+          status: PostStatus.PENDING,
+          errorMessage: null,
+          // We don't reset scheduledAt here anymore, usually controlled independently
+          // or inherited from publication if needed.
+        },
+      });
+    }
+
+    // Handle snapshot building
+    if (previousStatus === PublicationStatus.DRAFT && (newStatus === PublicationStatus.READY || newStatus === PublicationStatus.SCHEDULED)) {
+      await this.snapshotBuilder.buildForPublication(publicationId);
+    } else if (newStatus === PublicationStatus.DRAFT) {
+      await this.snapshotBuilder.clearForPublication(publicationId);
+    }
+  }
+
   public async update(id: string, userId: string, data: UpdatePublicationDto) {
     const publication = await this.findOne(id, userId);
     const previousStatus = publication.status;
@@ -289,16 +321,8 @@ export class PublicationsService {
       await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
     }
 
-    if ((data.status === PublicationStatus.DRAFT || data.status === PublicationStatus.READY) && data.status !== previousStatus) {
-      await this.prisma.post.updateMany({
-        where: { publicationId: id },
-        data: {
-          status: PostStatus.PENDING,
-          scheduledAt: null,
-          errorMessage: null,
-          publishedAt: null,
-        },
-      });
+    if (data.status) {
+      await this.handleStatusChange(id, data.status, previousStatus);
     }
 
     const sanitizedContent = data.content !== undefined ? sanitizePublicationMarkdownForStorage(data.content ?? '') : undefined;
@@ -311,6 +335,7 @@ export class PublicationsService {
       status: data.status,
       scheduledAt: data.scheduledAt,
       note: data.note,
+      language: data.language,
       projectTemplate: data.projectTemplateId !== undefined
         ? data.projectTemplateId === null ? { disconnect: true } : { connect: { id: data.projectTemplateId } }
         : undefined,
@@ -335,114 +360,27 @@ export class PublicationsService {
       await this.refreshPublicationEffectiveAt(id);
     }
 
-    // Handle snapshot building
-    if (updated.status !== previousStatus) {
-      if (previousStatus === PublicationStatus.DRAFT && (updated.status === PublicationStatus.READY || updated.status === PublicationStatus.SCHEDULED)) {
-        await this.snapshotBuilder.buildForPublication(id);
-      } else if (updated.status === PublicationStatus.DRAFT) {
-        await this.snapshotBuilder.clearForPublication(id);
-      }
-    }
-
     return this.normalizePublicationTags(updated);
-  }
-
-  public async remove(id: string, userId: string) {
-    const publication = await this.findOne(id, userId);
-    const permission = publication.createdBy === userId ? PermissionKey.PUBLICATIONS_DELETE_OWN : PermissionKey.PUBLICATIONS_DELETE_ALL;
-    await this.permissions.checkPermission(publication.projectId, userId, permission);
-    return this.prisma.publication.delete({ where: { id } });
-  }
-
-  public async bulkOperation(userId: string, dto: BulkOperationDto) {
-    return this.bulkSubService.bulkOperation(userId, dto, id => this.refreshPublicationEffectiveAt(id));
-  }
-
-  public async addMedia(publicationId: string, userId: string, media: any[]) {
-    await this.mediaSubService.addMedia(publicationId, userId, media);
-    return this.findOne(publicationId, userId);
-  }
-
-  public async removeMedia(publicationId: string, userId: string, mediaId: string) {
-    return this.mediaSubService.removeMedia(publicationId, userId, mediaId);
-  }
-
-  public async reorderMedia(publicationId: string, userId: string, mediaOrder: any[]) {
-    return this.mediaSubService.reorderMedia(publicationId, userId, mediaOrder);
-  }
-
-  public async updateMediaLink(publicationId: string, userId: string, mediaLinkId: string, data: any) {
-    return this.mediaSubService.updateMediaLink(publicationId, userId, mediaLinkId, data);
-  }
-
-  public async copy(id: string, targetProjectId: string, userId: string) {
-    const source = await this.findOne(id, userId);
-    await this.permissions.checkPermission(targetProjectId, userId, PermissionKey.PUBLICATIONS_CREATE);
-
-    const newPublication = await this.prisma.publication.create({
-      data: {
-        projectId: targetProjectId,
-        createdBy: userId,
-        title: source.title,
-        description: source.description,
-        content: source.content,
-        authorComment: source.authorComment,
-        note: source.note,
-        postType: source.postType as PostType,
-        language: source.language,
-        status: PublicationStatus.DRAFT,
-        scheduledAt: null,
-        meta: source.meta || {},
-        authorSignatureId: source.authorSignatureId,
-        projectTemplateId: source.projectTemplateId,
-        media: {
-          create: (source.media as any)?.map((pm: any) => ({
-            mediaId: pm.mediaId,
-            order: pm.order,
-            hasSpoiler: pm.hasSpoiler,
-          })) || [],
-        },
-        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-          source.tags || [],
-          { projectId: targetProjectId },
-          'PUBLICATIONS',
-        ),
-      },
-      include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
-    });
-
-    return this.normalizePublicationTags(newPublication);
   }
 
   public async applyLlmResult(id: string, userId: string, data: ApplyLlmResultDto) {
     const publication = await this.findOne(id, userId);
 
-    const updateData: any = {};
+    const updateData: UpdatePublicationDto = {};
     if (data.publication) {
       if (data.publication.title !== undefined) updateData.title = data.publication.title;
       if (data.publication.description !== undefined) updateData.description = data.publication.description;
-      if (data.publication.content !== undefined) {
-        updateData.content = sanitizePublicationMarkdownForStorage(data.publication.content);
-      }
-      if (data.publication.tags !== undefined) {
-        updateData.tagObjects = await this.tagsService.prepareTagsConnectOrCreate(
-          normalizeTags(data.publication.tags),
-          { projectId: publication.projectId },
-          'PUBLICATIONS',
-          true,
-        );
-      }
+      if (data.publication.content !== undefined) updateData.content = data.publication.content;
+      if (data.publication.tags !== undefined) updateData.tags = data.publication.tags;
     }
 
     if (data.meta) {
       updateData.meta = { ...this.mapper.parseMetaJson(publication.meta), ...data.meta };
     }
 
+    // Use the existing update method logic but partially
     if (Object.keys(updateData).length > 0) {
-      await this.prisma.publication.update({
-        where: { id },
-        data: updateData,
-      });
+      await this.update(id, userId, updateData);
     }
 
     if (data.posts?.length) {

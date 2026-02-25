@@ -62,19 +62,6 @@ export class UpdatePublicationDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateMediaDto)
-  @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
-  public media?: CreateMediaDto[];
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PublicationMediaInputDto)
-  @IsOptional()
-  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
-  public existingMediaIds?: (string | PublicationMediaInputDto)[];
 
   @IsArray()
   @Transform(({ value }) => {
@@ -119,6 +106,10 @@ export class UpdatePublicationDto {
   @IsUUID()
   @IsOptional()
   public projectTemplateId?: string;
+
+  @IsString()
+  @IsOptional()
+  public language?: string;
 
   @IsInt()
   @IsOptional()
