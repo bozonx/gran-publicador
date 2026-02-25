@@ -30,7 +30,7 @@ model User {
   // Timestamp when user was soft-deleted
   deletedAt          DateTime? @map("deleted_at")
   // Main content language (affects research, news, channels)
-  language           String    @default("en-US") @map("language")
+  language           String    @default("en-US")
   // Interface language (e.g., en-US, ru-RU)
   uiLanguage         String    @default("en-US") @map("ui_language")
   // User preferences stored as JSON
@@ -98,7 +98,7 @@ model ApiToken {
 model Project {
   id          String    @id @default(uuid())
   name        String
-  note        String?   @map("description")
+  note        String?
   ownerId     String    @map("owner_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -164,7 +164,7 @@ model Role {
   id          String   @id @default(uuid())
   projectId   String   @map("project_id")
   name        String
-  note        String? @map("description")
+  note        String?
   // System role (ADMIN, EDITOR, VIEWER) or custom role
   isSystem    Boolean  @default(false) @map("is_system")
   // System role type for identification (ADMIN, EDITOR, VIEWER)
@@ -316,7 +316,7 @@ model LlmPromptTemplate {
   projectId String? @map("project_id")
 
   name        String?
-  note        String? @map("description")
+  note        String?
   // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
   category    String  @default("General")
   // The actual prompt template text
@@ -359,7 +359,7 @@ model Channel {
   // Social media platform type (TELEGRAM, INSTAGRAM, etc.)
   socialMedia       SocialMedia @map("social_media")
   name              String
-  note              String?     @map("description")
+  note              String?
   // Platform-specific channel identifier (e.g., @channel_name, channel_id)
   channelIdentifier String      @map("channel_identifier")
   // Channel language in format like ru-RU, en-US, etc.

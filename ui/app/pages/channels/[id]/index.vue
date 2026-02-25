@@ -430,10 +430,10 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
                             </div>
 
                             <p 
-                                v-if="channel.description" 
+                                v-if="channel.note" 
                                 class="mt-4 text-gray-600 dark:text-gray-300 text-sm whitespace-pre-wrap leading-relaxed"
                             >
-                                {{ channel.description }}
+                                {{ channel.note }}
                             </p>
                         </div>
 

@@ -45,8 +45,8 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
       </div>
     </div>
 
-    <!-- Description -->
-    <CommonCardDescription :text="channel.description" />
+    <!-- Note -->
+    <CommonCardDescription :text="channel.note" />
 
     <div class="flex flex-wrap items-center gap-2 mb-3">
       <!-- Status badges -->

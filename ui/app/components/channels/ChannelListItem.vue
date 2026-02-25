@@ -90,9 +90,9 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
           </UTooltip>
         </div>
 
-        <!-- Description -->
-        <p v-if="channel.description" class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
-            {{ channel.description }}
+        <!-- Note -->
+        <p v-if="channel.note" class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+            {{ channel.note }}
         </p>
 
 

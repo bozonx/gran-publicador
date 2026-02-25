@@ -14,12 +14,12 @@ const { projects, fetchProjects, createProject } = useProjects()
 const isCreating = ref(false)
 const formState = reactive({
   name: '',
-  description: ''
+  note: ''
 })
 
 function resetForm() {
   formState.name = ''
-  formState.description = ''
+  formState.note = ''
 }
 
 async function handleCreate() {
@@ -29,7 +29,7 @@ async function handleCreate() {
   try {
     const project = await createProject({
       name: formState.name,
-      description: formState.description || undefined
+      note: formState.note || undefined
     })
 
     if (project) {
@@ -76,10 +76,10 @@ watch(isOpen, (open) => {
         />
       </UFormField>
 
-      <UFormField :label="t('project.description')" :help="t('common.optional')">
+      <UFormField :label="t('project.note', 'Note')" :help="t('common.optional')">
         <UTextarea 
-          v-model="formState.description" 
-          :placeholder="t('project.descriptionPlaceholder')" 
+          v-model="formState.note" 
+          :placeholder="t('project.notePlaceholder', 'Optional note...')" 
           :rows="FORM_STYLES.textareaRows" 
           autoresize
           class="w-full" 

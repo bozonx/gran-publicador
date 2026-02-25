@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getStatusColor, getStatusIcon } from '~/utils/publications'
+import { getStatusUiColor as getStatusColor, getStatusIcon } from '~/utils/publications'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 

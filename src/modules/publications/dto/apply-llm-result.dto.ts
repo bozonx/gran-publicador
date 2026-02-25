@@ -22,7 +22,7 @@ export class ApplyLlmPublicationDto {
 
 export class ApplyLlmPostDto {
   @IsString()
-  channelId: string;
+  channelId!: string;
 
   @IsOptional()
   @IsString()

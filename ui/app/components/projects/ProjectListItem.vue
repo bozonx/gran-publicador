@@ -87,12 +87,12 @@ const warningsTooltip = computed(() => problemsSummary.value.warningsTooltip)
             </UTooltip>
           </div>
 
-          <!-- Description (optional) -->
+          <!-- Note (optional) -->
           <p 
-            v-if="showDescription && project.description" 
+            v-if="showDescription && project.note" 
             class="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2"
           >
-            <CommonSearchHighlight :text="project.description" :query="searchQuery || ''" />
+            <CommonSearchHighlight :text="project.note" :query="searchQuery || ''" />
           </p>
           <!-- Metrics / Stats -->
           <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex-wrap">

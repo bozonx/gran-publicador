@@ -27,7 +27,7 @@ const { projects, fetchProjects } = useProjects()
 // State
 const state = reactive({
   name: props.channel.name,
-  description: props.channel.description || '',
+  note: props.channel.note || '',
   socialMedia: props.channel.socialMedia,
   channelIdentifier: props.channel.channelIdentifier,
   language: props.channel.language,
@@ -40,7 +40,7 @@ const schema = computed(() => {
     const fullSchema = createChannelBaseObject(t);
     return fullSchema.pick({
         name: true,
-        description: true,
+        note: true,
         channelIdentifier: true,
         language: true, 
         socialMedia: true, 
@@ -57,7 +57,7 @@ const tagsModel = computed<string[]>({
 
 const isDirty = computed(() => {
     return state.name !== props.channel.name ||
-           state.description !== (props.channel.description || '') ||
+           state.note !== (props.channel.note || '') ||
            state.channelIdentifier !== props.channel.channelIdentifier ||
            state.tags !== (props.channel.tags || '')
 })
@@ -88,7 +88,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
 
     const updateData = {
       name: state.name,
-      description: state.description || null,
+      note: state.note || null,
       channelIdentifier: state.channelIdentifier,
       tags: state.tags || null,
       version: props.channel.version,
@@ -104,7 +104,7 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
   try {
     const updateData = {
       name: event.data.name,
-      description: event.data.description || null,
+      note: event.data.note || null,
       channelIdentifier: event.data.channelIdentifier,
       tags: event.data.tags || null,
     }

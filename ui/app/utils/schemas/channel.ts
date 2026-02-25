@@ -10,7 +10,7 @@ import {
 export const createChannelBaseObject = (t: ComposerTranslation) => {
   return z.object({
     name: z.string().min(1, t('validation.required')),
-    description: z.string().optional(),
+    note: z.string().optional(),
     channelIdentifier: z.string().min(1, t('validation.required')),
     language: z.string().min(1, t('validation.required')),
     socialMedia: z.enum(SOCIAL_MEDIA_VALUES),

@@ -97,7 +97,7 @@ export function useProjects() {
 
   async function createProject(data: {
     name: string;
-    description?: string;
+    note?: string;
   }): Promise<Project | null> {
     store.setLoading(true);
     store.setError(null);
