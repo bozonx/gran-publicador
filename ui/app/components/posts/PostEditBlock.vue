@@ -421,6 +421,29 @@ const remainingCharacters = computed(() => {
     )
 })
 
+/**
+ * Determines if the server error message should be displayed.
+ * Hides it if it appears to be a validation error that is already shown by the frontend validation alert.
+ */
+const shouldShowServerErrorMessage = computed(() => {
+    const serverMsg = props.post?.errorMessage
+    if (!serverMsg) return false
+
+    // If frontend validation is currently failing, and the server message looks like a validation error, 
+    // we hide the server message as it's likely redundant with the much nicer yellow alert.
+    if (!validationResult.value.isValid) {
+        const isValidationPattern = serverMsg.includes('Validation failed') || 
+                                  serverMsg.includes('length') || 
+                                  serverMsg.includes('maximum allowed') ||
+                                  serverMsg.includes('too many') ||
+                                  serverMsg.includes('not allowed')
+        
+        if (isValidationPattern) return false
+    }
+
+    return true
+})
+
 const getChannelPreferences = (channel: any) => {
     if (!channel || !channel.preferences) return {}
     if (typeof channel.preferences === 'string') {
@@ -774,12 +797,12 @@ async function executePublish() {
        
        <!-- Error Message -->
        <UAlert
-          v-if="props.post?.errorMessage"
+          v-if="shouldShowServerErrorMessage"
           color="error"
           variant="soft"
           icon="i-heroicons-exclamation-circle"
           :title="t('common.error')"
-          :description="props.post.errorMessage"
+          :description="props.post!.errorMessage!"
           class="mb-4"
        />
         <!-- Channel Selector (Only if Creating) -->
