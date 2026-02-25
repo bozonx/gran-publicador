@@ -40,7 +40,8 @@ export class PublicationProcessor extends WorkerHost {
     this.logger.log(`Processing post job for ${postId} (force: ${String(force)})`);
 
     try {
-      const result = await this.socialPostingService.executePreparedPost(postId);
+      const isFinalAttempt = job.opts.attempts ? job.attemptsMade >= job.opts.attempts : true;
+      const result = await this.socialPostingService.executePreparedPost(postId, isFinalAttempt);
 
       if (result.success) {
         await job.log(`Successfully processed post ${postId}`);

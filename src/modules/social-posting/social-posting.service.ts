@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PublicationStatus, PostStatus, Channel } from '../../generated/prisma/index.js';
+import { PublicationStatus, PostStatus, Channel, Prisma } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
@@ -273,6 +273,11 @@ export class SocialPostingService {
             jobId: `post-${post.id}-${Date.now()}`,
             removeOnComplete: true,
             removeOnFail: false,
+            attempts: 5,
+            backoff: {
+              type: 'exponential',
+              delay: 60000, // 1 minute delay for the first retry, then 2, 4, 8...
+            },
           },
         );
         enqueuedCount++;
@@ -353,6 +358,11 @@ export class SocialPostingService {
           jobId: `post-${post.id}-${Date.now()}`,
           removeOnComplete: true,
           removeOnFail: false,
+          attempts: 5,
+          backoff: {
+            type: 'exponential',
+            delay: 60000, // 1 minute delay for the first retry, then 2, 4, 8...
+          },
         },
       );
 
@@ -435,6 +445,7 @@ export class SocialPostingService {
    */
   async executePreparedPost(
     postId: string,
+    isFinalAttempt: boolean = true,
   ): Promise<{ success: boolean; error?: string; url?: string }> {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
@@ -470,7 +481,7 @@ export class SocialPostingService {
               ],
             }),
             errorMessage: null,
-            preparedPayload: null, // Clear payload after successful sending to save space
+            preparedPayload: Prisma.DbNull, // Clear payload after successful sending to save space
           },
         });
 
@@ -485,7 +496,7 @@ export class SocialPostingService {
         await this.prisma.post.update({
           where: { id: post.id },
           data: {
-            status: PostStatus.FAILED,
+            status: isFinalAttempt ? PostStatus.FAILED : PostStatus.PENDING, // Keep PENDING if retrying
             errorMessage: message,
             meta: this.sanitizeJson({
               ...((post.meta as any) || {}),
@@ -507,7 +518,7 @@ export class SocialPostingService {
       await this.prisma.post.update({
         where: { id: post.id },
         data: {
-          status: PostStatus.FAILED,
+          status: isFinalAttempt ? PostStatus.FAILED : PostStatus.PENDING, // Keep PENDING if retrying
           errorMessage: error.message,
           meta: this.sanitizeJson({
             ...((post.meta as any) || {}),
@@ -516,7 +527,7 @@ export class SocialPostingService {
               {
                 timestamp: new Date().toISOString(),
                 success: false,
-                response: { code: 'INTERNAL_ERROR', message: error.message },
+                response: error.message,
               },
             ],
           }),
