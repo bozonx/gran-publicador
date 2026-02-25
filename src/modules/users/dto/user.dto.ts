@@ -133,6 +133,30 @@ export class UpdateUserProfileDto {
   public version?: number;
 }
 
+export class NotificationPreferenceItemDto {
+  @IsBoolean()
+  @IsOptional()
+  public internal?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  public telegram?: boolean;
+}
+
+export class UpdateNotificationPreferencesDto {
+  @IsOptional()
+  public PUBLICATION_FAILED?: NotificationPreferenceItemDto;
+
+  @IsOptional()
+  public PROJECT_INVITE?: NotificationPreferenceItemDto;
+
+  @IsOptional()
+  public SYSTEM?: NotificationPreferenceItemDto;
+
+  @IsOptional()
+  public NEW_NEWS?: NotificationPreferenceItemDto;
+}
+
 export class BanUserDto {
   @IsString()
   @IsOptional()

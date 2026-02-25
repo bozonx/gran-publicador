@@ -17,10 +17,10 @@ model User {
   fullName           String?   @map("full_name")
   // Telegram username without @ symbol
   telegramUsername   String?   @map("telegram_username")
+  // Unique Telegram user ID for authentication
   telegramId         BigInt?   @unique @map("telegram_id")
   // System administrator flag for elevated permissions
   avatarUrl          String?   @map("avatar_url")
-  // Unique Telegram user ID for authentication
   isAdmin            Boolean   @default(false) @map("is_admin")
   // User ban status
   isBanned           Boolean   @default(false) @map("is_banned")

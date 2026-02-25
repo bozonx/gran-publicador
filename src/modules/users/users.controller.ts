@@ -103,17 +103,6 @@ export class UsersController {
   }
 
   /**
-   * Update current user profile.
-   */
-  @Patch('me')
-  public async updateProfile(
-    @Request() req: AuthenticatedRequest,
-    @Body() updateDto: UpdateUserProfileDto,
-  ) {
-    return this.usersService.updateProfile(req.user.sub, updateDto);
-  }
-
-  /**
    * Ban a user.
    * Admin only.
    */
@@ -139,32 +128,5 @@ export class UsersController {
   @UseGuards(AdminGuard)
   public async unbanUser(@Request() req: AuthenticatedRequest, @Param('id') userId: string) {
     return this.usersService.unbanUser(userId);
-  }
-
-  /**
-   * Delete current user (soft delete).
-   */
-  @Delete('me')
-  public async deleteMe(@Request() req: AuthenticatedRequest) {
-    return this.usersService.softDelete(req.user.sub);
-  }
-
-  /**
-   * Get notification preferences for current user.
-   */
-  @Get('me/notification-preferences')
-  public async getNotificationPreferences(@Request() req: AuthenticatedRequest) {
-    return this.usersService.getNotificationPreferences(req.user.sub);
-  }
-
-  /**
-   * Update notification preferences for current user.
-   */
-  @Patch('me/notification-preferences')
-  public async updateNotificationPreferences(
-    @Request() req: AuthenticatedRequest,
-    @Body() preferences: any,
-  ) {
-    return this.usersService.updateNotificationPreferences(req.user.sub, preferences);
   }
 }

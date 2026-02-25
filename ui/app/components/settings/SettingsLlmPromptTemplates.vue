@@ -56,7 +56,42 @@ const modalMode = ref<'create' | 'edit'>('create')
 const editingTemplate = ref<LlmPromptTemplate | null>(null)
 const isSubmitting = ref(false)
 
-// Delete confirmation
+const openCreateModal = () => {
+  modalMode.value = 'create'
+  editingTemplate.value = null
+  isModalOpen.value = true
+}
+
+const openEditModal = (template: LlmPromptTemplate) => {
+  modalMode.value = 'edit'
+  editingTemplate.value = template
+  isModalOpen.value = true
+}
+
+const handleSubmit = async (data: { name: string; category: string; prompt: string }) => {
+  isSubmitting.value = true
+  try {
+    if (modalMode.value === 'create') {
+      await createTemplate({
+        ...data,
+        name: data.name || undefined,
+        userId: props.projectId ? undefined : user.value?.id,
+        projectId: props.projectId
+      })
+    } else if (editingTemplate.value) {
+      await updateTemplate(editingTemplate.value.id, {
+        ...data,
+        name: data.name || undefined,
+      })
+    }
+
+    await loadTemplates()
+    isModalOpen.value = false
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
 const isDeleteConfirmOpen = ref(false)
 const tplToDelete = ref<LlmPromptTemplate | null>(null)
 
@@ -67,16 +102,7 @@ const copyTargetProjects = ref<Array<{ id: string; name: string }>>([])
 const selectedCopyTarget = ref<string>('personal')
 const isCopying = ref(false)
 
-// Form state
-const formData = reactive({
-  name: '',
-  category: 'General',
-  customCategory: '',
-  prompt: ''
-})
-
 const CUSTOM_CATEGORY_VALUE = '__custom__'
-
 const SYSTEM_CATEGORY_KEYS = ['chat', 'content', 'editing', 'general', 'metadata']
 
 const categoryOptions = computed(() => {
@@ -162,11 +188,6 @@ const orderedFilteredTemplates = computed(() => {
   return applyAvailableOrder(filteredTemplates.value)
 })
 
-// Validation
-const canSubmit = computed(() => {
-  return formData.prompt.trim().length > 0
-})
-
 // ─── Data loading ───────────────────────────────────────────────────
 const loadTemplates = async () => {
   const includeHidden = true
@@ -208,70 +229,9 @@ onMounted(() => {
   loadTemplates()
 })
 
-// ─── Create / Edit modal ────────────────────────────────────────────
-const openCreateModal = () => {
-  modalMode.value = 'create'
-  editingTemplate.value = null
-  formData.name = ''
-  formData.category = categoryOptions.value[0]?.value || 'General'
-  formData.customCategory = ''
-  formData.prompt = ''
-  isModalOpen.value = true
-}
-
-const openEditModal = (template: LlmPromptTemplate) => {
-  modalMode.value = 'edit'
-  editingTemplate.value = template
-  formData.name = template.name || ''
-  const existingCategories = categoryOptions.value.map(o => o.value)
-  const templateCategory = template.category || 'General'
-  if (existingCategories.includes(templateCategory)) {
-    formData.category = templateCategory
-    formData.customCategory = ''
-  } else {
-    formData.category = CUSTOM_CATEGORY_VALUE
-    formData.customCategory = templateCategory
-  }
-  formData.prompt = template.prompt
-  isModalOpen.value = true
-}
-
-const handleSubmit = async () => {
-  if (!canSubmit.value) return
-
-  const category = formData.category === CUSTOM_CATEGORY_VALUE
-    ? formData.customCategory.trim()
-    : formData.category
-
-  if (!category) return
-
-  isSubmitting.value = true
-  try {
-    if (modalMode.value === 'create') {
-      await createTemplate({
-        name: formData.name.trim() || undefined,
-        category,
-        prompt: formData.prompt,
-        userId: props.projectId ? undefined : user.value?.id,
-        projectId: props.projectId
-      })
-    } else if (editingTemplate.value) {
-      await updateTemplate(editingTemplate.value.id, {
-        name: formData.name.trim() || undefined,
-        category,
-        prompt: formData.prompt,
-      })
-    }
-
-    await loadTemplates()
-    isModalOpen.value = false
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
 // ─── Delete ─────────────────────────────────────────────────────────
 const handleDelete = (tpl: LlmPromptTemplate) => {
+  isModalOpen.value = false
   tplToDelete.value = tpl
   isDeleteConfirmOpen.value = true
 }
@@ -475,16 +435,6 @@ function toggleHiddenOnly() {
   showHiddenOnly.value = !showHiddenOnly.value
 }
 
-function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info' | 'primary' | 'success' } {
-  if (tpl.isSystem) {
-    return { label: t('llm.system'), color: 'info' }
-  }
-  if (tpl.projectId) {
-    return { label: t('llm.project'), color: 'primary' }
-  }
-  return { label: t('llm.personal'), color: 'success' }
-}
-
 </script>
 
 <template>
@@ -580,222 +530,42 @@ function getTemplateBadge(tpl: LlmPromptTemplate): { label: string; color: 'info
           class="space-y-3"
           @end="() => { applyCategoryReorder(group.category, group.items); handleReorder() }"
         >
-          <div
+          <SettingsLlmPromptTemplateItem
             v-for="tpl in group.items"
             :key="tpl.id"
-            class="flex items-start gap-3 p-4 rounded-lg group border transition-colors relative"
-            :class="[
-              tpl.isSystem 
-                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50 cursor-default' 
-                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:border-gray-700 cursor-pointer',
-              { 'opacity-60': tpl.isHidden }
-            ]"
-            @click="handleTemplateClick(tpl)"
-          >
-            <div
-              class="drag-handle mt-1 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-              @click.stop
-            >
-              <UIcon name="i-heroicons-bars-2" class="w-5 h-5" />
-            </div>
-
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h4 v-if="tpl.name" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {{ tpl.name }}
-                </h4>
-                
-                <UBadge 
-                  :color="getTemplateBadge(tpl).color" 
-                  variant="subtle" 
-                  size="xs"
-                  class="ml-1"
-                >
-                  {{ getTemplateBadge(tpl).label }}
-                </UBadge>
-
-                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle" class="ml-1">
-                  {{ t('common.hidden') }}
-                </UBadge>
-              </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-black/20 p-2 rounded border border-gray-100 dark:border-gray-800/50">
-                {{ tpl.prompt }}
-              </p>
-            </div>
-
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <UButton
-                icon="i-heroicons-document-duplicate"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :title="t('common.copy')"
-                class="cursor-pointer"
-                @click.stop="openCopyModal(tpl)"
-              />
-              <UButton
-                icon="i-heroicons-eye-slash"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :title="t('llm.hide')"
-                class="cursor-pointer"
-                @click.stop="handleHide(tpl)"
-              />
-            </div>
-          </div>
+            :template="tpl"
+            show-drag-handle
+            @click="handleTemplateClick"
+            @copy="openCopyModal"
+            @hide="handleHide"
+            @unhide="handleUnhide"
+          />
         </VueDraggable>
 
         <div v-else class="space-y-3">
-          <div
+          <SettingsLlmPromptTemplateItem
             v-for="tpl in group.items"
             :key="tpl.id"
-            class="flex items-start gap-3 p-4 rounded-lg group border transition-colors relative"
-            :class="[
-              tpl.isSystem 
-                ? 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/50 cursor-default' 
-                : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:border-gray-700',
-              { 'opacity-60': tpl.isHidden }
-            ]"
-            @click="handleTemplateClick(tpl)"
-          >
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
-                <h4 v-if="tpl.name" class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {{ tpl.name }}
-                </h4>
-
-                <UBadge 
-                  :color="getTemplateBadge(tpl).color" 
-                  variant="subtle" 
-                  size="xs"
-                  class="ml-1"
-                >
-                  {{ getTemplateBadge(tpl).label }}
-                </UBadge>
-
-                <UBadge v-if="tpl.isHidden" size="xs" color="neutral" variant="subtle" class="ml-1">
-                  {{ t('common.hidden') }}
-                </UBadge>
-              </div>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 line-clamp-2 font-mono bg-white/50 dark:bg-black/20 p-2 rounded border border-gray-100 dark:border-gray-800/50">
-                {{ tpl.prompt }}
-              </p>
-            </div>
-
-            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <UButton
-                icon="i-heroicons-document-duplicate"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :title="t('common.copy')"
-                class="cursor-pointer"
-                @click.stop="openCopyModal(tpl)"
-              />
-              <UButton
-                v-if="tpl.isHidden"
-                icon="i-heroicons-eye"
-                color="primary"
-                variant="ghost"
-                size="xs"
-                :title="t('llm.unhide')"
-                class="cursor-pointer"
-                @click.stop="handleUnhide(tpl)"
-              />
-              <UButton
-                v-else
-                icon="i-heroicons-eye-slash"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                :title="t('llm.hide')"
-                class="cursor-pointer"
-                @click.stop="handleHide(tpl)"
-              />
-            </div>
-          </div>
+            :template="tpl"
+            @click="handleTemplateClick"
+            @copy="openCopyModal"
+            @hide="handleHide"
+            @unhide="handleUnhide"
+          />
         </div>
       </div>
     </div>
 
     <!-- Create/Edit Modal -->
-    <UiAppModal
+    <SettingsLlmPromptTemplateModal
       v-model:open="isModalOpen"
-      :title="modalMode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
-    >
-      <form class="space-y-4" @submit.prevent="handleSubmit">
-        <UFormField :label="t('llm.templateName')" class="w-full">
-          <UInput
-            v-model="formData.name"
-            :placeholder="t('llm.templateNamePlaceholder')"
-            autofocus
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField :label="t('llm.templateCategory')" class="w-full">
-          <USelectMenu
-            v-model="formData.category"
-            :items="categoryOptions"
-            value-key="value"
-            label-key="label"
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField v-if="formData.category === CUSTOM_CATEGORY_VALUE" :label="t('llm.templateCategory')" class="w-full">
-          <UInput
-            v-model="formData.customCategory"
-            :placeholder="t('llm.templateCategoryPlaceholder')"
-            class="w-full"
-          />
-        </UFormField>
-
-        <UFormField :label="t('llm.templatePrompt')" required class="w-full">
-          <UTextarea
-            v-model="formData.prompt"
-            :placeholder="t('llm.templatePromptPlaceholder')"
-            :rows="6"
-            autoresize
-            class="font-mono text-sm w-full"
-          />
-        </UFormField>
-      </form>
-
-      <template #footer>
-        <div class="flex items-center justify-between w-full">
-          <div>
-            <UButton
-              v-if="modalMode === 'edit' && editingTemplate && !editingTemplate.isSystem"
-              color="error"
-              variant="ghost"
-              icon="i-heroicons-trash"
-              @click="handleDelete(editingTemplate)"
-            >
-              {{ t('common.delete') }}
-            </UButton>
-          </div>
-          <div class="flex items-center gap-2">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              @click="isModalOpen = false"
-            >
-              {{ t('common.cancel') }}
-            </UButton>
-            <UButton
-              color="primary"
-              :loading="isSubmitting"
-              :disabled="!canSubmit"
-              @click="handleSubmit"
-            >
-              {{ modalMode === 'create' ? t('common.create') : t('common.save') }}
-            </UButton>
-          </div>
-        </div>
-      </template>
-    </UiAppModal>
+      :mode="modalMode"
+      :template="editingTemplate"
+      :category-options="categoryOptions"
+      :is-submitting="isSubmitting"
+      @submit="handleSubmit"
+      @delete="handleDelete"
+    />
 
     <!-- Copy Modal -->
     <UiAppModal
