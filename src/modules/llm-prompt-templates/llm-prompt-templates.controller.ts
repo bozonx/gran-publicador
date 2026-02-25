@@ -85,7 +85,7 @@ export class LlmPromptTemplatesController {
     @Query('includeHidden') includeHidden: string,
     @Request() req: any,
   ) {
-    return this.llmPromptTemplatesService.findAllByProject(projectId, includeHidden === 'true');
+    return this.llmPromptTemplatesService.findAllByProject(projectId, req.user.id, includeHidden === 'true');
   }
 
   @Get(':id')
@@ -124,7 +124,11 @@ export class LlmPromptTemplatesController {
 
   @Post('reorder')
   reorder(@Body() reorderDto: ReorderLlmPromptTemplatesDto, @Request() req: any) {
-    return this.llmPromptTemplatesService.reorder(reorderDto.ids, req.user.id);
+    return this.llmPromptTemplatesService.reorder({
+      ids: reorderDto.ids,
+      userId: req.user.id,
+      projectId: reorderDto.projectId,
+    });
   }
 
   @Post('available/order')

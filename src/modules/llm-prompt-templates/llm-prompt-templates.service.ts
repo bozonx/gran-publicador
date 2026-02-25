@@ -10,8 +10,9 @@ import { PermissionKey } from '../../common/types/permissions.types.js';
 import { CreateLlmPromptTemplateDto } from './dto/create-llm-prompt-template.dto.js';
 import { UpdateLlmPromptTemplateDto } from './dto/update-llm-prompt-template.dto.js';
 import { SYSTEM_LLM_PROMPT_TEMPLATES } from './system-prompts.js';
+import { VALIDATION_LIMITS } from '../../common/constants/validation.constants.js';
 
-const MAX_PROMPT_LENGTH = 5000;
+const MAX_PROMPT_LENGTH = VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_PROMPT_LENGTH;
 
 @Injectable()
 export class LlmPromptTemplatesService {
@@ -163,7 +164,7 @@ export class LlmPromptTemplatesService {
     let order: string[] = [];
     if (projectId) {
       await this.permissionsService.checkProjectAccess(projectId, userId);
-      projectTemplates = await this.findAllByProject(projectId, false);
+      projectTemplates = await this.findAllByProject(projectId, userId, false);
 
       const rawOrder = await this.getAvailableOrderFromPreferences({ userId, projectId });
       const availableIds = new Set(
@@ -260,7 +261,8 @@ export class LlmPromptTemplatesService {
   /**
    * Retrieves all project-specific templates for a specific project.
    */
-  async findAllByProject(projectId: string, includeHidden = false) {
+  async findAllByProject(projectId: string, userId: string, includeHidden = false) {
+    await this.permissionsService.checkProjectAccess(projectId, userId);
     return this.prisma.llmPromptTemplate.findMany({
       where: {
         projectId,
@@ -330,51 +332,25 @@ export class LlmPromptTemplatesService {
 
   // ─── Reorder ────────────────────────────────────────────────────────
 
-  async reorder(ids: string[], userId: string) {
+  async reorder(params: { ids: string[]; userId: string; projectId?: string }) {
+    const { ids, userId, projectId } = params;
     if (ids.length === 0) {
       return { success: true };
     }
 
+    if (projectId) {
+      await this.permissionsService.checkProjectAccess(projectId, userId);
+    }
+
     const templates = await this.prisma.llmPromptTemplate.findMany({
-      where: { id: { in: ids } },
-      include: {
-        project: {
-          include: {
-            members: {
-              where: { userId },
-            },
-          },
-        },
+      where: {
+        id: { in: ids },
+        ...(projectId ? { projectId } : { userId }),
       },
     });
 
     if (templates.length !== ids.length) {
-      throw new NotFoundException('One or more templates not found');
-    }
-
-    const firstTemplate = templates[0];
-    const isUserScope = !!firstTemplate.userId;
-    const scopeId = isUserScope ? firstTemplate.userId : firstTemplate.projectId;
-
-    for (const template of templates) {
-      const templateScopeId = isUserScope ? template.userId : template.projectId;
-
-      if (templateScopeId !== scopeId) {
-        throw new BadRequestException('Cannot reorder templates from different scopes');
-      }
-
-      if (isUserScope) {
-        if (template.userId !== userId) {
-          throw new ForbiddenException('You do not have permission to reorder these templates');
-        }
-      } else {
-        const isMember = template.project?.members && template.project.members.length > 0;
-        const isOwner = template.project?.ownerId === userId;
-
-        if (!isMember && !isOwner) {
-          throw new ForbiddenException('You do not have permission to reorder these templates');
-        }
-      }
+      throw new NotFoundException('One or more templates not found in the specified scope');
     }
 
     const updates = ids.map((id, index) =>

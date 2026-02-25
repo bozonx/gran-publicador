@@ -11,9 +11,6 @@ const props = defineProps<{
 const { t } = useI18n()
 const { user } = useAuth()
 const {
-  fetchSystemTemplates,
-  fetchUserTemplates,
-  fetchProjectTemplates,
   fetchAvailableTemplates,
   setAvailableOrder,
   createTemplate,
@@ -27,13 +24,18 @@ const {
   isLoading
 } = useLlmPromptTemplates()
 
-// ─── Source filter ───────────────────────────────────────────────────
-type SourceFilter = 'all' | 'system' | 'project' | 'personal'
-const sourceFilter = ref<SourceFilter>('all')
+const {
+  searchQuery,
+  sourceFilter,
+  showHiddenOnly,
+  groupAndSortTemplates,
+  filterTemplates
+} = useLlmTemplatesLogic()
 
+// ─── Source Options ───────────────────────────────────────────────────
 const sourceOptions = computed(() => {
-  const items: Array<{ value: SourceFilter; label: string }> = [
-    { value: 'all', label: t('common.all', 'All') },
+  const items: Array<{ value: string; label: string }> = [
+    { value: 'all', label: t('common.all') },
     { value: 'system', label: t('llm.systemTemplates') },
   ]
   if (props.projectId) {
@@ -47,8 +49,6 @@ const sourceOptions = computed(() => {
 const systemTemplates = ref<LlmPromptTemplate[]>([])
 const userTemplates = ref<LlmPromptTemplate[]>([])
 const projectTemplates = ref<LlmPromptTemplate[]>([])
-const showHiddenOnly = ref(false)
-
 const availableOrder = ref<string[]>([])
 
 // Edit/Create modal
@@ -104,34 +104,30 @@ const selectedCopyTarget = ref<string>('personal')
 const isCopying = ref(false)
 
 const CUSTOM_CATEGORY_VALUE = '__custom__'
-const SYSTEM_CATEGORY_KEYS = ['chat', 'content', 'editing', 'general', 'metadata']
-
 const categoryOptions = computed(() => {
   const existingCategories = new Set<string>()
   ;[...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value].forEach((tpl) => {
     if (tpl.category) existingCategories.add(tpl.category.toLowerCase())
   })
-
-  const options: Array<{ value: string; label: string }> = SYSTEM_CATEGORY_KEYS.map(key => ({
+  
+  const options: Array<{ value: string; label: string }> = [
+    'chat', 'content', 'editing', 'general', 'metadata'
+  ].map(key => ({
     value: key.charAt(0).toUpperCase() + key.slice(1),
     label: t(`llm.categories.${key}`)
   }))
 
   const sortedOther = [...existingCategories]
-    .filter(c => !SYSTEM_CATEGORY_KEYS.includes(c.toLowerCase()))
+    .filter(c => !['chat', 'content', 'editing', 'general', 'metadata'].includes(c.toLowerCase()))
     .map(c => c.charAt(0).toUpperCase() + c.slice(1))
     .sort((a, b) => a.localeCompare(b))
 
-  sortedOther.forEach(c => {
-    options.push({ value: c, label: c })
-  })
-
-  options.push({ value: CUSTOM_CATEGORY_VALUE, label: t('common.custom', 'Custom') })
+  sortedOther.forEach(c => options.push({ value: c, label: c }))
+  options.push({ value: CUSTOM_CATEGORY_VALUE, label: t('common.custom') })
   return options
 })
 
 // ─── Search ─────────────────────────────────────────────────────────
-const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 const currentTemplates = computed<LlmPromptTemplate[]>(() => {
@@ -143,16 +139,13 @@ const currentTemplates = computed<LlmPromptTemplate[]>(() => {
 
 const orderMap = computed(() => {
   const map = new Map<string, number>()
-  availableOrder.value.forEach((id, idx) => {
-    map.set(id, idx)
-  })
+  availableOrder.value.forEach((id, idx) => map.set(id, idx))
   return map
 })
 
 function applyAvailableOrder(list: LlmPromptTemplate[]) {
   const map = orderMap.value
-  if (!props.projectId) return list
-  if (!map.size) return list
+  if (!props.projectId || !map.size) return list
 
   return [...list].sort((a, b) => {
     const ai = map.get(a.id)
@@ -166,58 +159,28 @@ function applyAvailableOrder(list: LlmPromptTemplate[]) {
 
 // ─── Filtered templates ─────────────────────────────────────────────
 const filteredTemplates = computed(() => {
-  const query = debouncedSearch.value.trim().toLowerCase()
-
-  return currentTemplates.value.filter((tpl) => {
-    if (showHiddenOnly.value && !tpl.isHidden) return false
-    if (!showHiddenOnly.value && tpl.isHidden) return false
-
-    if (!query) return true
-
-    return (
-      (tpl.name?.toLowerCase() || '').includes(query) ||
-      tpl.prompt.toLowerCase().includes(query)
-    )
-  })
+  return filterTemplates(currentTemplates.value, debouncedSearch.value, showHiddenOnly.value)
 })
 
 const orderedFilteredTemplates = computed(() => {
-  if (sourceFilter.value !== 'all') return filteredTemplates.value
-  if (!props.projectId) return filteredTemplates.value
-  if (showHiddenOnly.value) return filteredTemplates.value
-  if (searchQuery.value) return filteredTemplates.value
+  if (sourceFilter.value !== 'all' || !props.projectId || showHiddenOnly.value || searchQuery.value) {
+    return filteredTemplates.value
+  }
   return applyAvailableOrder(filteredTemplates.value)
 })
 
 // ─── Data loading ───────────────────────────────────────────────────
 const loadTemplates = async () => {
-  const includeHidden = true
-
-  systemTemplates.value = await fetchSystemTemplates(includeHidden)
-
-  if (user.value?.id) {
-    userTemplates.value = await fetchUserTemplates(user.value.id, includeHidden)
-  } else {
-    userTemplates.value = []
-  }
-
-  if (props.projectId) {
-    projectTemplates.value = await fetchProjectTemplates(props.projectId, includeHidden)
-  } else {
-    projectTemplates.value = []
-  }
-
-  if (props.projectId) {
-    const available = await fetchAvailableTemplates({ projectId: props.projectId })
-    if (available.order?.length) {
-      availableOrder.value = available.order
-    } else {
-      availableOrder.value = [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value]
-        .filter(tpl => !tpl.isHidden)
-        .map(tpl => tpl.id)
-    }
-  } else {
-    availableOrder.value = []
+  const available = await fetchAvailableTemplates({ projectId: props.projectId })
+  systemTemplates.value = available.system
+  userTemplates.value = available.user
+  projectTemplates.value = available.project
+  availableOrder.value = available.order || []
+  
+  if (props.projectId && !available.order?.length) {
+    availableOrder.value = [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value]
+      .filter(tpl => !tpl.isHidden)
+      .map(tpl => tpl.id)
   }
 }
 
@@ -230,7 +193,17 @@ onMounted(() => {
   loadTemplates()
 })
 
-// ─── Delete ─────────────────────────────────────────────────────────
+// ─── Actions ─────────────────────────────────────────────────────────
+const handleHide = async (tpl: LlmPromptTemplate) => {
+  const success = tpl.isSystem ? await hideSystemTemplate(tpl.id) : await hideTemplate(tpl.id)
+  if (success) await loadTemplates()
+}
+
+const handleUnhide = async (tpl: LlmPromptTemplate) => {
+  const success = tpl.isSystem ? await unhideSystemTemplate(tpl.id) : await unhideTemplate(tpl.id)
+  if (success) await loadTemplates()
+}
+
 const handleDelete = (tpl: LlmPromptTemplate) => {
   isModalOpen.value = false
   tplToDelete.value = tpl
@@ -238,38 +211,12 @@ const handleDelete = (tpl: LlmPromptTemplate) => {
 }
 
 const confirmDelete = async () => {
-  if (!tplToDelete.value) return
-
-  const success = await deleteTemplate(tplToDelete.value.id)
-  if (success) {
+  if (tplToDelete.value && await deleteTemplate(tplToDelete.value.id)) {
     await loadTemplates()
   }
   isDeleteConfirmOpen.value = false
-  tplToDelete.value = null
 }
 
-// ─── Hide / Unhide ──────────────────────────────────────────────────
-const handleHide = async (tpl: LlmPromptTemplate) => {
-  let success = false
-  if (tpl.isSystem) {
-    success = await hideSystemTemplate(tpl.id)
-  } else {
-    success = await hideTemplate(tpl.id)
-  }
-  if (success) await loadTemplates()
-}
-
-const handleUnhide = async (tpl: LlmPromptTemplate) => {
-  let success = false
-  if (tpl.isSystem) {
-    success = await unhideSystemTemplate(tpl.id)
-  } else {
-    success = await unhideTemplate(tpl.id)
-  }
-  if (success) await loadTemplates()
-}
-
-// ─── Copy ───────────────────────────────────────────────────────────
 const openCopyModal = async (tpl: LlmPromptTemplate) => {
   copySource.value = tpl
   selectedCopyTarget.value = 'personal'
@@ -279,23 +226,17 @@ const openCopyModal = async (tpl: LlmPromptTemplate) => {
 
 const handleCopy = async () => {
   if (!copySource.value) return
-
   isCopying.value = true
   try {
     const data: any = {
       name: copySource.value.name || undefined,
       category: copySource.value.category,
       prompt: copySource.value.prompt,
+      ...(selectedCopyTarget.value === 'personal' 
+        ? { userId: user.value?.id } 
+        : { projectId: selectedCopyTarget.value })
     }
-
-    if (selectedCopyTarget.value === 'personal') {
-      data.userId = user.value?.id
-    } else {
-      data.projectId = selectedCopyTarget.value
-    }
-
-    const result = await createTemplate(data)
-    if (result) {
+    if (await createTemplate(data)) {
       isCopyModalOpen.value = false
       await loadTemplates()
     }
@@ -304,132 +245,49 @@ const handleCopy = async () => {
   }
 }
 
-const copyTargetOptions = computed(() => {
-  const options: Array<{ value: string; label: string }> = [
-    { value: 'personal', label: t('llm.personalTemplates') },
-  ]
-  copyTargetProjects.value.forEach(p => {
-    options.push({ value: p.id, label: p.name })
-  })
-  return options
-})
+const copyTargetOptions = computed(() => [
+  { value: 'personal', label: t('llm.personalTemplates') },
+  ...copyTargetProjects.value.map(p => ({ value: p.id, label: p.name }))
+])
 
-// ─── Reorder ────────────────────────────────────────────────────────
+// ─── Grouping & Reorder ──────────────────────────────────────────────
 const canReorder = computed(() => {
   return !!props.projectId && sourceFilter.value === 'all' && !showHiddenOnly.value && !searchQuery.value
 })
 
 const title = computed(() => props.projectId ? t('llm.projectTemplates_desc') : t('llm.userTemplates_desc'))
 
-type GroupedTemplates = Array<{ category: string; items: LlmPromptTemplate[] }>
+const groupedTemplates = computed(() => groupAndSortTemplates(orderedFilteredTemplates.value))
 
-const groupedTemplates = computed<GroupedTemplates>(() => {
-  const groups = new Map<string, LlmPromptTemplate[]>()
-  orderedFilteredTemplates.value.forEach((tpl) => {
-    const key = tpl.category || 'General'
-    const list = groups.get(key) || []
-    list.push(tpl)
-    groups.set(key, list)
-  })
-
-  return [...groups.entries()]
-    .sort(([a], [b]) => {
-      const aLower = a.toLowerCase()
-      const bLower = b.toLowerCase()
-      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
-      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
-
-      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
-      if (aIdx !== -1) return -1
-      if (bIdx !== -1) return 1
-      return a.localeCompare(b)
-    })
-    .map(([category, items]) => {
-      const lower = category.toLowerCase()
-      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
-      return {
-        category: isSystem ? t(`llm.categories.${lower}`) : category,
-        items
-      }
-    })
-})
-
-const reorderableGroups = ref<GroupedTemplates>([])
+const reorderableGroups = ref<any[]>([])
 
 function rebuildReorderableGroups() {
   if (!canReorder.value) {
     reorderableGroups.value = []
     return
   }
-
-  const active = applyAvailableOrder(
-    [...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value].filter(tpl => !tpl.isHidden),
-  )
-
-  const groups = new Map<string, LlmPromptTemplate[]>()
-  active.forEach((tpl) => {
-    const key = tpl.category || 'General'
-    const list = groups.get(key) || []
-    list.push(tpl)
-    groups.set(key, list)
-  })
-
-  reorderableGroups.value = [...groups.entries()]
-    .sort(([a], [b]) => {
-      const aLower = a.toLowerCase()
-      const bLower = b.toLowerCase()
-      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
-      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
-
-      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
-      if (aIdx !== -1) return -1
-      if (bIdx !== -1) return 1
-      return a.localeCompare(b)
-    })
-    .map(([category, items]) => {
-      const lower = category.toLowerCase()
-      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
-      return {
-        category: isSystem ? t(`llm.categories.${lower}`) : category,
-        items
-      }
-    })
+  const active = applyAvailableOrder([...systemTemplates.value, ...projectTemplates.value, ...userTemplates.value].filter(tpl => !tpl.isHidden))
+  reorderableGroups.value = groupAndSortTemplates(active)
 }
 
-watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates, systemTemplates, availableOrder], () => {
-  rebuildReorderableGroups()
-}, { deep: true })
-
-function getNextAvailableOrderFromReorderableGroups(): string[] {
-  const ids: string[] = []
-  reorderableGroups.value.forEach((group) => {
-    group.items.forEach((tpl) => {
-      if (!tpl.isHidden) ids.push(tpl.id)
-    })
-  })
-  return ids
-}
+watch([sourceFilter, showHiddenOnly, searchQuery, userTemplates, projectTemplates, systemTemplates, availableOrder], rebuildReorderableGroups, { deep: true })
 
 async function handleReorder() {
   if (!props.projectId) return
-  const ids = getNextAvailableOrderFromReorderableGroups()
-  const success = await setAvailableOrder({ projectId: props.projectId, ids })
-  if (success) {
+  const ids: string[] = []
+  reorderableGroups.value.forEach(g => g.items.forEach((tpl: LlmPromptTemplate) => !tpl.isHidden && ids.push(tpl.id)))
+  if (await setAvailableOrder({ projectId: props.projectId, ids })) {
     availableOrder.value = ids
   }
 }
 
 function applyCategoryReorder(category: string, orderedItems: LlmPromptTemplate[]) {
-  const groups = reorderableGroups.value.map((g) => {
-    if (g.category !== category) return g
-    return { ...g, items: orderedItems }
-  })
-  reorderableGroups.value = groups
+  const idx = reorderableGroups.value.findIndex(g => g.category === category)
+  if (idx !== -1) reorderableGroups.value[idx].items = orderedItems
 }
 
 function handleTemplateClick(tpl: LlmPromptTemplate) {
-  if (tpl.isSystem) return
-  openEditModal(tpl)
+  if (!tpl.isSystem) openEditModal(tpl)
 }
 
 function toggleHiddenOnly() {

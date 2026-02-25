@@ -21,8 +21,14 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const { fetchAvailableTemplates } = useLlmPromptTemplates()
 
-const isOpen = defineModel<boolean>('open', { required: true })
+const {
+  searchQuery,
+  sourceFilter,
+  groupAndSortTemplates,
+  filterTemplates
+} = useLlmTemplatesLogic()
 
+const isOpen = defineModel<boolean>('open', { required: true })
 const isLoadingTemplates = ref(false)
 
 const systemTemplates = ref<LlmPromptTemplate[]>([])
@@ -30,8 +36,6 @@ const userTemplates = ref<LlmPromptTemplate[]>([])
 const projectTemplates = ref<LlmPromptTemplate[]>([])
 const templatesOrder = ref<string[]>([])
 
-const sourceFilter = ref<SourceFilter>('all')
-const searchQuery = ref('')
 const debouncedSearch = refDebounced(searchQuery, SEARCH_DEBOUNCE_MS)
 
 const modalRootRef = ref<HTMLElement | null>(null)
@@ -74,8 +78,7 @@ const orderedAllTemplates = computed<LlmPromptTemplate[]>(() => {
   const allTemplates = [...systemTemplates.value, ...userTemplates.value, ...projectTemplates.value]
     .filter(tpl => !tpl.isHidden)
 
-  if (!props.projectId) return allTemplates
-  if (templatesOrder.value.length === 0) return allTemplates
+  if (!props.projectId || templatesOrder.value.length === 0) return allTemplates
 
   const byId = new Map(allTemplates.map(t => [t.id, t]))
   const ordered: LlmPromptTemplate[] = []
@@ -94,7 +97,6 @@ const orderedAllTemplates = computed<LlmPromptTemplate[]>(() => {
 
 const activeTemplates = computed<LlmPromptTemplate[]>(() => {
   const base = orderedAllTemplates.value
-
   if (sourceFilter.value === 'system') return base.filter(tpl => tpl.isSystem)
   if (sourceFilter.value === 'project') return base.filter(tpl => Boolean(tpl.projectId) && !tpl.isSystem)
   if (sourceFilter.value === 'personal') return base.filter(tpl => Boolean(tpl.userId) && !tpl.isSystem)
@@ -102,56 +104,14 @@ const activeTemplates = computed<LlmPromptTemplate[]>(() => {
 })
 
 const filteredTemplates = computed<LlmPromptTemplate[]>(() => {
-  const query = debouncedSearch.value.trim().toLowerCase()
-  if (!query) return activeTemplates.value
-
-  return activeTemplates.value.filter((tpl) => {
-    return (
-      (tpl.name?.toLowerCase() || '').includes(query) ||
-      tpl.prompt.toLowerCase().includes(query)
-    )
-  })
+  return filterTemplates(activeTemplates.value, debouncedSearch.value, false)
 })
 
-type GroupedTemplates = Array<{ category: string; items: LlmPromptTemplate[] }>
-
-const SYSTEM_CATEGORY_KEYS = ['chat', 'content', 'editing', 'general', 'metadata']
-
-const groupedTemplates = computed<GroupedTemplates>(() => {
-  const groups = new Map<string, LlmPromptTemplate[]>()
-
-  filteredTemplates.value.forEach((tpl) => {
-    const key = tpl.category || 'General'
-    const list = groups.get(key) || []
-    list.push(tpl)
-    groups.set(key, list)
-  })
-
-  return [...groups.entries()]
-    .sort(([a], [b]) => {
-      const aLower = a.toLowerCase()
-      const bLower = b.toLowerCase()
-      const aIdx = SYSTEM_CATEGORY_KEYS.indexOf(aLower)
-      const bIdx = SYSTEM_CATEGORY_KEYS.indexOf(bLower)
-
-      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx
-      if (aIdx !== -1) return -1
-      if (bIdx !== -1) return 1
-      return a.localeCompare(b)
-    })
-    .map(([category, items]) => {
-      const lower = category.toLowerCase()
-      const isSystem = SYSTEM_CATEGORY_KEYS.includes(lower)
-      return {
-        category: isSystem ? t(`llm.categories.${lower}`) : category,
-        items
-      }
-    })
-})
+const groupedTemplates = computed(() => groupAndSortTemplates(filteredTemplates.value))
 
 const filterOptions = computed(() => {
-  const items: Array<{ value: SourceFilter; label: string }> = [
-    { value: 'all', label: t('common.all', 'All') },
+  const items: Array<{ value: string; label: string }> = [
+    { value: 'all', label: t('common.all') },
     { value: 'personal', label: t('llm.personalTemplates') },
   ]
 
@@ -160,7 +120,6 @@ const filterOptions = computed(() => {
   }
 
   items.push({ value: 'system', label: t('llm.systemTemplates') })
-
   return items
 })
 
