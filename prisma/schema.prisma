@@ -184,6 +184,29 @@ model Role {
   @@map("roles")
 }
 
+model ProjectTemplate {
+  id        String    @id @default(uuid())
+  projectId String    @map("project_id")
+  name      String
+  postType  PostType? @map("post_type")
+  order     Int       @default(0)
+  // Template language (e.g. ru-RU, en-US) — determines which channels are shown in template editor
+  // If null, template applies to all languages
+  language  String?   @map("language")
+  // Array of TemplateBlock objects
+  template  Json
+  // Optimistic locking version
+  version   Int       @default(1)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  publications Publication[]
+
+  @@index([projectId])
+  @@map("project_templates")
+}
+
 model ProjectAuthorSignature {
   id        String @id @default(uuid())
   projectId String @map("project_id")
@@ -265,6 +288,69 @@ model NewsNotificationUserState {
   @@index([queryId])
   @@index([userId])
   @@map("news_notification_user_states")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  // JSON metadata: { publicationId?, postId?, channelId?, projectId? }
+  meta      Json             @default("{}")
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model LlmPromptTemplate {
+  id        String  @id @default(uuid())
+  // User ID for personal templates, null for project templates
+  userId    String? @map("user_id")
+  // Project ID for project templates, null for personal templates
+  projectId String? @map("project_id")
+
+  name        String?
+  note        String? @map("description")
+  // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
+  category    String  @default("General")
+  // The actual prompt template text
+  prompt      String
+  // Display order for UI
+  order       Int     @default(0)
+  // Whether the template is hidden from the main list
+  isHidden    Boolean @default(false) @map("is_hidden")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@map("llm_prompt_templates")
+}
+
+// Tracks which system prompt templates a user has hidden (per-user state)
+model LlmSystemPromptHidden {
+  id               String @id @default(uuid())
+  userId           String @map("user_id")
+  // Stable ID of the system template from the constants
+  systemTemplateId String @map("system_template_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, systemTemplateId])
+  @@index([userId])
+  @@map("llm_system_prompt_hidden")
 }
 
 model Channel {
@@ -566,69 +652,6 @@ model PublicationMedia {
   @@map("publication_media")
 }
 
-model Notification {
-  id        String           @id @default(uuid())
-  userId    String           @map("user_id")
-  type      NotificationType
-  title     String
-  message   String
-  // JSON metadata: { publicationId?, postId?, channelId?, projectId? }
-  meta      Json             @default("{}")
-  readAt    DateTime?        @map("read_at")
-  createdAt DateTime         @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, readAt])
-  @@index([userId, createdAt])
-  @@map("notifications")
-}
-
-model LlmPromptTemplate {
-  id        String  @id @default(uuid())
-  // User ID for personal templates, null for project templates
-  userId    String? @map("user_id")
-  // Project ID for project templates, null for personal templates
-  projectId String? @map("project_id")
-
-  name        String?
-  note        String? @map("description")
-  // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
-  category    String  @default("General")
-  // The actual prompt template text
-  prompt      String
-  // Display order for UI
-  order       Int     @default(0)
-  // Whether the template is hidden from the main list
-  isHidden    Boolean @default(false) @map("is_hidden")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([projectId])
-  @@map("llm_prompt_templates")
-}
-
-// Tracks which system prompt templates a user has hidden (per-user state)
-model LlmSystemPromptHidden {
-  id               String @id @default(uuid())
-  userId           String @map("user_id")
-  // Stable ID of the system template from the constants
-  systemTemplateId String @map("system_template_id")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, systemTemplateId])
-  @@index([userId])
-  @@map("llm_system_prompt_hidden")
-}
-
 model PublicationRelationGroup {
   id        String            @id @default(uuid())
   projectId String            @map("project_id")
@@ -657,29 +680,6 @@ model PublicationRelationItem {
   @@unique([groupId, position])
   @@index([publicationId])
   @@map("publication_relation_items")
-}
-
-model ProjectTemplate {
-  id        String    @id @default(uuid())
-  projectId String    @map("project_id")
-  name      String
-  postType  PostType? @map("post_type")
-  order     Int       @default(0)
-  // Template language (e.g. ru-RU, en-US) — determines which channels are shown in template editor
-  // If null, template applies to all languages
-  language  String?   @map("language")
-  // Array of TemplateBlock objects
-  template  Json
-  // Optimistic locking version
-  version   Int       @default(1)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  publications Publication[]
-
-  @@index([projectId])
-  @@map("project_templates")
 }
 
 model Tag {
