@@ -65,4 +65,12 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
     this.logger.debug(`Sending notification to user ${userId}`);
     this.server.to(userId).emit('notification', notification);
   }
+
+  /**
+   * Notify user that notifications were read (sync between tabs).
+   */
+  sendReadStatusToUser(userId: string, data: { id?: string; all: boolean }) {
+    this.logger.debug(`Sending read status sync to user ${userId}`);
+    this.server.to(userId).emit('notification_read', data);
+  }
 }

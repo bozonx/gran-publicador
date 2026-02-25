@@ -170,6 +170,23 @@ export const useNotificationsStore = defineStore('notifications', () => {
       });
     });
 
+    socket.value.on('notification_read', (data: { id?: string; all: boolean }) => {
+      if (data.all) {
+        items.value.forEach(n => {
+          if (!n.readAt) {
+            n.readAt = new Date().toISOString();
+          }
+        });
+        unreadCount.value = 0;
+      } else if (data.id) {
+        const item = items.value.find(n => n.id === data.id);
+        if (item && !item.readAt) {
+          item.readAt = new Date().toISOString();
+          unreadCount.value = Math.max(0, unreadCount.value - 1);
+        }
+      }
+    });
+
     socket.value.on('disconnect', () => {});
 
     socket.value.on('connect_error', error => {

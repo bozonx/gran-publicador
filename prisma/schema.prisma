@@ -35,6 +35,8 @@ model User {
   uiLanguage         String    @default("en-US") @map("ui_language")
   // User preferences stored as JSON
   preferences        Json      @default("{}")
+  // Separate field for notification preferences
+  notificationPreferences Json @default("{}") @map("notification_preferences")
   // Optimistic locking version
   version            Int       @default(1)
 

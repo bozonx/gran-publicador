@@ -155,11 +155,8 @@ export class UsersService {
         isAdmin: isAdmin,
         language: this.normalizeLanguage(userData.languageCode),
         uiLanguage: this.normalizeUiLanguage(userData.languageCode),
-        preferences: JSON.parse(
-          JSON.stringify({
-            notifications: getDefaultNotificationPreferences(),
-          }),
-        ),
+        preferences: {},
+        notificationPreferences: getDefaultNotificationPreferences() as any,
         contentCollections: {
           create: {
             type: 'SAVED_VIEW',
@@ -439,18 +436,29 @@ export class UsersService {
   public async getNotificationPreferences(userId: string): Promise<NotificationPreferencesDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { preferences: true },
+      select: { 
+        notificationPreferences: true,
+        preferences: true, // For migration shim if needed 
+      },
     });
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    const preferences = user.preferences as any;
+    let prefs = user.notificationPreferences as any;
+
+    // Migration shim: if new field is empty, check old field
+    if (!prefs || Object.keys(prefs).length === 0) {
+      const oldPrefs = (user.preferences as any)?.notifications;
+      if (oldPrefs && Object.keys(oldPrefs).length > 0) {
+        prefs = oldPrefs;
+      }
+    }
 
     // Return existing preferences or defaults
-    if (preferences?.notifications && typeof preferences.notifications === 'object') {
-      return preferences.notifications as NotificationPreferencesDto;
+    if (prefs && Object.keys(prefs).length > 0) {
+      return prefs as NotificationPreferencesDto;
     }
 
     return getDefaultNotificationPreferences();
@@ -463,27 +471,11 @@ export class UsersService {
     userId: string,
     notificationPreferences: NotificationPreferencesDto,
   ): Promise<NotificationPreferencesDto> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { preferences: true },
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const currentPreferences = (user.preferences as any) || {};
-
-    // Update user preferences with new notification settings
+    // Update the separate notificationPreferences field
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        preferences: JSON.parse(
-          JSON.stringify({
-            ...currentPreferences,
-            notifications: notificationPreferences,
-          }),
-        ),
+        notificationPreferences: notificationPreferences as any,
       },
     });
 

@@ -302,7 +302,8 @@ export class NewsNotificationsScheduler {
     const allItems: any[] = [];
     let currentCursor: string | null = null;
     let hasMore = true;
-    const limit = 20;
+    // Increase limit to reduce number of requests
+    const limit = Math.min(fetchLimit, 100);
 
     while (hasMore) {
       let mode = settings.mode;
@@ -334,16 +335,19 @@ export class NewsNotificationsScheduler {
       const items = results.items || (Array.isArray(results) ? results : []);
 
       if (items.length > 0) {
-        allItems.push(...items);
+        // Avoid potentially adding more than fetchLimit
+        const remaining = fetchLimit - allItems.length;
+        if (items.length > remaining) {
+          allItems.push(...items.slice(0, remaining));
+        } else {
+          allItems.push(...items);
+        }
       }
 
       currentCursor = results.nextCursor || null;
-      hasMore = !!currentCursor && items.length > 0;
+      hasMore = !!currentCursor && items.length > 0 && allItems.length < fetchLimit;
 
       if (allItems.length >= fetchLimit) {
-        this.logger.warn(
-          `Reached fetch limit (${fetchLimit}) for query ${query.id}, project ${query.projectId}, stopping pagination`,
-        );
         hasMore = false;
       }
     }

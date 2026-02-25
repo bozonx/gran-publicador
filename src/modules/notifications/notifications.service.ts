@@ -120,23 +120,35 @@ export class NotificationsService {
       throw new NotFoundException('Notification not found');
     }
 
-    return this.prisma.notification.update({
+    const result = await this.prisma.notification.update({
       where: { id },
       data: { readAt: new Date() },
     });
+
+    try {
+      this.gateway.sendReadStatusToUser(userId, { id, all: false });
+    } catch (ignore) {}
+
+    return result;
   }
 
   /**
    * Mark all notifications of a user as read.
    */
   async markAllAsRead(userId: string) {
-    return this.prisma.notification.updateMany({
+    const result = await this.prisma.notification.updateMany({
       where: {
         userId,
         readAt: null,
       },
       data: { readAt: new Date() },
     });
+
+    try {
+      this.gateway.sendReadStatusToUser(userId, { all: true });
+    } catch (ignore) {}
+
+    return result;
   }
 
   /**

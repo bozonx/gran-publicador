@@ -10,6 +10,12 @@ onMounted(async () => {
 
 async function handleOpenChange(val: boolean) {
   if (val) {
+    const route = useRoute();
+    // Don't re-fetch if we're on the dedicated notifications page as it has its own logic
+    // or if we already have items and unread count is zero.
+    if (route.path === '/notifications' || (notificationsStore.items.length > 0 && notificationsStore.unreadCount === 0)) {
+      return;
+    }
     await notificationsStore.fetchNotifications();
   }
 }
