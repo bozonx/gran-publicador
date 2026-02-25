@@ -160,7 +160,7 @@ export class ChannelsController {
 
     this.apiTokenScope.validateProjectScopeOrThrow(req, channel.projectId);
 
-    return this.channelsService.update(id, req.user.userId, updateChannelDto);
+    return this.channelsService.update(channel, req.user.userId, updateChannelDto);
   }
 
   @Patch(':id/template-variations/:projectTemplateId')
@@ -191,7 +191,7 @@ export class ChannelsController {
 
     this.apiTokenScope.validateProjectScopeOrThrow(req, channel.projectId);
 
-    return this.channelsService.remove(id, req.user.userId);
+    return this.channelsService.remove(channel, req.user.userId);
   }
 
   /**
@@ -203,6 +203,6 @@ export class ChannelsController {
 
     this.apiTokenScope.validateProjectScopeOrThrow(req, channel.projectId);
 
-    return this.socialPostingService.testChannel(id);
+    return this.socialPostingService.testChannel(channel);
   }
 }

@@ -35,12 +35,9 @@ const state = reactive({
   tags: props.channel.tags || '',
 })
 
-// Schema - extract only relevant parts or use full schema?
-// If we use full schema, other fields might be missing in state and cause validation error if required.
-// We should construct a partial schema.
+// Schema
 const schema = computed(() => {
     const fullSchema = createChannelBaseObject(t);
-    // Pick only general fields
     return fullSchema.pick({
         name: true,
         description: true,
@@ -48,10 +45,6 @@ const schema = computed(() => {
         language: true, 
         socialMedia: true, 
         tags: true,
-        // projectId is not in schema? Checked createChannelSchema, it wasn't there explicitly?
-        // Checked file content again: createChannelSchema didn't have projectId? 
-        // Ah, projectId was passed in create data but maybe not validated in Zod?
-        // Double check schema file content.
     })
 })
 
@@ -98,6 +91,7 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
       description: state.description || null,
       channelIdentifier: state.channelIdentifier,
       tags: state.tags || null,
+      version: props.channel.version,
     }
     await performUpdate(updateData, true)
     return { saved: true }

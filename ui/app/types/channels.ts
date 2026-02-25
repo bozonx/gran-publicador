@@ -71,6 +71,7 @@ export interface Channel {
   createdAt: string;
   updatedAt: string;
   tags?: string | null;
+  version?: number;
 }
 
 export interface ChannelWithProject extends Channel {
@@ -118,6 +119,7 @@ export interface ChannelUpdateInput {
   };
   isActive?: boolean;
   tags?: string | null;
+  version?: number;
 }
 
 export interface ChannelsFilter {

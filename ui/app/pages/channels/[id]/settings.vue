@@ -3,6 +3,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChannels } from '~/composables/useChannels'
 import { ArchiveEntityType } from '~/types/archive.types'
+import { getPlatformConfig } from '@gran/shared/social-media-platforms'
 
 definePageMeta({
   middleware: 'auth',
@@ -64,8 +65,12 @@ function goBack() {
 /**
  * Handle channel update success
  */
-function handleUpdateSuccess(channel: any) {
-  fetchChannel(channelId.value)
+function handleUpdateSuccess(updatedChannel: any) {
+  if (channel.value && updatedChannel) {
+    // Merge the updated channel data into the current channel state
+    // to avoid an extra HTTP request
+    Object.assign(channel.value, updatedChannel);
+  }
 }
 
 /**
@@ -75,8 +80,17 @@ async function handleToggleActive() {
   if (!channel.value) return
   isTogglingActive.value = true
   try {
-    await toggleChannelActive(channel.value.id)
-    await fetchChannel(channel.value.id)
+    const success = await toggleChannelActive(channel.value.id)
+    if (success) {
+      Object.assign(channel.value, { isActive: !channel.value.isActive });
+    }
+  } catch (error: any) {
+    const toast = useToast()
+    toast.add({
+      title: t('common.error'),
+      description: error.message || t('common.saveError'),
+      color: 'error'
+    })
   } finally {
     isTogglingActive.value = false
   }
@@ -154,9 +168,9 @@ async function handleDelete() {
 
         <!-- Credentials -->
         <UiAppCard
-          v-if="canEdit(channel) && (channel.socialMedia === 'telegram' || channel.socialMedia === 'vk')"
+          v-if="canEdit(channel) && (getPlatformConfig(channel.socialMedia)?.credentials?.length ?? 0) > 0"
           id="credentials"
-          :title="channel.socialMedia === 'telegram' ? t('channel.telegramCredentials', 'Telegram Credentials') : t('channel.vkCredentials', 'VK Credentials')"
+          :title="t(`channel.${channel.socialMedia}Credentials`, `${channel.socialMedia} Credentials`)"
           :description="t('channel.credentials_desc', 'Manage connection credentials for this channel')"
         >
           

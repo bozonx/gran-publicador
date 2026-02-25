@@ -60,7 +60,8 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, retrySave } 
             // Merge with existing preferences to avoid data loss
             ...(props.channel.preferences || {}),
             staleChannelsDays: state.preferences.staleChannelsDays,
-        }
+        },
+        version: props.channel.version,
     }
     await performUpdate(updateData, true)
     return { saved: true }
@@ -76,7 +77,8 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
             // Merge with existing preferences to avoid data loss
             ...(props.channel.preferences || {}),
             staleChannelsDays: event.data.preferences.staleChannelsDays,
-        }
+        },
+        version: props.channel.version,
     }
 
     await performUpdate(updateData, false)

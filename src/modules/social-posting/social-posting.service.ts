@@ -1,6 +1,6 @@
-import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PublicationStatus, PostStatus } from '../../generated/prisma/index.js';
+import { PublicationStatus, PostStatus, Channel } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MediaConfig } from '../../config/media.config.js';
 import { validatePlatformCredentials } from './utils/credentials-validator.util.js';
@@ -21,6 +21,7 @@ import { requestJsonWithRetry } from '../../common/utils/http-request-with-retry
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PROCESS_POST_JOB, ProcessPostJobData, PUBLICATIONS_QUEUE } from './publications.queue.js';
+import type { ChannelResponseDto } from '../channels/dto/index.js';
 
 @Injectable()
 export class SocialPostingService {
@@ -70,17 +71,28 @@ export class SocialPostingService {
   /**
    * Test channel connection and credentials using microservice preview endpoint
    */
-  async testChannel(
-    channelId: string,
-  ): Promise<{ success: boolean; message: string; details?: any }> {
-    this.logger.log(`[testChannel] Testing connection for channel: ${channelId}`);
+  public async testChannel(channelOrId: string | ChannelResponseDto) {
+    let channel: Channel;
+    if (typeof channelOrId === 'string') {
+      const dbChannel = await this.prisma.channel.findUnique({
+        where: { id: channelOrId },
+      });
+      if (!dbChannel) {
+        throw new NotFoundException('Channel not found');
+      }
+      channel = dbChannel;
+    } else {
+      channel = channelOrId as unknown as Channel; // The DTO is close enough to Channel for what we need here
+    }
 
-    const channel = await this.prisma.channel.findUnique({
-      where: { id: channelId },
-      include: { project: true },
-    });
+    if (!channel.isActive) {
+      return {
+        success: false,
+        message: 'Channel is not active',
+      };
+    }
 
-    if (!channel) throw new BadRequestException('Channel not found');
+    this.logger.log(`[testChannel] Testing connection for channel: ${channel.id}`);
 
     try {
       const {

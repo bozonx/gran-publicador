@@ -79,67 +79,7 @@ export class ChannelsService {
       );
     }
 
-    const validOverrideKeys = new Set([
-      'title',
-      'content',
-      'tags',
-      'authorComment',
-      'authorSignature',
-      'footer',
-      'custom',
-    ]);
-    const validTagCases = new Set([
-      'camelCase',
-      'pascalCase',
-      'snake_case',
-      'SNAKE_CASE',
-      'kebab-case',
-      'KEBAB-CASE',
-      'lower_case',
-      'upper_case',
-      'none',
-    ]);
-
-    // Validate overrides structure
-    for (const tpl of templates) {
-      if (!tpl.overrides) continue;
-      for (const [blockKey, override] of Object.entries(tpl.overrides)) {
-        if (!validOverrideKeys.has(blockKey)) {
-          throw new BadRequestException('Channel template overrides contain unknown block key');
-        }
-        if (!override || typeof override !== 'object' || Array.isArray(override)) {
-          throw new BadRequestException(
-            'Channel template overrides contain invalid override object',
-          );
-        }
-        const obj = override as Record<string, unknown>;
-        if (obj.enabled !== undefined && typeof obj.enabled !== 'boolean') {
-          throw new BadRequestException('Channel template overrides contain invalid enabled flag');
-        }
-        for (const field of ['before', 'after', 'content']) {
-          if (obj[field] !== undefined && typeof obj[field] !== 'string') {
-            throw new BadRequestException('Channel template overrides contain non-string field');
-          }
-        }
-        if (obj.tagCase !== undefined && typeof obj.tagCase === 'string') {
-          if (!validTagCases.has(obj.tagCase)) {
-            throw new BadRequestException('Channel template overrides contain unknown tagCase');
-          }
-        } else if (obj.tagCase !== undefined) {
-          throw new BadRequestException('Channel template overrides contain invalid tagCase');
-        }
-
-        // Disallow unknown fields to keep JSON clean
-        for (const key of Object.keys(obj)) {
-          if (!['enabled', 'before', 'after', 'content', 'tagCase'].includes(key)) {
-            throw new BadRequestException('Channel template overrides contain unknown field');
-          }
-        }
-      }
-    }
-
-    const projectTemplateIds = Array.from(new Set(templates.map(t => t.projectTemplateId)));
-    if (projectTemplateIds.length === 0) return;
+    const projectTemplateIds = Array.from(uniqueTplIds);
 
     const existing = await this.prisma.projectTemplate.findMany({
       where: {
@@ -269,33 +209,25 @@ export class ChannelsService {
       ...(options.limit ? { take: options.limit } : {}),
     });
 
-    const channelIds = channels.map(c => c.id);
-    const postCounts = await this.prisma.post.groupBy({
-      by: ['channelId', 'status'],
-      where: {
-        channelId: { in: channelIds },
-        status: { in: ['PUBLISHED', 'FAILED'] },
-      },
-      _count: {
-        id: true,
-      },
-    });
-
-    const countsMap = new Map<string, { published: number; failed: number }>();
-    postCounts.forEach(pc => {
-      const current = countsMap.get(pc.channelId) ?? { published: 0, failed: 0 };
-      if (pc.status === 'PUBLISHED') current.published = pc._count.id;
-      if (pc.status === 'FAILED') current.failed = pc._count.id;
-      countsMap.set(pc.channelId, current);
-    });
-
-    return channels.map(channel => this.mapper.mapToDto(channel, countsMap.get(channel.id)));
+    return channels.map(channel =>
+      this.mapper.mapToDto(channel, {
+        published: (channel as any).publishedPostsCount || 0,
+        failed: (channel as any).failedPostsCount || 0,
+      }),
+    );
   }
 
   // ... (skip findAllForUser as it iterates projects)
 
-  public async update(id: string, userId: string, data: UpdateChannelDto) {
-    const channel = await this.findOne(id, userId, true);
+  public async update(
+    channelOrId: string | ChannelResponseDto,
+    userId: string,
+    data: UpdateChannelDto,
+  ) {
+    const channel =
+      typeof channelOrId === 'string' ? await this.findOne(channelOrId, userId, true) : channelOrId;
+    const id = channel.id;
+
     await this.permissions.checkPermission(
       channel.projectId,
       userId,
@@ -337,8 +269,11 @@ export class ChannelsService {
     });
   }
 
-  public async remove(id: string, userId: string) {
-    const channel = await this.findOne(id, userId, true);
+  public async remove(channelOrId: string | ChannelResponseDto, userId: string) {
+    const channel =
+      typeof channelOrId === 'string' ? await this.findOne(channelOrId, userId, true) : channelOrId;
+    const id = channel.id;
+
     await this.permissions.checkPermission(
       channel.projectId,
       userId,
@@ -356,7 +291,10 @@ export class ChannelsService {
       const linkedPubIds = linkedPublications.map(p => p.publicationId);
 
       if (linkedPubIds.length > 0) {
-        // 2. Check which of these publications have posts in OTHER channels
+        // 2. Lock the publications to prevent concurrent modifications
+        await tx.$queryRaw`SELECT 1 FROM "Publication" WHERE "id" IN (${Prisma.join(linkedPubIds)}) FOR UPDATE`;
+
+        // 3. Check which of these publications have posts in OTHER channels
         const multiChannelPosts = await tx.post.findMany({
           where: {
             publicationId: { in: linkedPubIds },
@@ -368,10 +306,10 @@ export class ChannelsService {
 
         const multiChannelPubIds = new Set(multiChannelPosts.map(p => p.publicationId));
 
-        // 3. Identify "orphans" (publications that exist only in the channel being deleted)
+        // 4. Identify "orphans" (publications that exist only in the channel being deleted)
         const pubsToDelete = linkedPubIds.filter(pid => !multiChannelPubIds.has(pid));
 
-        // 4. Delete orphans
+        // 5. Delete orphans
         if (pubsToDelete.length > 0) {
           await tx.publication.deleteMany({
             where: { id: { in: pubsToDelete } },
@@ -379,7 +317,7 @@ export class ChannelsService {
         }
       }
 
-      // 5. Delete the channel itself (Posts will be deleted via cascade in DB schema)
+      // 6. Delete the channel itself (Posts will be deleted via cascade in DB schema)
       return tx.channel.delete({ where: { id } });
     });
   }
@@ -707,5 +645,4 @@ export class ChannelsService {
       role ?? undefined,
     );
   }
-
 }

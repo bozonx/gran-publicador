@@ -21,7 +21,14 @@ import {
 } from '~/utils/channels';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-export type { Channel, ChannelWithProject, ChannelCreateInput, ChannelUpdateInput, ChannelsFilter, SocialMedia };
+export type {
+  Channel,
+  ChannelWithProject,
+  ChannelCreateInput,
+  ChannelUpdateInput,
+  ChannelsFilter,
+  SocialMedia,
+};
 
 export function useChannels() {
   const api = useApi();
@@ -34,17 +41,17 @@ export function useChannels() {
     'useChannels.currentChannel',
     () => null,
   );
-  
+
   const totalCount = ref(0);
   const totalUnfilteredCount = ref(0);
-  
+
   // Loading states
   const isLoading = ref(false); // Global legacy loading state
   const isFetchingList = ref(false);
   const isFetchingChannel = ref(false);
   const isSaving = ref(false);
   const isDeleting = ref(false);
-  
+
   const error = ref<string | null>(null);
 
   const socialMediaOptions = computed(() => getSocialMediaOptions(t));
@@ -70,7 +77,6 @@ export function useChannels() {
     options: { append?: boolean } = {},
   ): Promise<ChannelWithProject[]> {
     isFetchingList.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -103,13 +109,11 @@ export function useChannels() {
       return [];
     } finally {
       isFetchingList.value = false;
-      isLoading.value = false;
     }
   }
 
   async function fetchArchivedChannels(projectId: string): Promise<ChannelWithProject[]> {
     isFetchingList.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -123,13 +127,11 @@ export function useChannels() {
       return [];
     } finally {
       isFetchingList.value = false;
-      isLoading.value = false;
     }
   }
 
   async function fetchChannel(channelId: string): Promise<ChannelWithProject | null> {
     isFetchingChannel.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -142,13 +144,11 @@ export function useChannels() {
       return null;
     } finally {
       isFetchingChannel.value = false;
-      isLoading.value = false;
     }
   }
 
   async function createChannel(data: ChannelCreateInput): Promise<Channel | null> {
     isSaving.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -174,7 +174,6 @@ export function useChannels() {
       return null;
     } finally {
       isSaving.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -183,7 +182,6 @@ export function useChannels() {
     data: ChannelUpdateInput,
   ): Promise<Channel | null> {
     isSaving.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -205,13 +203,11 @@ export function useChannels() {
       return null;
     } finally {
       isSaving.value = false;
-      isLoading.value = false;
     }
   }
 
   async function deleteChannel(channelId: string): Promise<boolean> {
     isDeleting.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -233,13 +229,11 @@ export function useChannels() {
       return false;
     } finally {
       isDeleting.value = false;
-      isLoading.value = false;
     }
   }
 
   async function archiveChannel(channelId: string): Promise<Channel | null> {
     isSaving.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -251,13 +245,11 @@ export function useChannels() {
       return null;
     } finally {
       isSaving.value = false;
-      isLoading.value = false;
     }
   }
 
   async function unarchiveChannel(channelId: string): Promise<Channel | null> {
     isSaving.value = true;
-    isLoading.value = true;
     error.value = null;
 
     try {
@@ -268,7 +260,6 @@ export function useChannels() {
       return null;
     } finally {
       isSaving.value = false;
-      isLoading.value = false;
     }
   }
 
@@ -333,7 +324,9 @@ export function useChannels() {
   /**
    * Get channel problem level, prioritizing server-side calculation.
    */
-  function getChannelProblemLevel(channelObj: ChannelWithProject | null): 'critical' | 'warning' | null {
+  function getChannelProblemLevel(
+    channelObj: ChannelWithProject | null,
+  ): 'critical' | 'warning' | null {
     if (!channelObj) return null;
     if (channelObj.problems) {
       if (channelObj.problems.some(p => p.type === 'critical')) return 'critical';

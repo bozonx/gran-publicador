@@ -27,9 +27,9 @@ const { updateChannel, isLoading } = useChannels()
 const state = reactive({
   socialMedia: props.channel.socialMedia,
   credentials: {
-     telegramChannelId: props.channel.credentials?.telegramChannelId || props.channel.credentials?.chatId || '',
-     telegramBotToken: props.channel.credentials?.telegramBotToken || props.channel.credentials?.botToken || '',
-     vkAccessToken: props.channel.credentials?.vkAccessToken || props.channel.credentials?.accessToken || '',
+     telegramChannelId: props.channel.credentials?.telegramChannelId || '',
+     telegramBotToken: props.channel.credentials?.telegramBotToken || '',
+     vkAccessToken: props.channel.credentials?.vkAccessToken || '',
      apiKey: props.channel.credentials?.apiKey || '',
   }
 })
@@ -42,9 +42,9 @@ const schema = computed(() => {
 
 const isDirty = computed(() => {
     return JSON.stringify(state.credentials) !== JSON.stringify({
-        telegramChannelId: props.channel.credentials?.telegramChannelId || props.channel.credentials?.chatId || '',
-        telegramBotToken: props.channel.credentials?.telegramBotToken || props.channel.credentials?.botToken || '',
-        vkAccessToken: props.channel.credentials?.vkAccessToken || props.channel.credentials?.accessToken || '',
+        telegramChannelId: props.channel.credentials?.telegramChannelId || '',
+        telegramBotToken: props.channel.credentials?.telegramBotToken || '',
+        vkAccessToken: props.channel.credentials?.vkAccessToken || '',
         apiKey: props.channel.credentials?.apiKey || '',
     })
 })
@@ -64,14 +64,14 @@ async function performUpdate(data: any, silent: boolean = false) {
 
 function prepareUpdateData(formData: any) {
     const config = getPlatformConfig(props.channel.socialMedia)
-    if (!config || config.credentials.length === 0) return { credentials: {} }
+    if (!config || config.credentials.length === 0) return { credentials: {}, version: props.channel.version }
 
     const credentials: Record<string, any> = {}
     for (const field of config.credentials) {
         credentials[field.key] = formData.credentials?.[field.key]
     }
 
-    return { credentials }
+    return { credentials, version: props.channel.version }
 }
 
 function hasAllRequiredCredentials(formData: any): boolean {

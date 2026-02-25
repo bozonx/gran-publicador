@@ -19,14 +19,18 @@ export class ChannelsMapper {
   private maskCredentials(credentials: any): Record<string, any> {
     const obj = this.getJsonObject(credentials);
     const masked: Record<string, any> = {};
-    
+
     // We keep the keys but mask the values to allow the UI to know what is configured
     // but not reveal the actual tokens.
     for (const key of Object.keys(obj)) {
       const val = String(obj[key] || '');
-      if (val.length > 8) {
-        masked[key] = val.substring(0, 4) + '...' + val.substring(val.length - 4);
+      if (val.length > 20) {
+        // Secure masking: reveal at most 20% of the token, max 4 chars at start and end
+        const revealLength = Math.min(4, Math.floor(val.length * 0.1));
+        masked[key] =
+          val.substring(0, revealLength) + '...' + val.substring(val.length - revealLength);
       } else if (val.length > 0) {
+        // Short tokens are fully masked for security
         masked[key] = '********';
       } else {
         masked[key] = '';
@@ -48,8 +52,8 @@ export class ChannelsMapper {
       const token = telegramBotToken || botToken;
       const id = telegramChannelId || chatId;
       return !!(token && String(token).trim().length > 0 && id && String(id).trim().length > 0);
-    } 
-    
+    }
+
     if (socialMedia === 'VK') {
       const { vkAccessToken, accessToken } = creds as any;
       const token = vkAccessToken || accessToken;
@@ -121,11 +125,11 @@ export class ChannelsMapper {
     role?: string,
   ): ChannelResponseDto {
     const { posts, credentials, preferences, project, _count, ...channelData } = channel;
-    
+
     // Normalize preferences
-    const channelPrefs = preferences as any;
+    const channelPrefs = preferences;
     const projectPrefs = this.getJsonObject(project?.preferences);
-    
+
     const lastPostAt = posts?.[0]?.publishedAt ?? posts?.[0]?.createdAt ?? null;
     const isStale = this.calculateIsStale(lastPostAt, channelPrefs, projectPrefs);
     const hasCredentials = this.hasCredentials(credentials, channelData.socialMedia);

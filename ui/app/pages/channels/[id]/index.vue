@@ -120,8 +120,8 @@ const {
     fetchProjectTemplates
 } = useProjectTemplates()
 
-// Import utility function for getting post title
-const { getPostTitle, getPostScheduledAt } = await import('~/composables/usePosts')
+// Use auto-imported utility function for getting post title
+// const { getPostTitle, getPostScheduledAt } = usePosts()
 
 const { archiveEntity } = useArchive()
 
@@ -184,58 +184,60 @@ async function loadMore() {
 }
 
 // Initialization
-onMounted(async () => {
-    if (channelId.value) {
-        // Sequentially fetch main data to avoid loading state flicker
-        await fetchChannel(channelId.value)
-        
-        // Fetch only published posts, latest first, limited to 12
-        await resetAndFetchPosts()
-        
-        // Parallel fetch secondary data
-        Promise.all([
-          // Failed posts (Problematic)
-          (async () => {
-            problemsPage.value = 1
-            setProblemFilter({
-                channelId: channelId.value,
-                status: 'FAILED' as PostStatus,
-                limit: 5,
-                offset: 0
-            })
-            await fetchProblemPosts(projectId.value)
-          })(),
+useAsyncData(`channel-${channelId.value}-initial-data`, async () => {
+    if (!channelId.value) return null
+    
+    // Sequentially fetch main data to avoid loading state flicker
+    await fetchChannel(channelId.value)
+    
+    // Fetch only published posts, latest first, limited to 12
+    await resetAndFetchPosts()
+    
+    // Parallel fetch secondary data
+    await Promise.all([
+      // Failed posts (Problematic)
+      (async () => {
+        problemsPage.value = 1
+        setProblemFilter({
+            channelId: channelId.value,
+            status: 'FAILED' as PostStatus,
+            limit: 5,
+            offset: 0
+        })
+        await fetchProblemPosts(projectId.value)
+      })(),
 
-          // Scheduled posts (Pending)
-          (async () => {
-             scheduledPage.value = 1
-              setScheduledFilter({
-                  channelId: channelId.value,
-                  status: 'PENDING' as PostStatus,
-                  publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
-                  limit: 5,
-                  offset: 0
-              })
-              await fetchScheduledPosts(projectId.value)
-          })(),
+      // Scheduled posts (Pending)
+      (async () => {
+         scheduledPage.value = 1
+          setScheduledFilter({
+              channelId: channelId.value,
+              status: 'PENDING' as PostStatus,
+              publicationStatus: ['READY' as PublicationStatus, 'SCHEDULED' as PublicationStatus, 'PROCESSING' as PublicationStatus],
+              limit: 5,
+              offset: 0
+          })
+          await fetchScheduledPosts(projectId.value)
+      })(),
 
-          // Drafts
-          fetchDrafts(projectId.value, { 
-              channelId: channelId.value, 
-              status: 'DRAFT', 
-              limit: 5 
-          }),
-          
-          fetchReady(projectId.value, { 
-              channelId: channelId.value, 
-              status: 'READY', 
-              limit: 5 
-          }),
+      // Drafts
+      fetchDrafts(projectId.value, { 
+          channelId: channelId.value, 
+          status: 'DRAFT', 
+          limit: 5 
+      }),
+      
+      fetchReady(projectId.value, { 
+          channelId: channelId.value, 
+          status: 'READY', 
+          limit: 5 
+      }),
 
-          // Project templates
-          fetchProjectTemplates(projectId.value)
-        ])
-    }
+      // Project templates
+      fetchProjectTemplates(projectId.value)
+    ])
+    
+    return true
 })
 
 const activeDraftsCollection = ref('DRAFT')
@@ -619,12 +621,6 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                         {{ t('post.status.published_posts', 'Published Posts') }}
-                         <!-- Assuming channel.postsCount is total posts, we might want manual count of displayed posts or check if we have a specific count. 
-                              For now let's use loaded posts length if loading finished, or rely on channel stats if available. 
-                              Since we are filtering, channel.postsCount might include others. 
-                              Let's just show count of *this* list roughly or omit if unreliable. 
-                              Or better, use a computed property if backend sent total count. 
-                              usePosts has totalCount ref. -->
                         <CommonCountBadge :count="totalPostsCount" :title="t('post.status.published_posts')" />
                     </h2>
                      <div class="flex items-center gap-2">
