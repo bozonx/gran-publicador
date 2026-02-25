@@ -40,6 +40,7 @@ import { PublicationsLlmService } from './publications-llm.service.js';
 import { PublicationsMapper } from './publications.mapper.js';
 import { PublicationsMediaService } from './publications-media.service.js';
 import { PublicationsBulkService } from './publications-bulk.service.js';
+import { ApplyLlmResultDto } from './dto/apply-llm-result.dto.js';
 
 @Injectable()
 export class PublicationsService {
@@ -288,8 +289,7 @@ export class PublicationsService {
       await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
     }
 
-    if (data.status === PublicationStatus.DRAFT || data.status === PublicationStatus.READY) {
-      // Fix: Do NOT reset scheduledAt here anymore. Let the user decide.
+    if ((data.status === PublicationStatus.DRAFT || data.status === PublicationStatus.READY) && data.status !== previousStatus) {
       await this.prisma.post.updateMany({
         where: { publicationId: id },
         data: {
@@ -386,22 +386,98 @@ export class PublicationsService {
         title: source.title,
         description: source.description,
         content: source.content,
+        authorComment: source.authorComment,
+        note: source.note,
         postType: source.postType as PostType,
         language: source.language,
         status: PublicationStatus.DRAFT,
         scheduledAt: null,
+        meta: source.meta || {},
+        authorSignatureId: source.authorSignatureId,
+        projectTemplateId: source.projectTemplateId,
         media: {
-          create: source.media?.map((pm: any) => ({
+          create: (source.media as any)?.map((pm: any) => ({
             mediaId: pm.mediaId,
             order: pm.order,
             hasSpoiler: pm.hasSpoiler,
           })) || [],
         },
+        tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+          source.tags || [],
+          { projectId: targetProjectId },
+          'PUBLICATIONS',
+        ),
       },
       include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
     });
 
     return this.normalizePublicationTags(newPublication);
+  }
+
+  public async applyLlmResult(id: string, userId: string, data: ApplyLlmResultDto) {
+    const publication = await this.findOne(id, userId);
+
+    const updateData: any = {};
+    if (data.publication) {
+      if (data.publication.title !== undefined) updateData.title = data.publication.title;
+      if (data.publication.description !== undefined) updateData.description = data.publication.description;
+      if (data.publication.content !== undefined) {
+        updateData.content = sanitizePublicationMarkdownForStorage(data.publication.content);
+      }
+      if (data.publication.tags !== undefined) {
+        updateData.tagObjects = await this.tagsService.prepareTagsConnectOrCreate(
+          normalizeTags(data.publication.tags),
+          { projectId: publication.projectId },
+          'PUBLICATIONS',
+          true,
+        );
+      }
+    }
+
+    if (data.meta) {
+      updateData.meta = { ...this.mapper.parseMetaJson(publication.meta), ...data.meta };
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await this.prisma.publication.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    if (data.posts?.length) {
+      const posts = await this.prisma.post.findMany({
+        where: { publicationId: id },
+        select: { id: true, channelId: true },
+      });
+
+      const postMap = new Map(posts.map(p => [p.channelId, p.id]));
+
+      for (const postData of data.posts) {
+        const postId = postMap.get(postData.channelId);
+        if (!postId) continue;
+
+        const postUpdate: any = {};
+        if (postData.content !== undefined) postUpdate.content = postData.content;
+        if (postData.tags !== undefined) {
+          postUpdate.tagObjects = await this.tagsService.prepareTagsConnectOrCreate(
+            normalizeTags(postData.tags),
+            { projectId: publication.projectId },
+            'PUBLICATIONS',
+            true,
+          );
+        }
+
+        if (Object.keys(postUpdate).length > 0) {
+          await this.prisma.post.update({
+            where: { id: postId },
+            data: postUpdate,
+          });
+        }
+      }
+    }
+
+    return this.findOne(id, userId);
   }
 
   private async paginatePublications(where: any, limit = 50, offset = 0, sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc') {

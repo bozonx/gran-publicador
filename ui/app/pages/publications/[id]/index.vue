@@ -4,13 +4,14 @@ import { useProjects } from '~/composables/useProjects'
 import { usePosts } from '~/composables/usePosts'
 import { useFormatters } from '~/composables/useFormatters'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
-import { getStatusColor, getStatusIcon } from '~/utils/publications'
+import { getStatusIcon } from '~/utils/publications'
 import { getSocialMediaIcon, getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
 import { ArchiveEntityType } from '~/types/archive.types'
 import type { MediaItem } from '~/composables/useMedia'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 import { getPostUrl } from '~/utils/posts'
+import { usePublicationActions } from '~/composables/usePublicationActions'
 
 definePageMeta({
   middleware: 'auth',
@@ -26,11 +27,17 @@ const {
   isLoading,
   updatePublication,
   deletePublication,
-  copyPublication
+  copyPublication,
+  getStatusColor
 } = usePublications()
 const { fetchProject, currentProject, fetchProjects, projects } = useProjects()
 const { updatePost } = usePosts()
 const { formatDateWithTime, formatDateShort } = useFormatters()
+const {
+  majoritySchedule,
+  normalizedPublicationMeta,
+  applyLlmResult: applyLlm
+} = usePublicationActions(currentPublication)
 
 const publicationId = computed(() => route.params.id as string)
 
@@ -80,37 +87,6 @@ function showPostPreview(post: any) {
   isPreviewModalOpen.value = true
 }
 
-const majoritySchedule = computed(() => {
-    if (!currentPublication.value?.posts?.length) return { date: null, conflict: false }
-    
-    // Collect dates: prefer publishedAt, then scheduledAt
-    const dates = currentPublication.value.posts
-        .map((p: any) => p.publishedAt || p.scheduledAt)
-        .filter((d: string | null) => !!d) as string[]
-
-    if (dates.length === 0) return { date: null, conflict: false }
-
-    const counts: Record<string, number> = {}
-    dates.forEach(d => {
-        counts[d] = (counts[d] || 0) + 1
-    })
-
-    let maxCount = 0
-    let majorityDate = null
-    
-    for (const [date, count] of Object.entries(counts)) {
-        if (count > maxCount) {
-            maxCount = count
-            majorityDate = date
-        }
-    }
-
-    const uniqueDates = Object.keys(counts)
-    const conflict = uniqueDates.length > 1
-    
-    return { date: majorityDate, conflict }
-})
-
 const isAnyPostPublished = computed(() => {
     return currentPublication.value?.posts?.some(p => !!p.publishedAt) ?? false
 })
@@ -126,21 +102,6 @@ const contentActionMode = ref<'copy' | 'move'>('copy')
 
 const isLocked = computed(() => !!currentPublication.value?.archivedAt || !!currentProject.value?.archivedAt)
 
-const normalizedPublicationMeta = computed<Record<string, any>>(() => {
-  const meta = (currentPublication.value as any)?.meta
-
-  if (typeof meta === 'object' && meta !== null) return meta
-
-  if (typeof meta === 'string' && meta.trim()) {
-    try {
-      return JSON.parse(meta)
-    } catch (e) {
-      return {}
-    }
-  }
-
-  return {}
-})
 
 const moreActions = computed(() => [
   [
@@ -231,60 +192,11 @@ function onTagClick(tag: string) {
   })
 }
 
-async function handleApplyLlm(data: {
-  publication?: { title?: string; description?: string; tags?: string; content?: string }
-  posts?: Array<{ channelId: string; content?: string; tags?: string }>
-  meta?: Record<string, any>
-}) {
-  if (!currentPublication.value) return
-  
-  try {
-    // Update publication fields
-    if (data.publication && Object.keys(data.publication).length > 0) {
-      const pubPayload: Record<string, any> = { ...data.publication }
-      if (data.meta) {
-        const existingMeta = normalizedPublicationMeta.value
-        pubPayload.meta = { ...existingMeta, ...data.meta }
-      }
-      await updatePublication(currentPublication.value.id, pubPayload)
-    } else if (data.meta) {
-      const existingMeta = normalizedPublicationMeta.value
-      await updatePublication(currentPublication.value.id, { meta: { ...existingMeta, ...data.meta } })
-    }
-
-    // Update post fields
-    if (data.posts && data.posts.length > 0) {
-      const postMap = new Map(
-        (currentPublication.value.posts || []).map((p: any) => [p.channelId, p.id])
-      )
-      for (const postData of data.posts) {
-        const postId = postMap.get(postData.channelId)
-        if (!postId) continue
-        const postPayload: Record<string, any> = {}
-        if (postData.content !== undefined) postPayload.content = postData.content
-        if (postData.tags !== undefined) postPayload.tags = postData.tags
-        if (Object.keys(postPayload).length > 0) {
-          await updatePost(postId, postPayload, { silent: true })
-        }
-      }
-    }
-
-    // Refresh publication to reflect all changes
-    await fetchPublication(currentPublication.value.id)
-
-    toast.add({
-      title: t('llm.applySuccess'),
-      color: 'success'
-    })
-    llmModalRef.value?.onApplySuccess()
-  } catch (e: any) {
-    toast.add({
-      title: t('llm.applyError'),
-      description: t('common.saveError'),
-      color: 'error'
-    })
-    llmModalRef.value?.onApplyError()
-  }
+async function handleApplyLlm(data: any) {
+  await applyLlm(data, {
+    onSuccess: () => llmModalRef.value?.onApplySuccess(),
+    onError: () => llmModalRef.value?.onApplyError()
+  })
 }
 
 </script>
@@ -377,7 +289,9 @@ async function handleApplyLlm(data: {
               </span>
               <span :class="majoritySchedule.date ? (isAnyPostPublished ? 'text-success-600 dark:text-success-400 font-medium' : 'text-primary-600 dark:text-primary-400 font-medium') : 'text-success-600 dark:text-success-400'">
                 {{ majoritySchedule.date ? formatDateWithTime(majoritySchedule.date) : t('common.none') }}
-                <span v-if="majoritySchedule.conflict" class="ml-1 text-orange-500">*</span>
+                <UTooltip v-if="majoritySchedule.conflict" :text="t('publication.scheduleConflict', 'Individual channels have different scheduled dates')">
+                  <span class="ml-1 text-orange-500 cursor-help">*</span>
+                </UTooltip>
               </span>
             </UBadge>
 

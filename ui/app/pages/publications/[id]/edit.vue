@@ -11,8 +11,8 @@ import { getPostTypeOptionsForPlatforms } from '~/utils/socialMediaPlatforms'
 import type { PublicationStatus, PostType } from '~/types/posts'
 import { ArchiveEntityType } from '~/types/archive.types'
 import MediaGallery from '~/components/media/MediaGallery.vue'
-import { getUserSelectableStatuses, getStatusColor, getStatusClass, getStatusIcon } from '~/utils/publications'
 import type { MediaItem } from '~/composables/useMedia'
+import { usePublicationActions } from '~/composables/usePublicationActions'
 
 
 definePageMeta({
@@ -33,7 +33,18 @@ const {
   copyPublication,
   statusOptions,
   bulkOperation,
+  applyLlmResult: applyLlmViaService,
+  getStatusColor,
+  getStatusIcon,
+  getPublicationProblems, 
+  getPublicationProblemLevel 
 } = usePublications()
+
+const {
+  majoritySchedule,
+  normalizedPublicationMeta,
+  applyLlmResult: applyLlm
+} = usePublicationActions(currentPublication)
 const { fetchChannels, channels } = useChannels()
 const { canGoBack, goBack } = useNavigation()
 
@@ -41,10 +52,6 @@ const projectId = computed(() => currentPublication.value?.projectId || null)
 const publicationId = computed(() => route.params.id as string)
 
 // Publication problems detection
-const { 
-  getPublicationProblems, 
-  getPublicationProblemLevel 
-} = usePublications()
 
 const linkedSocialMedia = computed(() => {
     if (!currentPublication.value?.posts) return []
@@ -86,22 +93,6 @@ const publicationProblems = computed(() => {
   return problems
 })
 
-const normalizedPublicationMeta = computed<Record<string, any>>(() => {
-  const meta = (currentPublication.value as any)?.meta
-
-  if (typeof meta === 'object' && meta !== null) return meta
-
-  if (typeof meta === 'string' && meta.trim()) {
-    try {
-      const parsed = JSON.parse(meta)
-      return typeof parsed === 'object' && parsed !== null ? parsed : {}
-    } catch {
-      return {}
-    }
-  }
-
-  return {}
-})
 
 const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
@@ -179,36 +170,6 @@ const displayTitle = computed(() => {
   return t('post.untitled')
 })
 
-const majoritySchedule = computed(() => {
-    if (!currentPublication.value?.posts?.length) return { date: null, conflict: false }
-    
-    // Collect dates: prefer scheduledAt, then publishedAt
-    const dates = currentPublication.value.posts
-        .map((p: any) => p.scheduledAt || p.publishedAt)
-        .filter((d: string | null) => !!d) as string[]
-
-    if (dates.length === 0) return { date: null, conflict: false }
-
-    const counts: Record<string, number> = {}
-    dates.forEach(d => {
-        counts[d] = (counts[d] || 0) + 1
-    })
-
-    let maxCount = 0
-    let majorityDate = null
-    
-    for (const [date, count] of Object.entries(counts)) {
-        if (count > maxCount) {
-            maxCount = count
-            majorityDate = date
-        }
-    }
-
-    const uniqueDates = Object.keys(counts)
-    const conflict = uniqueDates.length > 1
-    
-    return { date: majorityDate, conflict }
-})
 
 
 // Check for openLlm param whenever publication is loaded
@@ -328,66 +289,11 @@ async function handleDelete() {
     }
 }
 
-async function handleApplyLlm(data: {
-  publication?: { title?: string; description?: string; tags?: string; content?: string }
-  posts?: Array<{ channelId: string; content?: string; tags?: string }>
-  meta?: Record<string, any>
-}) {
-  if (!currentPublication.value) return
-  
-  try {
-    // Update publication fields
-    if (data.publication && Object.keys(data.publication).length > 0) {
-      const pubPayload: Record<string, any> = { ...data.publication }
-
-      // Ensure authorComment is not populated from LLM generation
-      if ('authorComment' in pubPayload) {
-        delete pubPayload['authorComment']
-      }
-
-      if (data.meta) {
-        const existingMeta = normalizedPublicationMeta.value
-        pubPayload.meta = { ...existingMeta, ...data.meta }
-      }
-      await updatePublication(currentPublication.value.id, pubPayload)
-    } else if (data.meta) {
-      const existingMeta = normalizedPublicationMeta.value
-      await updatePublication(currentPublication.value.id, { meta: { ...existingMeta, ...data.meta } })
-    }
-
-    // Update post fields
-    if (data.posts && data.posts.length > 0) {
-      const postMap = new Map(
-        (currentPublication.value.posts || []).map((p: any) => [p.channelId, p.id])
-      )
-      for (const postData of data.posts) {
-        const postId = postMap.get(postData.channelId)
-        if (!postId) continue
-        const postPayload: Record<string, any> = {}
-        if (postData.content !== undefined) postPayload.content = postData.content
-        if (postData.tags !== undefined) postPayload.tags = postData.tags
-        if (Object.keys(postPayload).length > 0) {
-          await updatePost(postId, postPayload, { silent: true })
-        }
-      }
-    }
-
-    // Refresh publication to reflect all changes
-    await fetchPublication(currentPublication.value.id)
-
-    toast.add({
-      title: t('llm.applySuccess'),
-      color: 'success'
-    })
-    llmModalRef.value?.onApplySuccess()
-  } catch (e: any) {
-    toast.add({
-      title: t('llm.applyError'),
-      description: t('common.saveError'),
-      color: 'error'
-    })
-    llmModalRef.value?.onApplyError()
-  }
+async function handleApplyLlm(data: any) {
+  await applyLlm(data, {
+    onSuccess: () => llmModalRef.value?.onApplySuccess(),
+    onError: () => llmModalRef.value?.onApplyError()
+  })
 }
 
 function openScheduleModal() {

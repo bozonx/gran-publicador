@@ -292,6 +292,18 @@ export function usePublications() {
     }
   }
 
+  async function applyLlmResult(id: string, data: any): Promise<PublicationWithRelations> {
+    try {
+      const result = await api.patch<PublicationWithRelations>(`/publications/${id}/apply-llm`, data);
+      const normalized = normalizePublication(result);
+      if (currentPublication.value?.id === id) currentPublication.value = normalized;
+      return normalized;
+    } catch (err: any) {
+      logger.error('[usePublications] applyLlmResult error', err);
+      throw err;
+    }
+  }
+
   return {
     publications,
     currentPublication,
@@ -313,6 +325,7 @@ export function usePublications() {
     createPostsFromPublication,
     toggleArchive,
     copyPublication,
+    applyLlmResult,
     getStatusDisplayName: (s: string) => utilGetStatusDisplayName(s, t),
     getStatusColor: (s: string) => utilGetStatusUiColor(s),
     getStatusIcon,

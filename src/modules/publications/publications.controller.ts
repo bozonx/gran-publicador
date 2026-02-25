@@ -35,6 +35,7 @@ import {
   IssueType,
   ReorderMediaDto,
   BulkOperationDto,
+  ApplyLlmResultDto,
 } from './dto/index.js';
 import { PublicationsService } from './publications.service.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
@@ -187,6 +188,18 @@ export class PublicationsController {
     @Body() updatePublicationDto: UpdatePublicationDto,
   ) {
     return this.publicationsService.update(id, req.user.userId, updatePublicationDto);
+  }
+
+  /**
+   * Apply LLM result to publication and its posts.
+   */
+  @Patch(':id/apply-llm')
+  public async applyLlmResult(
+    @Request() req: UnifiedAuthRequest,
+    @Param('id') id: string,
+    @Body() applyLlmResultDto: ApplyLlmResultDto,
+  ) {
+    return this.publicationsService.applyLlmResult(id, req.user.userId, applyLlmResultDto);
   }
 
   /**
