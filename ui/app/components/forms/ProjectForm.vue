@@ -57,7 +57,7 @@ const isEditMode = computed(() => !!props.project?.id)
 // Form state interface
 interface FormState {
   name: string
-  description: string
+  note: string
   preferences: {
     staleChannelsDays?: number
     mediaOptimization?: MediaOptimizationPreferences
@@ -67,7 +67,7 @@ interface FormState {
 // Form state
 const state = reactive<FormState>({
   name: props.project?.name || '',
-  description: props.project?.description || '',
+  note: props.project?.note || '',
   preferences: {
     staleChannelsDays: props.project?.preferences?.staleChannelsDays ?? props.project?.preferences?.['stale_channels_days'],
     mediaOptimization: props.project?.preferences?.mediaOptimization ?? props.project?.preferences?.['media_optimization'],
@@ -82,7 +82,7 @@ function prepareUpdateData(currentState: FormState): Partial<ProjectWithRole> {
 
   if (props.visibleSections.includes('general')) {
     updateData.name = currentState.name
-    updateData.description = currentState.description || null
+    updateData.note = currentState.note || null
   }
 
   if (props.visibleSections.includes('preferences') || props.visibleSections.includes('optimization')) {
@@ -135,7 +135,7 @@ const schema = z.object({
   name: z.string()
     .min(2, t('validation.minLength', { min: 2 }))
     .nonempty(t('validation.required')),
-  description: z.string()
+  note: z.string()
     .max(500, t('validation.maxLength', { max: 500 }))
     .optional(),
   preferences: z.object({
@@ -171,7 +171,7 @@ watch(() => props.project, (newProject, oldProject) => {
   }
 
   state.name = newProject?.name || ''
-  state.description = newProject?.description || ''
+  state.note = newProject?.note || ''
   
   const rawMediaOpt = newProject?.preferences?.mediaOptimization ?? newProject?.preferences?.['media_optimization']
   let mediaOpt = rawMediaOpt
@@ -278,15 +278,15 @@ function handleReset() {
           />
         </UFormField>
 
-        <!-- Project description -->
+        <!-- Project note -->
         <UFormField
-          name="description"
-          :label="t('project.description')"
+          name="note"
+          :label="t('project.note')"
           :help="`${t('common.optional')} — ${t('validation.maxLength', { max: 500 })}`"
         >
           <UTextarea
-            v-model="state.description"
-            :placeholder="t('project.descriptionPlaceholder', 'Enter project description')"
+            v-model="state.note"
+            :placeholder="t('project.notePlaceholder', 'Enter project note')"
             :class="FORM_STYLES.fieldFullWidth"
             :rows="FORM_STYLES.textareaRows"
             autoresize

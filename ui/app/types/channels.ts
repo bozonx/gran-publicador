@@ -57,7 +57,7 @@ export interface Channel {
   projectId: string;
   socialMedia: SocialMedia;
   name: string;
-  description?: string | null;
+  note?: string | null;
   channelIdentifier: string;
   language: string;
   preferences?: {
@@ -95,7 +95,7 @@ export interface ChannelWithProject extends Channel {
 export interface ChannelCreateInput {
   projectId: string;
   name: string;
-  description?: string | null;
+  note?: string | null;
   socialMedia: SocialMedia;
   channelIdentifier: string;
   language: string;
@@ -110,7 +110,7 @@ export interface ChannelCreateInput {
 
 export interface ChannelUpdateInput {
   name?: string;
-  description?: string | null;
+  note?: string | null;
   channelIdentifier?: string;
   credentials?: Record<string, any>;
   preferences?: {

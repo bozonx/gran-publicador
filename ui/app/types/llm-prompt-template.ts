@@ -5,7 +5,7 @@ export interface LlmPromptTemplate {
   userId?: string;
   projectId?: string;
   name?: string;
-  description?: string;
+  note?: string;
   category: string;
   prompt: string;
   order: number;

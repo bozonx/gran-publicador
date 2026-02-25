@@ -1,16 +1,13 @@
-export { PermissionKey, SystemRoleType } from '@gran/shared/permissions';
+import { PermissionKey, SystemRoleType, type RolePermissions } from '@gran/shared/permissions';
 
-export type PermissionKey = import('@gran/shared/permissions').PermissionKey;
-
-export type RolePermissions = import('@gran/shared/permissions').RolePermissions;
-
-export type SystemRoleType = import('@gran/shared/permissions').SystemRoleType;
+export { PermissionKey, SystemRoleType };
+export type { RolePermissions };
 
 export interface Role {
   id: string;
   projectId: string;
   name: string;
-  description?: string | null;
+  note?: string | null;
   isSystem: boolean;
   systemType: SystemRoleType | null;
   permissions: RolePermissions;

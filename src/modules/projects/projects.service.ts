@@ -91,7 +91,7 @@ export class ProjectsService {
         const project = await tx.project.create({
           data: {
             name: data.name,
-            description: data.description,
+            note: data.note,
             ownerId: userId,
             preferences: (data.preferences ?? {}) as any,
           },
@@ -158,7 +158,7 @@ export class ProjectsService {
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
+        { note: { contains: search, mode: 'insensitive' } },
       ];
     }
 
@@ -416,7 +416,7 @@ export class ProjectsService {
       select: {
         id: true,
         name: true,
-        description: true,
+        note: true,
         ownerId: true,
         preferences: true,
         createdAt: true,

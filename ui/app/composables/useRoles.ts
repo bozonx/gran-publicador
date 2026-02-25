@@ -74,7 +74,7 @@ export function useRoles() {
   /**
    * Create a new custom role
    */
-  async function createRole(projectId: string, data: { name: string; description?: string; permissions: RolePermissions }): Promise<Role | null> {
+  async function createRole(projectId: string, data: { name: string; note?: string; permissions: RolePermissions }): Promise<Role | null> {
     isLoading.value = true
     
     try {
@@ -105,7 +105,7 @@ export function useRoles() {
   /**
    * Update an existing role
    */
-  async function updateRole(roleId: string, data: { name?: string; description?: string; permissions?: RolePermissions }): Promise<Role | null> {
+  async function updateRole(roleId: string, data: { name?: string; note?: string; permissions?: RolePermissions }): Promise<Role | null> {
     isLoading.value = true
     
     try {

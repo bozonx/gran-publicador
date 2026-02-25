@@ -167,7 +167,7 @@ export class RolesService {
       data: {
         projectId,
         name: data.name,
-        description: data.description,
+        note: data.note,
         isSystem: false,
         systemType: null,
         permissions: data.permissions as any,
@@ -220,7 +220,7 @@ export class RolesService {
 
     const updateData: any = {
       name: data.name,
-      description: data.description,
+      note: data.note,
       permissions: data.permissions ? (data.permissions as any) : undefined,
     };
 

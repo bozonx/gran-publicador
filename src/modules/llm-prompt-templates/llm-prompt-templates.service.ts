@@ -99,7 +99,7 @@ export class LlmPromptTemplatesService {
       isSystem: true,
       isHidden: hiddenIds.has(tpl.id),
       name: tpl.name,
-      description: tpl.description,
+      note: tpl.note,
       prompt: tpl.prompt,
       category: tpl.category,
     })).filter(tpl => includeHidden || !tpl.isHidden);

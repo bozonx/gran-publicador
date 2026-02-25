@@ -19,7 +19,7 @@ export class CreateLlmPromptTemplateDto {
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
-  description?: string;
+  public note?: string;
 
   @IsString()
   @IsNotEmpty()

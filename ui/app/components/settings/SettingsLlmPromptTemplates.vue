@@ -68,7 +68,7 @@ const openEditModal = (template: LlmPromptTemplate) => {
   isModalOpen.value = true
 }
 
-const handleSubmit = async (data: { name: string; category: string; prompt: string }) => {
+const handleSubmit = async (data: { name: string; category: string; note?: string; prompt: string }) => {
   isSubmitting.value = true
   try {
     if (modalMode.value === 'create') {

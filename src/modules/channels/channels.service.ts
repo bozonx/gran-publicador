@@ -166,7 +166,7 @@ export class ChannelsService {
         projectId,
         socialMedia: data.socialMedia,
         name: data.name,
-        description: data.description,
+        note: data.note,
         channelIdentifier: data.channelIdentifier,
         language: this.normalizeLanguage(data.language),
         credentials: (data.credentials ?? {}) as Prisma.InputJsonValue,
@@ -240,7 +240,7 @@ export class ChannelsService {
 
     const updateData: any = {
       name: data.name,
-      description: data.description,
+      note: data.note,
       channelIdentifier: data.channelIdentifier,
       credentials: data.credentials ? (data.credentials as Prisma.InputJsonValue) : undefined,
       preferences: data.preferences ? (data.preferences as Prisma.InputJsonValue) : undefined,

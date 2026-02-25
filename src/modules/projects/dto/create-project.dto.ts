@@ -22,7 +22,7 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
-  public description?: string;
+  public note?: string;
 
   @IsObject()
   @IsOptional()

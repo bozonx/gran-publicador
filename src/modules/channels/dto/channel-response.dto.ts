@@ -20,7 +20,7 @@ export class ChannelResponseDto {
   public projectId!: string;
   public socialMedia!: SocialMedia;
   public name!: string;
-  public description!: string | null;
+  public note!: string | null;
   public channelIdentifier!: string;
   public language!: string;
   public tags!: string | null;

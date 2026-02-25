@@ -34,7 +34,7 @@ const defaultPermissions: RolePermissions = {
 
 const form = ref({
   name: '',
-  description: '',
+  note: '',
   permissions: structuredClone(defaultPermissions)
 })
 
@@ -43,7 +43,7 @@ watch(() => props.role, (newRole) => {
   if (newRole) {
     form.value = {
       name: newRole.name,
-      description: newRole.description || '',
+      note: newRole.note || '',
       permissions: {
         project: { ...newRole.permissions.project },
         channels: { ...newRole.permissions.channels },
@@ -54,7 +54,7 @@ watch(() => props.role, (newRole) => {
     // Reset for create
     form.value = {
       name: '',
-      description: '',
+      note: '',
       permissions: structuredClone(defaultPermissions)
     }
   }
@@ -65,7 +65,7 @@ watch(() => props.modelValue, (val) => {
   if (val && !props.role) {
     form.value = {
       name: '',
-      description: '',
+      note: '',
       permissions: structuredClone(defaultPermissions)
     }
   }
@@ -82,13 +82,13 @@ async function handleSubmit() {
   if (isEditing.value && props.role) {
     result = await updateRole(props.role.id, {
       name: isSystem.value ? undefined : form.value.name, // System roles cannot change name
-      description: form.value.description,
+      note: form.value.note,
       permissions: form.value.permissions
     })
   } else {
     result = await createRole(props.projectId, {
       name: form.value.name,
-      description: form.value.description,
+      note: form.value.note,
       permissions: form.value.permissions
     })
   }
@@ -122,10 +122,10 @@ async function handleSubmit() {
         </p>
       </UFormField>
 
-      <UFormField :label="t('roles.description', 'Description')">
+      <UFormField :label="t('roles.note', 'Description')">
         <UTextarea
-          v-model="form.description"
-          :placeholder="t('roles.descriptionPlaceholder', 'Enter role description...')"
+          v-model="form.note"
+          :placeholder="t('roles.notePlaceholder', 'Enter role note...')"
           :rows="2"
         />
       </UFormField>

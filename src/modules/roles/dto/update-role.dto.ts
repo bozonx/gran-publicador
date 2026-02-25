@@ -12,7 +12,7 @@ export class UpdateRoleDto {
   @IsString()
   @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
-  public description?: string;
+  public note?: string;
 
   @ValidateNested()
   @Type(() => RolePermissionsDto)

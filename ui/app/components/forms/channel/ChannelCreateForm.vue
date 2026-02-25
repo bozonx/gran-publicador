@@ -24,7 +24,7 @@ const formState = reactive({
   socialMedia: 'telegram' as SocialMedia | '',
   language: user.value?.language || 'en-US',
   channelIdentifier: '',
-  description: '',
+  note: '',
   isActive: true,
   credentials: {
     telegramChannelId: '',
@@ -97,7 +97,7 @@ function handleSubmit() {
     socialMedia: formState.socialMedia as SocialMedia,
     language: formState.language,
     channelIdentifier: formState.channelIdentifier,
-    description: formState.description || undefined,
+    note: formState.note || undefined,
     isActive: formState.isActive,
     credentials: getCredentials(),
   })

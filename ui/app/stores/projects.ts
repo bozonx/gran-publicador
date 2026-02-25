@@ -5,7 +5,7 @@ import type { Role } from '~/types/roles.types';
 export interface Project {
   id: string;
   name: string;
-  description: string | null;
+  note: string | null;
   ownerId: string;
   archivedAt?: string | null;
   createdAt: string;
@@ -20,7 +20,7 @@ export interface Project {
 
 export interface ProjectUpdateInput {
   name?: string;
-  description?: string | null;
+  note?: string | null;
   preferences?: {
     mediaOptimization?: MediaOptimizationPreferences;
     [key: string]: any;

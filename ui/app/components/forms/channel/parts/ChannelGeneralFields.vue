@@ -219,10 +219,10 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
     </div>
 
     <!-- Description -->
-    <UFormField name="description" :label="t('channel.description', 'Description')">
+    <UFormField name="note" :label="t('channel.note', 'Description')">
       <UTextarea
-        v-model="state.description"
-        :placeholder="t('channel.descriptionPlaceholder', 'Enter channel description...')"
+        v-model="state.note"
+        :placeholder="t('channel.notePlaceholder', 'Enter channel note...')"
         class="w-full"
         :rows="3"
         autoresize

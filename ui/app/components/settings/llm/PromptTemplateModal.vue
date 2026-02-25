@@ -11,7 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
-  (e: 'submit', data: { name: string; category: string; prompt: string }): void
+  (e: 'submit', data: { name: string; category: string; note?: string; prompt: string }): void
   (e: 'delete', template: LlmPromptTemplate): void
 }>()
 
@@ -22,6 +22,7 @@ const formData = reactive({
   name: '',
   category: 'General',
   customCategory: '',
+  note: '',
   prompt: ''
 })
 
@@ -31,6 +32,7 @@ watch(() => props.open, (newVal) => {
       formData.name = ''
       formData.category = props.categoryOptions[0]?.value || 'General'
       formData.customCategory = ''
+      formData.note = ''
       formData.prompt = ''
     } else {
       formData.name = props.template.name || ''
@@ -43,6 +45,7 @@ watch(() => props.open, (newVal) => {
         formData.category = CUSTOM_CATEGORY_VALUE
         formData.customCategory = templateCategory
       }
+      formData.note = props.template.note || ''
       formData.prompt = props.template.prompt
     }
   }
@@ -62,6 +65,7 @@ function handleSubmit() {
   emit('submit', {
     name: formData.name.trim(),
     category,
+    note: formData.note.trim() || undefined,
     prompt: formData.prompt
   })
 }
@@ -97,6 +101,14 @@ function handleSubmit() {
         <UInput
           v-model="formData.customCategory"
           :placeholder="t('llm.templateCategoryPlaceholder')"
+          class="w-full"
+        />
+      </UFormField>
+      
+      <UFormField :label="t('llm.templateNote')" class="w-full">
+        <UInput
+          v-model="formData.note"
+          :placeholder="t('llm.templateNotePlaceholder')"
           class="w-full"
         />
       </UFormField>

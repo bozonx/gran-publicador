@@ -180,7 +180,7 @@ export function useLlmPromptTemplates() {
 
   async function createTemplate(data: {
     name?: string;
-    description?: string;
+    note?: string;
     category?: string;
     prompt: string;
     order?: number;
@@ -193,7 +193,7 @@ export function useLlmPromptTemplates() {
     const sanitizedData = {
       ...data,
       name: data.name?.trim() || undefined,
-      description: data.description?.trim() || undefined,
+      note: data.note?.trim() || undefined,
     };
 
     try {
@@ -217,7 +217,7 @@ export function useLlmPromptTemplates() {
     id: string,
     data: {
       name?: string;
-      description?: string;
+      note?: string;
       category?: string;
       prompt?: string;
       order?: number;
@@ -229,7 +229,7 @@ export function useLlmPromptTemplates() {
     const sanitizedData = {
       ...data,
       name: data.name?.trim() || undefined,
-      description: data.description?.trim() || undefined,
+      note: data.note?.trim() || undefined,
     };
 
     try {
