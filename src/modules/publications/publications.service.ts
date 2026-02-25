@@ -43,6 +43,7 @@ import { PublicationsMapper } from './publications.mapper.js';
 import { PublicationsMediaService } from './publications-media.service.js';
 import { PublicationsBulkService } from './publications-bulk.service.js';
 import { ApplyLlmResultDto } from './dto/apply-llm-result.dto.js';
+import { SocialPostingService } from '../social-posting/social-posting.service.js';
 
 @Injectable()
 export class PublicationsService {
@@ -53,6 +54,7 @@ export class PublicationsService {
     private permissions: PermissionsService,
     private mediaService: MediaService,
     private snapshotBuilder: PostSnapshotBuilderService,
+    private socialPostingService: SocialPostingService,
     private llmService: LlmService,
     private tagsService: TagsService,
     private contentItemsService: ContentItemsService,
@@ -348,8 +350,26 @@ export class PublicationsService {
     }
 
     if (data.status) {
+      // Prevent user from setting system statuses directly via update
+      const allowedUserStatuses: PublicationStatus[] = [
+        PublicationStatus.DRAFT,
+        PublicationStatus.READY,
+        PublicationStatus.SCHEDULED,
+      ];
+      if (!allowedUserStatuses.includes(data.status)) {
+        throw new BadRequestException(`Cannot manually set status to ${data.status}`);
+      }
       await this.handleStatusChange(id, data.status, previousStatus);
     }
+
+    // Snapshot invalidation: if publication is already in READY/SCHEDULED and content changes,
+    // we must rebuild the snapshot so the worker gets the fresh content
+    const isContentUpdated =
+      data.title !== undefined || data.content !== undefined || data.tags !== undefined;
+    const needsSnapshotRebuild =
+      isContentUpdated &&
+      (publication.status === PublicationStatus.READY ||
+        publication.status === PublicationStatus.SCHEDULED);
 
     const sanitizedContent =
       data.content !== undefined
@@ -392,7 +412,48 @@ export class PublicationsService {
       await this.refreshPublicationEffectiveAt(id);
     }
 
+    if (needsSnapshotRebuild) {
+      await this.snapshotBuilder.buildForPublication(id);
+    }
+
     return this.normalizePublicationTags(updated);
+  }
+
+  /**
+   * Instantly publish a publication, bypassing the scheduler
+   */
+  public async publishNow(id: string, userId: string) {
+    const publication = await this.findOne(id, userId);
+
+    if (publication.createdBy === userId) {
+      await this.permissions.checkPermission(
+        publication.projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
+    } else {
+      await this.permissions.checkPermission(
+        publication.projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
+    }
+
+    if (
+      publication.status === PublicationStatus.PROCESSING ||
+      publication.status === PublicationStatus.PUBLISHED
+    ) {
+      throw new BadRequestException('Publication is already processing or published');
+    }
+
+    // 1. Build snapshot synchronously
+    await this.snapshotBuilder.buildForPublication(id);
+
+    // 2. Set to processing and enqueue
+    // Enqueue automatically updates status to PROCESSING
+    await this.socialPostingService.enqueuePublication(id, { skipLock: false, force: true });
+
+    return this.findOne(id, userId);
   }
 
   public async applyLlmResult(id: string, userId: string, data: ApplyLlmResultDto) {

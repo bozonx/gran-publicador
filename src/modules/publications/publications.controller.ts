@@ -186,6 +186,11 @@ export class PublicationsController {
     return this.publicationsService.update(id, req.user.userId, updatePublicationDto);
   }
 
+  @Post(':id/publish-now')
+  public async publishNow(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
+    return this.publicationsService.publishNow(id, req.user.userId);
+  }
+
   /**
    * Apply LLM result to publication and its posts.
    */

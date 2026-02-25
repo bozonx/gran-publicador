@@ -15,6 +15,7 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { NotificationType } from '../../generated/prisma/index.js';
 import { I18nService } from 'nestjs-i18n';
 import { MediaService } from '../media/media.service.js';
+import { RedisService } from '../../common/redis/redis.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 import { HttpConfig } from '../../config/http.config.js';
 import { requestJsonWithRetry } from '../../common/utils/http-request-with-retry.util.js';
@@ -38,6 +39,7 @@ export class SocialPostingService {
     private readonly notifications: NotificationsService,
     private readonly i18n: I18nService,
     private readonly mediaService: MediaService,
+    private readonly redisService: RedisService,
     @InjectQueue(PUBLICATIONS_QUEUE)
     private readonly publicationsQueue: Queue<ProcessPostJobData>,
   ) {
@@ -189,6 +191,43 @@ export class SocialPostingService {
       throw new BadRequestException('Publication must have content or at least one media file');
     }
 
+    const now = new Date();
+    const postsToProcess = publication.posts.filter(post => {
+      if (options.force) return true;
+      if (post.status !== PostStatus.PENDING) return false;
+      // Per-post scheduling: skip posts scheduled for the future
+      if (post.scheduledAt && post.scheduledAt > now) return false;
+      return true;
+    });
+
+    if (postsToProcess.length === 0) {
+      // Complete immediately if no posts to process
+      await this.checkAndUpdatePublicationStatus(publicationId);
+      return {
+        success: true,
+        message: 'No posts to publish at this time',
+        data: {
+          publicationId,
+          status: PublicationStatus.PROCESSING, // Will be resolved by checkAndUpdatePublicationStatus
+          publishedCount: 0,
+          failedCount: 0,
+          results: [],
+        },
+      };
+    }
+
+    // Payload isolation: Prepare all payloads BEFORE changing publication status or enqueuing
+    const preparedPosts: { post: any; payloadError?: string }[] = [];
+    for (const post of postsToProcess) {
+      try {
+        await this.preparePostPayload(post.id, options.force);
+        preparedPosts.push({ post });
+      } catch (error: any) {
+        this.logger.error(`Failed to prepare post ${post.id}: ${error.message}`);
+        preparedPosts.push({ post, payloadError: error.message });
+      }
+    }
+
     // Atomic status update to prevent race conditions
     if (!options.skipLock) {
       const updateResult = await this.prisma.publication.updateMany({
@@ -220,30 +259,13 @@ export class SocialPostingService {
       }
     }
 
-    const postsToProcess = publication.posts.filter(
-      post => post.status === PostStatus.PENDING || options.force,
-    );
-
-    if (postsToProcess.length === 0) {
-      // Complete immediately if no posts to process
-      await this.checkAndUpdatePublicationStatus(publicationId);
-      return {
-        success: true,
-        message: 'No posts to publish',
-        data: {
-          publicationId,
-          status: PublicationStatus.PUBLISHED,
-          publishedCount: 0,
-          failedCount: 0,
-          results: [],
-        },
-      };
-    }
-
     let enqueuedCount = 0;
-    for (const post of postsToProcess) {
+    for (const { post, payloadError } of preparedPosts) {
+      if (payloadError) {
+        // Already marked as FAILED in preparePostPayload
+        continue;
+      }
       try {
-        await this.preparePostPayload(post.id, options.force);
         await this.publicationsQueue.add(
           PROCESS_POST_JOB,
           { postId: post.id, force: options.force },
@@ -255,8 +277,14 @@ export class SocialPostingService {
         );
         enqueuedCount++;
       } catch (error: any) {
-        this.logger.error(`Failed to prepare/enqueue post ${post.id}: ${error.message}`);
-        // Status is already set to FAILED by preparePostPayload
+        this.logger.error(`Failed to enqueue post ${post.id}: ${error.message}`);
+        await this.prisma.post.update({
+          where: { id: post.id },
+          data: {
+            status: PostStatus.FAILED,
+            errorMessage: `Enqueue failed: ${error.message}`,
+          },
+        });
       }
     }
 
@@ -504,111 +532,127 @@ export class SocialPostingService {
    * If finished, sends notifications.
    */
   async checkAndUpdatePublicationStatus(publicationId: string): Promise<void> {
-    const publication = await this.prisma.publication.findUnique({
-      where: { id: publicationId },
-      include: { posts: { include: { channel: true } } },
-    });
+    const lockKey = `publication_status_${publicationId}`;
+    const lockToken = await this.redisService.acquireLock(lockKey, 30000); // 30 sec lock
+    if (!lockToken) {
+      this.logger.warn(`Could not acquire lock to check status for publication ${publicationId}`);
+      return;
+    }
 
-    if (!publication) return;
+    try {
+      const publication = await this.prisma.publication.findUnique({
+        where: { id: publicationId },
+        include: { posts: { include: { channel: true } } },
+      });
 
-    const allPosts = publication.posts;
-    const isFinished = allPosts.every(
-      p => p.status === PostStatus.PUBLISHED || p.status === PostStatus.FAILED,
-    );
+      if (!publication) return;
 
-    if (!isFinished) return; // Still processing
+      const allPosts = publication.posts;
+      const isFinished = allPosts.every(
+        p => p.status === PostStatus.PUBLISHED || p.status === PostStatus.FAILED,
+      );
 
-    const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
-    const failedCount = allPosts.length - successCount;
+      if (!isFinished) return; // Still processing
 
-    const finalStatus =
-      successCount === allPosts.length && allPosts.length > 0
-        ? PublicationStatus.PUBLISHED
-        : successCount > 0
-          ? PublicationStatus.PARTIAL
-          : PublicationStatus.FAILED;
+      const successCount = allPosts.filter(p => p.status === PostStatus.PUBLISHED).length;
+      const failedCount = allPosts.length - successCount;
 
-    const results = allPosts.map(p => ({
-      postId: p.id,
-      channelId: p.channelId,
-      channelName: p.channel.name,
-      platform: p.channel.socialMedia,
-      success: p.status === PostStatus.PUBLISHED,
-      error: p.errorMessage,
-    }));
+      const finalStatus =
+        successCount === allPosts.length && allPosts.length > 0
+          ? PublicationStatus.PUBLISHED
+          : successCount > 0
+            ? PublicationStatus.PARTIAL
+            : PublicationStatus.FAILED;
 
-    await this.prisma.publication.update({
-      where: { id: publicationId },
-      data: {
-        status: finalStatus,
-        processingStartedAt: null,
-        meta: this.sanitizeJson({
-          ...((publication.meta as any) || {}),
-          attempts: [
-            ...((publication.meta as any)?.attempts || []),
-            { timestamp: new Date().toISOString(), successCount, totalCount: allPosts.length },
-          ],
-          lastResult: {
-            timestamp: new Date().toISOString(),
-            successCount,
-            totalCount: allPosts.length,
-          },
-        }),
-      },
-    });
+      // Make sure we aren't updating if it's already in a final state and meta matches
+      if (publication.status === finalStatus) {
+        return;
+      }
 
-    // Notify creator
-    if (
-      (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
-      publication.createdBy
-    ) {
-      try {
-        const user = await this.prisma.user.findUnique({
-          where: { id: publication.createdBy },
-          select: { uiLanguage: true },
-        });
-        const lang = user?.uiLanguage || 'en-US';
+      const results = allPosts.map(p => ({
+        postId: p.id,
+        channelId: p.channelId,
+        channelName: p.channel.name,
+        platform: p.channel.socialMedia,
+        success: p.status === PostStatus.PUBLISHED,
+        error: p.errorMessage,
+      }));
 
-        const successList = results
-          .filter(r => r.success)
-          .map(r => `${r.channelName} (${r.platform})`)
-          .join(', ');
-        const failedList = results
-          .filter(r => !r.success)
-          .map(r => `${r.channelName} (${r.platform})`)
-          .join(', ');
-
-        let detailMessage = '';
-        if (successList) detailMessage += `\n✅ Success: ${successList}`;
-        if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
-
-        const titleKey =
-          finalStatus === PublicationStatus.FAILED
-            ? 'notifications.PUBLICATION_FAILED_TITLE'
-            : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
-
-        await this.notifications.create({
-          userId: publication.createdBy,
-          type: NotificationType.PUBLICATION_FAILED,
-          title: this.i18n.t(titleKey, { lang }),
-          message: this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
-            lang,
-            args: {
-              title:
-                publication.title ||
-                (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
-              finalStatus:
-                finalStatus === PublicationStatus.FAILED
-                  ? 'failed'
-                  : 'was only partially published',
-              detailMessage,
+      await this.prisma.publication.update({
+        where: { id: publicationId },
+        data: {
+          status: finalStatus,
+          processingStartedAt: null,
+          meta: this.sanitizeJson({
+            ...((publication.meta as any) || {}),
+            attempts: [
+              ...((publication.meta as any)?.attempts || []),
+              { timestamp: new Date().toISOString(), successCount, totalCount: allPosts.length },
+            ],
+            lastResult: {
+              timestamp: new Date().toISOString(),
+              successCount,
+              totalCount: allPosts.length,
             },
           }),
-          meta: { publicationId: publication.id, projectId: publication.projectId },
-        });
-      } catch (error: any) {
-        this.logger.error(`Failed to send publication notification: ${error.message}`);
+        },
+      });
+
+      // Notify creator
+      if (
+        (finalStatus === PublicationStatus.FAILED || finalStatus === PublicationStatus.PARTIAL) &&
+        publication.createdBy
+      ) {
+        try {
+          const user = await this.prisma.user.findUnique({
+            where: { id: publication.createdBy },
+            select: { uiLanguage: true },
+          });
+          const lang = user?.uiLanguage || 'en-US';
+
+          const successList = results
+            .filter(r => r.success)
+            .map(r => `${r.channelName} (${r.platform})`)
+            .join(', ');
+          const failedList = results
+            .filter(r => !r.success)
+            .map(r => `${r.channelName} (${r.platform})`)
+            .join(', ');
+
+          let detailMessage = '';
+          if (successList) detailMessage += `\n✅ Success: ${successList}`;
+          if (failedList) detailMessage += `\n❌ Failed: ${failedList}`;
+
+          const titleKey =
+            finalStatus === PublicationStatus.FAILED
+              ? 'notifications.PUBLICATION_FAILED_TITLE'
+              : 'notifications.PUBLICATION_PARTIAL_FAILED_TITLE';
+
+          await this.notifications.create({
+            userId: publication.createdBy,
+            type: NotificationType.PUBLICATION_FAILED,
+            title: this.i18n.t(titleKey, { lang }),
+            message: this.i18n.t('notifications.PUBLICATION_FAILED_MESSAGE', {
+              lang,
+              args: {
+                title:
+                  publication.title ||
+                  (publication.content ? publication.content.substring(0, 30) : 'Untitled'),
+                finalStatus:
+                  finalStatus === PublicationStatus.FAILED
+                    ? 'failed'
+                    : 'was only partially published',
+                detailMessage,
+              },
+            }),
+            meta: { publicationId: publication.id, projectId: publication.projectId },
+          });
+        } catch (error: any) {
+          this.logger.error(`Failed to send publication notification: ${error.message}`);
+        }
       }
+    } finally {
+      await this.redisService.releaseLock(lockKey, lockToken);
     }
   }
 
