@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Param,
-  Post,
-  Request,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Param, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import { ProjectScopeGuard } from '../../common/guards/project-scope.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
@@ -31,7 +24,9 @@ export class PublicationsLlmController {
     const rawReq: any = (req as any).raw ?? (req as any).req ?? req;
 
     // Use a unified way to handle abort
-    const onAbort = () => controller.abort();
+    const onAbort = () => {
+      controller.abort();
+    };
     rawReq?.on?.('aborted', onAbort);
     rawReq?.on?.('close', onAbort);
 

@@ -769,7 +769,8 @@ export class MediaService {
   ): Promise<{ stream: Readable; status: number; headers: Record<string, string> }> {
     if (userId) await this.checkMediaAccess(id, userId);
     const media = await this.findOne(id);
-    if (media.storageType === StorageType.STORAGE) return this.getFileStream(media.storagePath, range);
+    if (media.storageType === StorageType.STORAGE)
+      return this.getFileStream(media.storagePath, range);
     else if (media.storageType === StorageType.TELEGRAM) {
       let mimeType = media.mimeType ?? undefined;
       // Fallback mimeType if missing in DB

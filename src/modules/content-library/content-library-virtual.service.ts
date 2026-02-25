@@ -21,7 +21,8 @@ export class ContentLibraryVirtualService {
     offset?: number;
     withMedia?: boolean;
   }) {
-    const { scope, projectId, userId, search, tags, sortBy, sortOrder, limit, offset, withMedia } = options;
+    const { scope, projectId, userId, search, tags, sortBy, sortOrder, limit, offset, withMedia } =
+      options;
 
     const parsedTags =
       typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : [];
@@ -55,7 +56,7 @@ export class ContentLibraryVirtualService {
     const mappedItems = (res.items ?? []).map(p => {
       const tagNames = Array.isArray(p.tags)
         ? (p.tags as string[])
-        : (p.tagObjects as Array<{ name: string }> ?? []).map(t => t.name).filter(Boolean);
+        : ((p.tagObjects as Array<{ name: string }>) ?? []).map(t => t.name).filter(Boolean);
       const media = Array.isArray(p.media)
         ? (p.media as any[])
             .slice()
@@ -92,11 +93,7 @@ export class ContentLibraryVirtualService {
     };
   }
 
-  public async listUnsplashItems(options: {
-    search?: string;
-    limit?: number;
-    offset?: number;
-  }) {
+  public async listUnsplashItems(options: { search?: string; limit?: number; offset?: number }) {
     const { search, limit, offset } = options;
     const query = typeof search === 'string' ? search.trim() : '';
     const page = Math.floor((offset ?? 0) / (limit ?? 20)) + 1;

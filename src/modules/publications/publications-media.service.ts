@@ -202,7 +202,11 @@ export class PublicationsMediaService {
     });
   }
 
-  public async prepareCreationMedia(data: CreatePublicationDto, unsplashPhoto: any, userId?: string) {
+  public async prepareCreationMedia(
+    data: CreatePublicationDto,
+    unsplashPhoto: any,
+    userId?: string,
+  ) {
     const mediaToCreate: any[] = [];
     const offset = data.imageUrl ? 1 : 0;
 
@@ -217,21 +221,25 @@ export class PublicationsMediaService {
     }
 
     if (data.media?.length) {
-      mediaToCreate.push(...data.media.map((m, i) => ({
-        order: offset + i,
-        media: { create: { ...m, meta: m.meta } },
-      })));
+      mediaToCreate.push(
+        ...data.media.map((m, i) => ({
+          order: offset + i,
+          media: { create: { ...m, meta: m.meta } },
+        })),
+      );
     }
 
     if (data.existingMediaIds?.length) {
-      mediaToCreate.push(...data.existingMediaIds.map((item, i) => {
-        const input = this.getMediaInput(item);
-        return {
-          order: offset + (data.media?.length || 0) + i,
-          mediaId: input.id,
-          hasSpoiler: input.hasSpoiler,
-        };
-      }));
+      mediaToCreate.push(
+        ...data.existingMediaIds.map((item, i) => {
+          const input = this.getMediaInput(item);
+          return {
+            order: offset + (data.media?.length || 0) + i,
+            mediaId: input.id,
+            hasSpoiler: input.hasSpoiler,
+          };
+        }),
+      );
     }
 
     return mediaToCreate;
@@ -240,8 +248,14 @@ export class PublicationsMediaService {
   private async uploadUnsplashMedia(photo: any, projectId: string, userId?: string) {
     try {
       const settings = await this.mediaService.getProjectOptimizationSettings(projectId);
-      const optimization = { ...settings, lossless: false, stripMetadata: false, autoOrient: false, flatten: false };
-      
+      const optimization = {
+        ...settings,
+        lossless: false,
+        stripMetadata: false,
+        autoOrient: false,
+        flatten: false,
+      };
+
       const { fileId, metadata } = await this.mediaService.uploadFileFromUrl(
         photo.urls.regular,
         `unsplash-${photo.id}.jpg`,
@@ -289,7 +303,7 @@ export class PublicationsMediaService {
         'publication',
         optimization,
       );
-      
+
       const filename = url.split('/').pop()?.split('?')[0] || 'image.jpg';
       return {
         order: 0,

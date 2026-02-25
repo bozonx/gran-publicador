@@ -28,7 +28,9 @@ import {
   IssueType,
   OwnershipType,
   BulkOperationDto,
+  BulkOperationType,
 } from './dto/index.js';
+
 import type { PublicationLlmChatDto } from './dto/publication-llm-chat.dto.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { MediaService } from '../media/media.service.js';
@@ -268,7 +270,16 @@ export class PublicationsService {
 
     const relationItems = await this.prisma.publicationRelationItem.findMany({
       where: { publicationId: id },
-      include: { group: { include: { items: { include: { publication: { include: { posts: { include: { channel: true } } } } }, orderBy: { position: 'asc' } } } } },
+      include: {
+        group: {
+          include: {
+            items: {
+              include: { publication: { include: { posts: { include: { channel: true } } } } },
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
     });
 
     const relations = relationItems.map(ri => ri.group);
@@ -283,7 +294,11 @@ export class PublicationsService {
    * Internal method to handle post resets when publication status changes.
    * Only resets non-published posts to avoid data loss.
    */
-  private async handleStatusChange(publicationId: string, newStatus: PublicationStatus, previousStatus: PublicationStatus) {
+  private async handleStatusChange(
+    publicationId: string,
+    newStatus: PublicationStatus,
+    previousStatus: PublicationStatus,
+  ) {
     if (newStatus === previousStatus) return;
 
     // If moving to READY or DRAFT, reset pending/failed posts
@@ -304,7 +319,10 @@ export class PublicationsService {
     }
 
     // Handle snapshot building
-    if (previousStatus === PublicationStatus.DRAFT && (newStatus === PublicationStatus.READY || newStatus === PublicationStatus.SCHEDULED)) {
+    if (
+      previousStatus === PublicationStatus.DRAFT &&
+      (newStatus === PublicationStatus.READY || newStatus === PublicationStatus.SCHEDULED)
+    ) {
       await this.snapshotBuilder.buildForPublication(publicationId);
     } else if (newStatus === PublicationStatus.DRAFT) {
       await this.snapshotBuilder.clearForPublication(publicationId);
@@ -316,16 +334,27 @@ export class PublicationsService {
     const previousStatus = publication.status;
 
     if (publication.createdBy === userId) {
-      await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_OWN);
+      await this.permissions.checkPermission(
+        publication.projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_OWN,
+      );
     } else {
-      await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+      await this.permissions.checkPermission(
+        publication.projectId,
+        userId,
+        PermissionKey.PUBLICATIONS_UPDATE_ALL,
+      );
     }
 
     if (data.status) {
       await this.handleStatusChange(id, data.status, previousStatus);
     }
 
-    const sanitizedContent = data.content !== undefined ? sanitizePublicationMarkdownForStorage(data.content ?? '') : undefined;
+    const sanitizedContent =
+      data.content !== undefined
+        ? sanitizePublicationMarkdownForStorage(data.content ?? '')
+        : undefined;
 
     const updateData: Prisma.PublicationUpdateInput = {
       title: data.title,
@@ -336,9 +365,12 @@ export class PublicationsService {
       scheduledAt: data.scheduledAt,
       note: data.note,
       language: data.language,
-      projectTemplate: data.projectTemplateId !== undefined
-        ? data.projectTemplateId === null ? { disconnect: true } : { connect: { id: data.projectTemplateId } }
-        : undefined,
+      projectTemplate:
+        data.projectTemplateId !== undefined
+          ? data.projectTemplateId === null
+            ? { disconnect: true }
+            : { connect: { id: data.projectTemplateId } }
+          : undefined,
     };
 
     if (data.tags !== undefined) {
@@ -369,7 +401,8 @@ export class PublicationsService {
     const updateData: UpdatePublicationDto = {};
     if (data.publication) {
       if (data.publication.title !== undefined) updateData.title = data.publication.title;
-      if (data.publication.description !== undefined) updateData.description = data.publication.description;
+      if (data.publication.description !== undefined)
+        updateData.description = data.publication.description;
       if (data.publication.content !== undefined) updateData.content = data.publication.content;
       if (data.publication.tags !== undefined) updateData.tags = data.publication.tags;
     }
@@ -418,10 +451,22 @@ export class PublicationsService {
     return this.findOne(id, userId);
   }
 
-  private async paginatePublications(where: any, limit = 50, offset = 0, sortBy?: string, sortOrder: 'asc' | 'desc' = 'desc') {
+  private async paginatePublications(
+    where: any,
+    limit = 50,
+    offset = 0,
+    sortBy?: string,
+    sortOrder: 'asc' | 'desc' = 'desc',
+  ) {
     const orderBy = PublicationQueryBuilder.getOrderBy(sortBy || 'chronology', sortOrder);
     const [items, total] = await Promise.all([
-      this.prisma.publication.findMany({ where, include: this.PUBLICATION_WITH_RELATIONS_INCLUDE, take: limit, skip: offset, orderBy }),
+      this.prisma.publication.findMany({
+        where,
+        include: this.PUBLICATION_WITH_RELATIONS_INCLUDE,
+        take: limit,
+        skip: offset,
+        orderBy,
+      }),
       this.prisma.publication.count({ where }),
     ]);
     return { items: items.map(i => this.normalizePublicationTags(i)), total };
@@ -441,20 +486,44 @@ export class PublicationsService {
       where: { publicationId, status: PostStatus.PUBLISHED, publishedAt: { not: null } },
       _max: { publishedAt: true },
     });
-    const effectiveAt = publishedAgg._max.publishedAt ?? publication.scheduledAt ?? publication.createdAt;
+    const effectiveAt =
+      publishedAgg._max.publishedAt ?? publication.scheduledAt ?? publication.createdAt;
     await this.prisma.publication.update({ where: { id: publicationId }, data: { effectiveAt } });
   }
 
-  private async resolveProjectTemplateId(projectId: string, language: string, postType?: PostType, preferredId?: string): Promise<string | null> {
+  private async resolveProjectTemplateId(
+    projectId: string,
+    language: string,
+    postType?: PostType,
+    preferredId?: string,
+  ): Promise<string | null> {
     if (preferredId) {
-      const tpl = await this.prisma.projectTemplate.findFirst({ where: { id: preferredId, projectId }, select: { id: true } });
+      const tpl = await this.prisma.projectTemplate.findFirst({
+        where: { id: preferredId, projectId },
+        select: { id: true },
+      });
       if (tpl) return tpl.id;
     }
     const tpl = await this.prisma.projectTemplate.findFirst({
-      where: { projectId, AND: [{ OR: [{ language }, { language: null }] }, { OR: [{ postType: postType ?? null }, { postType: null }] }] },
+      where: {
+        projectId,
+        AND: [
+          { OR: [{ language }, { language: null }] },
+          { OR: [{ postType: postType ?? null }, { postType: null }] },
+        ],
+      },
       orderBy: { order: 'asc' },
     });
-    return tpl?.id || (await this.prisma.projectTemplate.findFirst({ where: { projectId }, orderBy: { createdAt: 'asc' } }))?.id || null;
+    return (
+      tpl?.id ||
+      (
+        await this.prisma.projectTemplate.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: 'asc' },
+        })
+      )?.id ||
+      null
+    );
   }
 
   private prepareContentItemsRelation(data: CreatePublicationDto) {
@@ -473,23 +542,32 @@ export class PublicationsService {
   }
 
   private logPublicationCreation(publication: any, projectId: string, userId?: string) {
-    this.logger.log(`Publication created: ${publication.id} in project ${projectId} by user ${userId}`);
+    this.logger.log(
+      `Publication created: ${publication.id} in project ${projectId} by user ${userId}`,
+    );
   }
 
-  private async handleInitialPostsCreation(publication: any, data: CreatePublicationDto, userId?: string, projectTemplateId?: string | null) {
-      try {
-        await this.createPostsFromPublication(
-          publication.id,
-          data.channelIds!,
-          userId,
-          data.scheduledAt || undefined,
-          undefined,
-          undefined,
-          projectTemplateId || undefined,
-        );
-      } catch (err: any) {
-        this.logger.error(`Failed to create initial posts for publication ${publication.id}: ${err.message}`);
-      }
+  private async handleInitialPostsCreation(
+    publication: any,
+    data: CreatePublicationDto,
+    userId?: string,
+    projectTemplateId?: string | null,
+  ) {
+    try {
+      await this.createPostsFromPublication(
+        publication.id,
+        data.channelIds!,
+        userId,
+        data.scheduledAt || undefined,
+        undefined,
+        undefined,
+        projectTemplateId || undefined,
+      );
+    } catch (err: any) {
+      this.logger.error(
+        `Failed to create initial posts for publication ${publication.id}: ${err.message}`,
+      );
+    }
   }
 
   public async createPostsFromPublication(
@@ -502,18 +580,85 @@ export class PublicationsService {
     projectTemplateId?: string,
   ) {
     const channels = await this.prisma.channel.findMany({ where: { id: { in: channelIds } } });
-    const posts = await Promise.all(channels.map(channel => 
-      this.prisma.post.create({
-        data: {
-          publicationId,
-          channelId: channel.id,
-          socialMedia: channel.socialMedia,
-          status: PostStatus.PENDING,
-          scheduledAt,
-          authorSignature: authorSignatureOverrides?.[channel.id],
-        }
-      })
-    ));
+    const posts = await Promise.all(
+      channels.map(channel =>
+        this.prisma.post.create({
+          data: {
+            publicationId,
+            channelId: channel.id,
+            socialMedia: channel.socialMedia,
+            status: PostStatus.PENDING,
+            scheduledAt,
+            authorSignature: authorSignatureOverrides?.[channel.id],
+          },
+        }),
+      ),
+    );
     return { posts, warnings: [] };
+  }
+
+  public async remove(id: string, userId: string) {
+    return this.bulkSubService.bulkOperation(
+      userId,
+      { ids: [id], operation: BulkOperationType.DELETE },
+      id => this.refreshPublicationEffectiveAt(id),
+    );
+  }
+
+  public async bulkOperation(userId: string, dto: BulkOperationDto) {
+    return this.bulkSubService.bulkOperation(userId, dto, id =>
+      this.refreshPublicationEffectiveAt(id),
+    );
+  }
+
+  public async addMedia(publicationId: string, userId: string, media: any[]) {
+    return this.mediaSubService.addMedia(publicationId, userId, media);
+  }
+
+  public async removeMedia(publicationId: string, userId: string, mediaId: string) {
+    return this.mediaSubService.removeMedia(publicationId, userId, mediaId);
+  }
+
+  public async reorderMedia(
+    publicationId: string,
+    userId: string,
+    mediaOrder: Array<{ id: string; order: number }>,
+  ) {
+    return this.mediaSubService.reorderMedia(publicationId, userId, mediaOrder);
+  }
+
+  public async updateMediaLink(
+    publicationId: string,
+    userId: string,
+    mediaLinkId: string,
+    data: { hasSpoiler?: boolean; order?: number },
+  ) {
+    return this.mediaSubService.updateMediaLink(publicationId, userId, mediaLinkId, data);
+  }
+
+  public async copy(id: string, targetProjectId: string, userId: string) {
+    // Basic copy implementation if not in sub-service
+    const original = await this.findOne(id, userId);
+    const {
+      id: _,
+      creator: __,
+      project: ___,
+      posts: ____,
+      media: _____,
+      contentItems: ______,
+      tagObjects: _______,
+      relations: ________,
+      ...data
+    } = original;
+
+    // Simplistic copy for now, should ideally be more comprehensive
+    return this.create(
+      {
+        ...data,
+        projectId: targetProjectId,
+        tags: original.tagObjects.map((t: any) => t.name),
+      },
+      userId,
+    );
   }
 }

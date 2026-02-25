@@ -62,7 +62,6 @@ export class UpdatePublicationDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
-
   @IsArray()
   @Transform(({ value }) => {
     if (Array.isArray(value)) return value;

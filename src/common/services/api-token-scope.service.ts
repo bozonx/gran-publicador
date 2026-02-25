@@ -10,15 +10,10 @@ export class ApiTokenScopeService {
       return;
     }
 
-    ApiTokenGuard.validateProjectScope(
-      projectId,
-      req.user.allProjects,
-      req.user.projectIds ?? [],
-      {
-        userId: req.user.userId,
-        tokenId: req.user.tokenId,
-      },
-    );
+    ApiTokenGuard.validateProjectScope(projectId, req.user.allProjects, req.user.projectIds ?? [], {
+      userId: req.user.userId,
+      tokenId: req.user.tokenId,
+    });
   }
 
   public validateManyProjectScopesOrThrow(req: UnifiedAuthRequest, projectIds: string[]): void {

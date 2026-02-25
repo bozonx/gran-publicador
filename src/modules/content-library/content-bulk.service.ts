@@ -10,10 +10,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
-import {
-  BulkOperationDto,
-  BulkOperationType,
-} from './dto/index.js';
+import { BulkOperationDto, BulkOperationType } from './dto/index.js';
 import { ContentCollectionType, Prisma } from '../../generated/prisma/index.js';
 
 const TEXT_MERGE_SEPARATOR = '\n\n---\n\n';
@@ -247,7 +244,7 @@ export class ContentBulkService {
             where: { id: dto.groupId },
             select: { id: true, type: true, projectId: true },
           });
-          if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
+          if (targetGroup?.type !== ContentCollectionType.GROUP) {
             throw new BadRequestException('Target group not found');
           }
 
@@ -464,7 +461,7 @@ export class ContentBulkService {
           select: { id: true, type: true, projectId: true },
         });
 
-        if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
+        if (targetGroup?.type !== ContentCollectionType.GROUP) {
           throw new BadRequestException('Target group not found');
         }
 
@@ -536,7 +533,7 @@ export class ContentBulkService {
             select: { id: true, type: true, projectId: true },
           });
 
-          if (!targetGroup || targetGroup.type !== ContentCollectionType.GROUP) {
+          if (targetGroup?.type !== ContentCollectionType.GROUP) {
             throw new BadRequestException('Target group not found');
           }
 

@@ -10,7 +10,11 @@ import {
 import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ContentCollectionType, ContentLibraryGroupType, Prisma } from '../../generated/prisma/index.js';
+import {
+  ContentCollectionType,
+  ContentLibraryGroupType,
+  Prisma,
+} from '../../generated/prisma/index.js';
 
 @Injectable()
 export class ContentCollectionsService {
@@ -173,7 +177,10 @@ export class ContentCollectionsService {
     }
 
     const groupType = this.resolveGroupType(collection);
-    if (groupType === ContentLibraryGroupType.PROJECT_USER && collection.userId !== options.userId) {
+    if (
+      groupType === ContentLibraryGroupType.PROJECT_USER &&
+      collection.userId !== options.userId
+    ) {
       throw new ForbiddenException('You do not have access to this collection');
     }
 
@@ -351,9 +358,7 @@ export class ContentCollectionsService {
       orderBy: { order: 'asc' },
     });
 
-    const groupIds = collections
-      .filter(c => c.type === ContentCollectionType.GROUP)
-      .map(c => c.id);
+    const groupIds = collections.filter(c => c.type === ContentCollectionType.GROUP).map(c => c.id);
 
     // Use a raw query to count items per collection, filtering by archivedAt
     const counts: Array<{ collectionId: string; count: bigint }> =
@@ -541,7 +546,9 @@ export class ContentCollectionsService {
     }
 
     const childGroupType =
-      collection.type === ContentCollectionType.GROUP ? this.resolveGroupType(collection) : undefined;
+      collection.type === ContentCollectionType.GROUP
+        ? this.resolveGroupType(collection)
+        : undefined;
 
     const parentId = await this.resolveParentGroupId({
       parentId: dto.parentId,
@@ -572,7 +579,9 @@ export class ContentCollectionsService {
       });
 
       if (count === 0) {
-        throw new ConflictException('Collection has been modified in another tab. Please refresh the page.');
+        throw new ConflictException(
+          'Collection has been modified in another tab. Please refresh the page.',
+        );
       }
 
       return this.prisma.contentCollection.findUnique({

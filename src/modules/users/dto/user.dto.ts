@@ -1,5 +1,5 @@
 import { Exclude, Expose, Transform } from 'class-transformer';
-import { IsBoolean, IsString, IsOptional, IsArray, IsInt } from 'class-validator';
+import { IsBoolean, IsString, IsOptional, IsArray, IsInt, IsEnum } from 'class-validator';
 
 export class UserDto {
   @Expose()
@@ -161,4 +161,24 @@ export class BanUserDto {
   @IsString()
   @IsOptional()
   public reason?: string;
+}
+
+export enum UserSortBy {
+  FULL_NAME = 'fullName',
+  TELEGRAM_USERNAME = 'telegramUsername',
+  CREATED_AT = 'createdAt',
+  PUBLICATIONS_COUNT = 'publicationsCount',
+}
+
+import { BasePaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
+
+export class FindUsersQueryDto extends BasePaginationQueryDto {
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true' || value === true)
+  public isAdmin?: boolean;
+
+  @IsOptional()
+  @IsEnum(UserSortBy)
+  public sortBy?: UserSortBy;
 }

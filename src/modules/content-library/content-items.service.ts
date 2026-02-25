@@ -15,7 +15,7 @@ import { ContentCollectionsService } from './content-collections.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { MediaService } from '../media/media.service.js';
 import { ContentLibraryMapper } from './content-library.mapper.js';
- import { MediaType, StorageType, Prisma } from '../../generated/prisma/index.js';
+import { MediaType, StorageType, Prisma } from '../../generated/prisma/index.js';
 import {
   BulkOperationDto,
   CreateContentItemDto,
@@ -399,7 +399,7 @@ export class ContentItemsService {
         },
       );
 
-        const media = await this.mediaService.create({
+      const media = await this.mediaService.create({
         type: MediaType.IMAGE,
         storageType: StorageType.STORAGE,
         storagePath: uploaded.fileId,
@@ -543,7 +543,9 @@ export class ContentItemsService {
           },
         });
         if (count === 0) {
-          throw new ConflictException('Item has been modified in another tab. Please refresh the page.');
+          throw new ConflictException(
+            'Item has been modified in another tab. Please refresh the page.',
+          );
         }
 
         if (dto.tags !== undefined) {
@@ -759,7 +761,6 @@ export class ContentItemsService {
 
     return tags.map(t => t.name);
   }
-
 
   public async linkItemToGroup(
     contentItemId: string,

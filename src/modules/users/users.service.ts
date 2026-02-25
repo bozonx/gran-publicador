@@ -9,6 +9,7 @@ import {
   NotificationPreferencesDto,
   getDefaultNotificationPreferences,
 } from './dto/notification-preferences.dto.js';
+import { FindUsersQueryDto, UserSortBy } from './dto/user.dto.js';
 
 type UserWithFlags = User & { isSuperAdmin: boolean };
 
@@ -204,13 +205,8 @@ export class UsersService {
    * Find all users with pagination and filtering.
    * Returns users with their statistics (projects count, posts count).
    */
-  public async findAll(options: {
-    limit: number;
-    offset: number;
-    isAdmin?: boolean;
-    search?: string;
-  }) {
-    const { limit, offset, isAdmin, search } = options;
+  public async findAll(query: FindUsersQueryDto) {
+    const { limit = 20, offset = 0, isAdmin, search, sortBy, sortOrder = 'desc' } = query;
     const skip = Math.max(0, offset);
     const take = Math.max(0, limit);
 
@@ -230,27 +226,41 @@ export class UsersService {
       ];
     }
 
-    // Get total count
-    const total = await this.prisma.user.count({ where });
+    // Build order by
+    const orderBy: Prisma.UserOrderByWithRelationInput = {};
+    if (sortBy === UserSortBy.FULL_NAME) {
+      orderBy.fullName = sortOrder;
+    } else if (sortBy === UserSortBy.TELEGRAM_USERNAME) {
+      orderBy.telegramUsername = sortOrder;
+    } else if (sortBy === UserSortBy.CREATED_AT) {
+      orderBy.createdAt = sortOrder;
+    } else if (sortBy === UserSortBy.PUBLICATIONS_COUNT) {
+      orderBy.publications = { _count: sortOrder };
+    } else {
+      orderBy.createdAt = 'desc';
+    }
 
-    // Get users with statistics
-    const users = await this.prisma.user.findMany({
-      where,
-      skip,
-      take,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: {
-            ownedProjects: true,
-            publications: true,
+    // Get total count
+    const [total, users] = await this.prisma.$transaction([
+      this.prisma.user.count({ where }),
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        include: {
+          _count: {
+            select: {
+              ownedProjects: true,
+              publications: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
     // Transform users to match UserDto and include statistics
-    const data = users.map(user => ({
+    const items = users.map(user => ({
       id: user.id,
       fullName: user.fullName,
       telegramUsername: user.telegramUsername,
@@ -269,12 +279,8 @@ export class UsersService {
     }));
 
     return {
-      data,
-      meta: {
-        total,
-        limit: take,
-        offset: skip,
-      },
+      items,
+      total,
     };
   }
 

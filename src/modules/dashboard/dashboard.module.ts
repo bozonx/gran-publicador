@@ -8,13 +8,7 @@ import { ProjectsModule } from '../projects/projects.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 
 @Module({
-  imports: [
-    PrismaModule,
-    ProjectsModule,
-    PublicationsModule,
-    ContentLibraryModule,
-    ChannelsModule,
-  ],
+  imports: [PrismaModule, ProjectsModule, PublicationsModule, ContentLibraryModule, ChannelsModule],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

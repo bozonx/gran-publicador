@@ -206,7 +206,7 @@ export class NewsNotificationsScheduler {
         const itemId = item._id || item.id;
 
         if (itemSavedAt < userCutoff) return false;
-        if (existingState && itemSavedAt.getTime() === existingState.lastSentSavedAt.getTime()) {
+        if (itemSavedAt.getTime() === existingState?.lastSentSavedAt.getTime()) {
           return itemId !== existingState.lastSentNewsId;
         }
         return true;

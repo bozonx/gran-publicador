@@ -18,7 +18,12 @@ import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../../common/guards/admin.guard.js';
 import { JWT_STRATEGY } from '../../common/constants/auth.constants.js';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.interface.js';
-import { BanUserDto, UpdateUserAdminDto, UpdateUserProfileDto } from './dto/user.dto.js';
+import {
+  BanUserDto,
+  FindUsersQueryDto,
+  UpdateUserAdminDto,
+  UpdateUserProfileDto,
+} from './dto/user.dto.js';
 import { UsersService } from './users.service.js';
 
 /**
@@ -36,21 +41,16 @@ export class UsersController {
    */
   @Get()
   @UseGuards(AdminGuard)
-  public async findAll(
-    @Request() req: AuthenticatedRequest,
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number,
-    @Query('is_admin') isAdmin?: string,
-    @Query('search') search?: string,
-  ) {
-    const isAdminFilter = isAdmin === 'true' ? true : isAdmin === 'false' ? false : undefined;
-
-    return this.usersService.findAll({
-      limit,
-      offset,
-      isAdmin: isAdminFilter,
-      search,
-    });
+  public async findAll(@Request() req: AuthenticatedRequest, @Query() query: FindUsersQueryDto) {
+    const result = await this.usersService.findAll(query);
+    return {
+      items: result.items,
+      meta: {
+        total: result.total,
+        limit: query.limit || 20,
+        offset: query.offset || 0,
+      },
+    };
   }
 
   /**

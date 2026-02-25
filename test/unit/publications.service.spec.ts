@@ -119,9 +119,16 @@ describe('PublicationsService (unit)', () => {
       meta: typeof p.meta === 'string' ? JSON.parse(p.meta || '{}') : p.meta,
       tags: (p.tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
     })) as any,
-    mapTags: jest.fn((tagObjects: any[]) => (tagObjects ?? []).map((t: any) => t.name).filter(Boolean)) as any,
-    parseMetaJson: jest.fn((meta) => (typeof meta === 'object' && meta !== null ? meta : {})) as any,
-    normalizeAuthorSignature: jest.fn((v: string) => v.replace(/[\r\n]+/g, ' ').replace(/\s{2,}/g, ' ').trim()) as any,
+    mapTags: jest.fn((tagObjects: any[]) =>
+      (tagObjects ?? []).map((t: any) => t.name).filter(Boolean),
+    ) as any,
+    parseMetaJson: jest.fn(meta => (typeof meta === 'object' && meta !== null ? meta : {})) as any,
+    normalizeAuthorSignature: jest.fn((v: string) =>
+      v
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/\s{2,}/g, ' ')
+        .trim(),
+    ) as any,
   };
 
   beforeAll(async () => {

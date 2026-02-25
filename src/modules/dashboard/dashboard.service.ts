@@ -80,7 +80,8 @@ export class DashboardService {
   }
 
   private groupByProject(publications: any[]) {
-    const groups: Record<string, { project: { id: string; name: string }; publications: any[] }> = {};
+    const groups: Record<string, { project: { id: string; name: string }; publications: any[] }> =
+      {};
 
     publications.forEach(pub => {
       if (!pub.project) return;

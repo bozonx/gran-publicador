@@ -14,7 +14,11 @@ export class PublicationsBulkService {
     private permissions: PermissionsService,
   ) {}
 
-  public async bulkOperation(userId: string, dto: BulkOperationDto, refreshEffectiveAt: (id: string) => Promise<void>) {
+  public async bulkOperation(
+    userId: string,
+    dto: BulkOperationDto,
+    refreshEffectiveAt: (id: string) => Promise<void>,
+  ) {
     const { ids, operation, status } = dto;
 
     if (!ids || ids.length === 0) {

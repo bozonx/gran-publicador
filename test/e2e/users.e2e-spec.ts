@@ -34,7 +34,7 @@ describe('Users (e2e)', () => {
 
     it('returns profile when authenticated via dev login', async () => {
       const telegramId = faker.number.int({ min: 100000, max: 999999 });
-      
+
       // 1. Create user via dev login (or just create in DB)
       const loginResponse = await app.inject({
         method: 'POST',

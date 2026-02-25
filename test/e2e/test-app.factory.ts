@@ -19,10 +19,10 @@ export async function createTestApp(): Promise<NestFastifyApplication> {
   );
 
   app.useGlobalPipes(
-    new ValidationPipe({ 
-      whitelist: true, 
-      forbidNonWhitelisted: true, 
-      transform: true 
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 

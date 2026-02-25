@@ -67,17 +67,21 @@ export class ContentLibraryController {
   public async listCollectionItems(
     @Request() req: UnifiedAuthRequest,
     @Param('id') collectionId: string,
-    @Query('scope') scope: 'personal' | 'project',
-    @Query('projectId') projectId?: string,
-    @Query('search') search?: string,
-    @Query('tags') tags?: string,
-    @Query('sortBy') sortBy?: string,
-    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
-    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
-    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset?: number,
-    @Query('orphansOnly') orphansOnly?: string,
-    @Query('withMedia') withMedia?: string,
+    @Query() query: FindContentItemsQueryDto,
   ) {
+    const {
+      scope,
+      projectId,
+      search,
+      tags,
+      sortBy,
+      sortOrder,
+      limit = 20,
+      offset = 0,
+      orphansOnly,
+      withMedia,
+    } = query;
+
     const collection = await this.collectionsService.assertCollectionAccess({
       collectionId,
       scope,
@@ -91,12 +95,12 @@ export class ContentLibraryController {
         projectId,
         userId: req.user.userId,
         search,
-        tags,
+        tags: tags?.join(','),
         sortBy,
         sortOrder,
         limit,
         offset,
-        withMedia: withMedia === 'true',
+        withMedia,
       });
     }
 
@@ -108,24 +112,15 @@ export class ContentLibraryController {
       });
     }
 
-    const query: FindContentItemsQueryDto = {
-      scope,
-      projectId,
-      limit,
-      offset,
-      search,
-      sortBy: sortBy === 'title' ? 'title' : 'createdAt',
-      sortOrder,
-      tags:
-        typeof tags === 'string' && tags.length > 0 ? tags.split(',').filter(Boolean) : undefined,
+    const itemsQuery: FindContentItemsQueryDto = {
+      ...query,
       groupIds: collection.type === ContentCollectionType.GROUP ? [collection.id] : undefined,
-      orphansOnly:
-        collection.type === ContentCollectionType.SAVED_VIEW ? orphansOnly === 'true' : undefined,
+      orphansOnly: collection.type === ContentCollectionType.SAVED_VIEW ? orphansOnly : undefined,
       includeTotalInScope: true,
       includeTotalUnfiltered: true,
     };
 
-    return this.itemsService.findAll(query, req.user.userId);
+    return this.itemsService.findAll(itemsQuery, req.user.userId);
   }
 
   @Get('collections')

@@ -86,7 +86,7 @@ export class NewsQueriesService {
       where: { id },
     });
 
-    if (!query || query.projectId !== projectId) {
+    if (query?.projectId !== projectId) {
       throw new NotFoundException('Query not found');
     }
 

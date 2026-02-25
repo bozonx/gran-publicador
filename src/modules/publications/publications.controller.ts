@@ -30,14 +30,13 @@ import {
   UpdatePublicationDto,
   FindPublicationsQueryDto,
   PublicationSortBy,
-  SortOrder,
-  OwnershipType,
-  IssueType,
   ReorderMediaDto,
   BulkOperationDto,
   ApplyLlmResultDto,
 } from './dto/index.js';
+import { SortOrder } from '../../common/dto/pagination-query.dto.js';
 import { PublicationsService } from './publications.service.js';
+
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
 import { TagsService } from '../tags/tags.service.js';
 
@@ -125,12 +124,9 @@ export class PublicationsController {
       tags,
     } = query;
 
-    // Validate and cap limit
-    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
-
     const filters = {
       status,
-      limit: validatedLimit,
+      limit,
       offset,
       includeArchived,
       archivedOnly,
@@ -152,7 +148,7 @@ export class PublicationsController {
         meta: {
           total: result.total,
           totalUnfiltered: result.totalUnfiltered,
-          limit: validatedLimit,
+          limit,
           offset: offset || 0,
         },
       };
@@ -164,7 +160,7 @@ export class PublicationsController {
       meta: {
         total: result.total,
         totalUnfiltered: result.totalUnfiltered,
-        limit: validatedLimit,
+        limit,
         offset: offset || 0,
       },
     };

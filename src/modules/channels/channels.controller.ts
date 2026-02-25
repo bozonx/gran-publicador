@@ -81,9 +81,6 @@ export class ChannelsController {
       archivedOnly = false,
     } = query;
 
-    // Validate and cap limit
-    const validatedLimit = Math.min(limit, this.MAX_LIMIT);
-
     const filters = {
       search,
       ownership,
@@ -92,7 +89,7 @@ export class ChannelsController {
       language,
       sortBy,
       sortOrder,
-      limit: validatedLimit,
+      limit,
       offset,
       includeArchived,
       archivedOnly,
@@ -101,9 +98,6 @@ export class ChannelsController {
 
     if (projectId) {
       this.apiTokenScope.validateProjectScopeOrThrow(req, projectId);
-
-      // Note: For project-specific queries, we could use findAllForProject
-      // but for consistency, we use findAllForUser with projectIds filter
       filters.projectIds = [projectId];
     }
 
@@ -113,7 +107,7 @@ export class ChannelsController {
       items: result.items,
       meta: {
         total: result.total,
-        limit: validatedLimit,
+        limit,
         offset: offset || 0,
         totalUnfiltered: (result as any).totalUnfiltered,
       },

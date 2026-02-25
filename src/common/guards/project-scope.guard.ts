@@ -1,11 +1,9 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, BadRequestException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PROJECT_SCOPE_KEY, type ProjectScopeOptions } from '../decorators/project-scope.decorator.js';
+import {
+  PROJECT_SCOPE_KEY,
+  type ProjectScopeOptions,
+} from '../decorators/project-scope.decorator.js';
 import { ApiTokenScopeService } from '../services/api-token-scope.service.js';
 import type { UnifiedAuthRequest } from '../types/unified-auth-request.interface.js';
 
@@ -28,7 +26,7 @@ export class ProjectScopeGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest<UnifiedAuthRequest>();
     const { param, source } = options;
-    
+
     let projectId: string | undefined;
 
     if (source === 'body') {

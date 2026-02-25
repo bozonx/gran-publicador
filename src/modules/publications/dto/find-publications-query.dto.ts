@@ -3,9 +3,6 @@ import {
   IsEnum,
   IsString,
   IsArray,
-  IsInt,
-  Min,
-  Max,
   IsBoolean,
   IsLocale,
   IsDate,
@@ -16,6 +13,7 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { PublicationStatus, SocialMedia } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
+import { BasePaginationQueryDto } from '../../../common/dto/pagination-query.dto.js';
 
 /**
  * Allowed fields for sorting publications
@@ -27,14 +25,6 @@ export enum PublicationSortBy {
   CREATED_AT = 'createdAt',
   SCHEDULED_AT = 'scheduledAt',
   POST_DATE = 'postDate',
-}
-
-/**
- * Sort order
- */
-export enum SortOrder {
-  ASC = 'asc',
-  DESC = 'desc',
 }
 
 export enum OwnershipType {
@@ -56,7 +46,7 @@ export enum DraftScope {
 /**
  * DTO for query parameters when fetching publications
  */
-export class FindPublicationsQueryDto {
+export class FindPublicationsQueryDto extends BasePaginationQueryDto {
   @IsOptional()
   @IsString()
   @IsUUID()
@@ -84,11 +74,6 @@ export class FindPublicationsQueryDto {
   @IsString()
   @IsLocale()
   language?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(VALIDATION_LIMITS.MAX_NAME_LENGTH)
-  search?: string;
 
   @IsOptional()
   @IsEnum(OwnershipType)
@@ -122,23 +107,6 @@ export class FindPublicationsQueryDto {
   @IsOptional()
   @IsEnum(PublicationSortBy)
   sortBy?: PublicationSortBy;
-
-  @IsOptional()
-  @IsEnum(SortOrder)
-  sortOrder?: SortOrder;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(VALIDATION_LIMITS.MIN_PAGE_LIMIT)
-  @Max(VALIDATION_LIMITS.MAX_PAGE_LIMIT)
-  limit?: number;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(VALIDATION_LIMITS.MIN_OFFSET)
-  offset?: number;
 
   @IsOptional()
   @Transform(({ value }: { value: string | boolean }) => value === 'true' || value === true)

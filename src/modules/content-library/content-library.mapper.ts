@@ -19,8 +19,8 @@ export class ContentLibraryMapper {
     return {
       ...item,
       tags: this.mapTags(item.tagObjects),
-      groups: Array.isArray(item.groups) 
-        ? item.groups.map((g: any) => this.mapCollection(g.group)) 
+      groups: Array.isArray(item.groups)
+        ? item.groups.map((g: any) => this.mapCollection(g.group))
         : [],
     };
   }
@@ -63,7 +63,10 @@ export class ContentLibraryMapper {
   /**
    * Map incoming media IDs from various DTO shapes to a consistent internal format.
    */
-  public mapIncomingMediaIds(dto: { mediaIds?: string[]; media?: Array<{ mediaId: string }> }): string[] {
+  public mapIncomingMediaIds(dto: {
+    mediaIds?: string[];
+    media?: Array<{ mediaId: string }>;
+  }): string[] {
     if (Array.isArray(dto.mediaIds)) return dto.mediaIds;
     if (Array.isArray(dto.media)) return dto.media.map(m => m.mediaId);
     return [];

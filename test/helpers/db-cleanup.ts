@@ -6,9 +6,8 @@ import type { PrismaService } from '../../src/modules/prisma/prisma.service.js';
  */
 export async function truncateDatabase(prisma: PrismaService): Promise<void> {
   const models = Object.keys(prisma).filter(
-    (key) =>
-      typeof (prisma as any)[key] === 'object' &&
-      !(key.startsWith('$') || key.startsWith('_')),
+    key =>
+      typeof (prisma as any)[key] === 'object' && !(key.startsWith('$') || key.startsWith('_')),
   );
 
   // Get table names from models or use raw query to find all tables in public schema

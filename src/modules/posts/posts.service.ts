@@ -338,7 +338,7 @@ export class PostsService {
       offset?: number;
       publicationStatus?: PublicationStatus | string | string[];
       sortBy?: string;
-      sortOrder?: "asc" | "desc";
+      sortOrder?: 'asc' | 'desc';
     },
   ) {
     const where: any = {};

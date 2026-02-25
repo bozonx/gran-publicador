@@ -36,7 +36,7 @@ export class PublicationsLlmService {
 
     const contextInput =
       dto.context ?? (Object.keys(storedContext).length > 0 ? storedContext : undefined);
-    
+
     const contextBlock =
       isFirstMessage && contextInput
         ? this.buildUntrustedContextBlock({
@@ -80,7 +80,13 @@ export class PublicationsLlmService {
       });
     } catch (error: any) {
       if (error?.getStatus?.() === 499) {
-        return this.handleAbortedChat(publicationId, meta, nextStoredMessages, contextInput, contextBlock);
+        return this.handleAbortedChat(
+          publicationId,
+          meta,
+          nextStoredMessages,
+          contextInput,
+          contextBlock,
+        );
       }
       throw error;
     }
@@ -167,7 +173,7 @@ export class PublicationsLlmService {
     try {
       await this.prisma.publication.update({
         where: { id: publicationId },
-        data: { meta: updatedMeta as any },
+        data: { meta: updatedMeta },
       });
     } catch {
       // noop
@@ -190,9 +196,10 @@ export class PublicationsLlmService {
     contextText: string;
     stats: { totalChars: number; usedChars: number; limitChars: number };
   } {
-    const limitChars = params.contextLimitChars && params.contextLimitChars > 0 ? params.contextLimitChars : 10000;
+    const limitChars =
+      params.contextLimitChars && params.contextLimitChars > 0 ? params.contextLimitChars : 10000;
     const parts: string[] = [];
-    
+
     if (params.content?.trim()) {
       parts.push(`<source_content>\n${params.content.trim()}\n</source_content>`);
     }
