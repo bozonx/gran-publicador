@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, watch, computed } from 'vue'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'

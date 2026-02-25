@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed, watch, onMounted } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { SEARCH_DEBOUNCE_MS } from '~/constants/search'

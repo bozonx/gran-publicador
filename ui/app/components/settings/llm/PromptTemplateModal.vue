@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { reactive, watch, computed } from 'vue'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 
+const open = defineModel<boolean>('open', { default: false })
+
 const props = defineProps<{
-  open: boolean
   mode: 'create' | 'edit'
   template: LlmPromptTemplate | null
   categoryOptions: Array<{ value: string; label: string }>
@@ -10,7 +12,6 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:open', value: boolean): void
   (e: 'submit', data: { name: string; category: string; note?: string; prompt: string }): void
   (e: 'delete', template: LlmPromptTemplate): void
 }>()
@@ -26,7 +27,7 @@ const formData = reactive({
   prompt: ''
 })
 
-watch(() => props.open, (newVal) => {
+watch(open, (newVal) => {
   if (newVal) {
     if (props.mode === 'create' || !props.template) {
       formData.name = ''
@@ -73,8 +74,7 @@ function handleSubmit() {
 
 <template>
   <UiAppModal
-    :model-value="open"
-    @update:model-value="(val: boolean) => emit('update:open', val)"
+    v-model:open="open"
     :title="mode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
   >
     <form class="space-y-4" @submit.prevent="handleSubmit">
@@ -141,7 +141,7 @@ function handleSubmit() {
           <UButton
             color="neutral"
             variant="ghost"
-            @click="emit('update:open', false)"
+            @click="open = false"
           >
             {{ t('common.cancel') }}
           </UButton>
