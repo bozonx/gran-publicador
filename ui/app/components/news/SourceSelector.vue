@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { refDebounced } from '@vueuse/core'
+
 import type { Source } from '~/types/source'
 import { DEFAULT_PAGE_SIZE } from '~/constants'
 
@@ -17,7 +17,7 @@ const { fetchSources, isLoading } = useSources()
 
 const searchTerm = ref('')
 const searchTermDebounced = refDebounced(searchTerm, 300)
-const items = ref<Source[]>([])
+const items = ref<any[]>([])
 
 // Handle search logic
 const handleSearch = async (q: string) => {
@@ -28,12 +28,14 @@ const handleSearch = async (q: string) => {
     order: 'desc'
   })
   // Map items to satisfy SelectMenuItem and avoid 'type' conflict
-  items.value = (res?.items || []).map(i => ({
-    ...i,
-    label: i.name,
-    // Put the original type into a different field as SelectMenuItem uses 'type' for internal logic
-    srcType: i.type 
-  })) as any[]
+  items.value = (res?.items || []).map(i => {
+    const { type, ...rest } = i
+    return {
+      ...rest,
+      label: i.name,
+      srcType: type 
+    }
+  }) as any[]
 }
 
 // Watch searchTermDebounced to trigger fetch

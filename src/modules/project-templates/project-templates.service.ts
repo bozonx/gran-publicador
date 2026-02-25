@@ -3,9 +3,11 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { randomUUID } from 'node:crypto';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -87,7 +89,10 @@ export class ProjectTemplatesService {
             postType: data.postType ?? null,
             language: data.language !== undefined ? data.language : null,
             order: nextOrder,
-            template: data.template as any,
+            template: (data.template as any[]).map(b => ({
+              id: b.id || randomUUID(),
+              ...b,
+            })),
           },
         });
       },
@@ -121,7 +126,12 @@ export class ProjectTemplatesService {
           name: data.name,
           postType: data.postType !== undefined ? data.postType : undefined,
           language: data.language,
-          template: data.template ? (data.template as any) : undefined,
+          template: data.template
+            ? (data.template as any[]).map(b => ({
+                id: b.id || randomUUID(),
+                ...b,
+              }))
+            : undefined,
         };
 
         if (data.version !== undefined) {

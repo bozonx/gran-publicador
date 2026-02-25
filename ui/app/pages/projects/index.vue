@@ -24,7 +24,7 @@ const filteredAllProjects = computed(() => {
   const query = debouncedSearch.value.toLowerCase()
   return projects.value.filter(p => 
     p.name.toLowerCase().includes(query) || 
-    p.description?.toLowerCase().includes(query)
+    p.note?.toLowerCase().includes(query)
   )
 })
 

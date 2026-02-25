@@ -57,7 +57,7 @@ const {
 const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
 
-const fileInput = ref<HTMLInputElement | null>(null)
+const fileInput = ref<any>(null)
 const uploadProgress = ref(false)
 const uploadProgressPercent = ref(0)
 const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
@@ -202,15 +202,7 @@ const sourceTypeOptions = [
   { value: 'TELEGRAM', label: 'Telegram File ID' },
 ]
 
-function getMediaIcon(type: string) {
-  const icons: Record<string, string> = {
-    IMAGE: 'i-heroicons-photo',
-    VIDEO: 'i-heroicons-video-camera',
-    AUDIO: 'i-heroicons-musical-note',
-    DOCUMENT: 'i-heroicons-document',
-  }
-  return icons[type] || 'i-heroicons-document'
-}
+
 
 function triggerFileInput() {
   fileInput.value?.triggerFileInput()
@@ -259,7 +251,7 @@ async function uploadFiles(files: FileList | File[], options?: any) {
             uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
           }, optimizeParams, currentProject.value?.id)
         })
-      )
+      ) as any[]
       
       if (props.publicationId) {
         await addMediaToPublication(
@@ -1211,7 +1203,7 @@ const mediaValidation = computed(() => {
           variant="solid"
           color="primary"
           :loading="mediaSaveStatus === 'saving'"
-          @click="handleDone"
+          @click="closeMediaModal"
         >
           {{ t('common.done', 'Done') }}
         </UButton>

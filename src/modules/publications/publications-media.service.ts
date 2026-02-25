@@ -5,6 +5,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { MediaService } from '../media/media.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { CreatePublicationDto, PublicationMediaInputDto } from './dto/index.js';
+import { PostSnapshotBuilderService } from '../social-posting/post-snapshot-builder.service.js';
 
 @Injectable()
 export class PublicationsMediaService {
@@ -14,12 +15,13 @@ export class PublicationsMediaService {
     private prisma: PrismaService,
     private permissions: PermissionsService,
     private mediaService: MediaService,
+    private snapshotBuilder: PostSnapshotBuilderService,
   ) {}
 
   public async addMedia(publicationId: string, userId: string, media: any[]) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
-      select: { id: true, projectId: true, createdBy: true },
+      select: { id: true, projectId: true, createdBy: true, status: true },
     });
 
     if (!publication) {
@@ -82,12 +84,19 @@ export class PublicationsMediaService {
     });
 
     this.logger.log(`Added ${media.length} media items to publication ${publicationId}`);
+
+    if (
+      publication.status === PublicationStatus.READY ||
+      publication.status === PublicationStatus.SCHEDULED
+    ) {
+      await this.snapshotBuilder.buildForPublication(publicationId);
+    }
   }
 
   public async removeMedia(publicationId: string, userId: string, mediaId: string) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
-      select: { id: true, projectId: true, createdBy: true },
+      select: { id: true, projectId: true, createdBy: true, status: true },
     });
 
     if (!publication) {
@@ -120,6 +129,13 @@ export class PublicationsMediaService {
       where: { id: pubMedia.id },
     });
 
+    if (
+      publication.status === PublicationStatus.READY ||
+      publication.status === PublicationStatus.SCHEDULED
+    ) {
+      await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
     return { success: true };
   }
 
@@ -130,7 +146,7 @@ export class PublicationsMediaService {
   ) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
-      select: { id: true, projectId: true, createdBy: true },
+      select: { id: true, projectId: true, createdBy: true, status: true },
     });
 
     if (!publication) {
@@ -161,6 +177,14 @@ export class PublicationsMediaService {
     );
 
     this.logger.log(`Reordered ${mediaOrder.length} media items in publication ${publicationId}`);
+
+    if (
+      publication.status === PublicationStatus.READY ||
+      publication.status === PublicationStatus.SCHEDULED
+    ) {
+      await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
     return { success: true };
   }
 
@@ -172,7 +196,7 @@ export class PublicationsMediaService {
   ) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
-      select: { id: true, projectId: true, createdBy: true },
+      select: { id: true, projectId: true, createdBy: true, status: true },
     });
 
     if (!publication) {
@@ -193,13 +217,22 @@ export class PublicationsMediaService {
       );
     }
 
-    return this.prisma.publicationMedia.update({
+    const updated = await this.prisma.publicationMedia.update({
       where: { id: mediaLinkId, publicationId },
       data: {
         hasSpoiler: data.hasSpoiler,
         order: data.order,
       },
     });
+
+    if (
+      publication.status === PublicationStatus.READY ||
+      publication.status === PublicationStatus.SCHEDULED
+    ) {
+      await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
+    return updated;
   }
 
   public async prepareCreationMedia(

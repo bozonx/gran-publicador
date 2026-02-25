@@ -245,7 +245,7 @@ async function handleNext() {
       postType: 'NEWS',
       newsItemId: props.sourceNewsItem?.id,
       title: sd.title || undefined,
-      description: sd.description || undefined,
+      note: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
       language: lang,
       imageUrl: sd.image || undefined,
@@ -475,7 +475,7 @@ function handleUseNewsData(clearError = true) {
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ selectedProject.name }}</p>
-                <p v-if="selectedProject.description" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ selectedProject.description }}</p>
+                <p v-if="selectedProject.note" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ selectedProject.note }}</p>
               </div>
             </div>
             <div v-else class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 opacity-60">

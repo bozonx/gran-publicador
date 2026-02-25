@@ -42,7 +42,9 @@ export class PostSnapshotBuilderService {
     const posts = await (this.prisma.post as any).findMany({
       where: { publicationId },
       include: {
-        channel: true,
+        channel: {
+          include: { templateVariations: true },
+        },
         tagObjects: true,
       },
     });

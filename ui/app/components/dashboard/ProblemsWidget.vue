@@ -49,8 +49,8 @@ const stats = computed(() => {
   }
 
   // Count publication problems
-  if (publications.value && Array.isArray(publications.value.items)) {
-    publications.value.items.forEach((publication: any) => {
+  if (publications.value && Array.isArray((publications.value as any).items)) {
+    (publications.value as any).items.forEach((publication: any) => {
       const level = getPublicationProblemLevel(publication)
       if (level === 'critical') result.critical++
       else if (level === 'warning') result.warning++
@@ -63,8 +63,8 @@ const stats = computed(() => {
   }
 
   // Count channel problems
-  if (channels.value && Array.isArray(channels.value.items)) {
-    channels.value.items.forEach((channel: any) => {
+  if (channels.value && Array.isArray((channels.value as any).items)) {
+    (channels.value as any).items.forEach((channel: any) => {
       const level = getChannelProblemLevel(channel)
       if (level === 'critical') result.critical++
       else if (level === 'warning') result.warning++
@@ -102,7 +102,7 @@ const hasProblems = computed(() => stats.value.critical > 0 || stats.value.warni
 
 const problemItems = computed(() => {
   const items = []
-  
+
   if (stats.value.publications.failed > 0) {
     items.push({
       label: t('problems.publication.allPostsFailed'),
@@ -112,7 +112,7 @@ const problemItems = computed(() => {
       to: '/publications?issue=failed'
     })
   }
-  
+
   if (stats.value.publications.partial > 0) {
     items.push({
       label: t('publicationStatus.partial'),
@@ -122,7 +122,7 @@ const problemItems = computed(() => {
       to: '/publications?issue=partial'
     })
   }
-  
+
   if (stats.value.channels.noCredentials > 0) {
     items.push({
       label: t('problems.channel.noCredentials'),
@@ -132,7 +132,7 @@ const problemItems = computed(() => {
       to: '/channels?issue=noCredentials'
     })
   }
-  
+
   if (stats.value.channels.failedPosts > 0) {
     items.push({
       label: t('channel.failedPosts'),
@@ -162,7 +162,7 @@ const problemItems = computed(() => {
       to: '/projects'
     })
   }
-  
+
   if (stats.value.channels.stale > 0) {
     items.push({
       label: t('common.stale'),
@@ -172,7 +172,7 @@ const problemItems = computed(() => {
       to: '/channels?issue=stale'
     })
   }
-  
+
   if (stats.value.channels.inactive > 0) {
     items.push({
       label: t('channel.inactive'),
@@ -182,7 +182,7 @@ const problemItems = computed(() => {
       to: '/channels?issue=inactive'
     })
   }
-  
+
   return items
 })
 </script>

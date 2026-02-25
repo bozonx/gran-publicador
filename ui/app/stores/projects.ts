@@ -55,6 +55,7 @@ export interface ProjectWithRole extends ProjectWithOwner {
   role?: string;
   memberCount?: number;
   channelCount?: number;
+  channels?: any[]; // For components that expect embedded channels
   publicationsCount?: number;
   failedPostsCount?: number;
   staleChannelsCount?: number;

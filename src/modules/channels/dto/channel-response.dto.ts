@@ -50,4 +50,6 @@ export class ChannelResponseDto {
 
   @Type(() => ChannelProblem)
   public problems!: ChannelProblem[];
+
+  public templateVariations?: any[];
 }

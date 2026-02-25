@@ -1,6 +1,7 @@
 import type { SocialMedia } from '@gran/shared/social-media-platforms';
 
 export interface TemplateBlock {
+  id?: string;
   enabled: boolean;
   before?: string;
   insert: 'title' | 'content' | 'tags' | 'authorComment' | 'authorSignature' | 'footer' | 'custom';

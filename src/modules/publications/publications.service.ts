@@ -365,7 +365,13 @@ export class PublicationsService {
     // Snapshot invalidation: if publication is already in READY/SCHEDULED and content changes,
     // we must rebuild the snapshot so the worker gets the fresh content
     const isContentUpdated =
-      data.title !== undefined || data.content !== undefined || data.tags !== undefined;
+      data.title !== undefined ||
+      data.content !== undefined ||
+      data.tags !== undefined ||
+      data.authorComment !== undefined ||
+      data.language !== undefined ||
+      data.postType !== undefined ||
+      data.projectTemplateId !== undefined;
     const needsSnapshotRebuild =
       isContentUpdated &&
       (publication.status === PublicationStatus.READY ||

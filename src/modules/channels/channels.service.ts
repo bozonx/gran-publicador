@@ -113,33 +113,23 @@ export class ChannelsService {
       throw new BadRequestException('No variation fields provided');
     }
 
-    const templates = this.getChannelPreferences(channel.preferences).templates ?? [];
-    const nextTemplates = [...templates];
-
-    const existingIdx = nextTemplates.findIndex(
-      t => t.projectTemplateId === params.projectTemplateId,
-    );
-    const next = {
-      projectTemplateId: params.projectTemplateId,
-      excluded: params.variation.excluded,
-      overrides: this.getJsonObject(params.variation.overrides),
-    };
-
-    if (existingIdx >= 0) nextTemplates[existingIdx] = { ...nextTemplates[existingIdx], ...next };
-    else nextTemplates.push(next);
-
-    await this.validateChannelTemplateReferences(channel.projectId, {
-      ...(this.getJsonObject(channel.preferences) as any),
-      templates: nextTemplates,
-    });
-
-    await this.prisma.channel.update({
-      where: { id: params.channelId },
-      data: {
-        preferences: {
-          ...(this.getJsonObject(channel.preferences) as any),
-          templates: nextTemplates,
-        } as Prisma.InputJsonValue,
+    // Use the new table for template variations
+    await this.prisma.channelTemplateVariation.upsert({
+      where: {
+        channelId_projectTemplateId: {
+          channelId: params.channelId,
+          projectTemplateId: params.projectTemplateId,
+        },
+      },
+      create: {
+        channelId: params.channelId,
+        projectTemplateId: params.projectTemplateId,
+        excluded: params.variation.excluded ?? false,
+        overrides: (params.variation.overrides ?? {}) as Prisma.InputJsonValue,
+      },
+      update: {
+        excluded: params.variation.excluded,
+        overrides: params.variation.overrides as Prisma.InputJsonValue,
       },
     });
 
@@ -198,6 +188,7 @@ export class ChannelsService {
         project: {
           select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
         },
+        templateVariations: true,
         posts: {
           where: { ...publishedPostFilter, publication: { archivedAt: null } },
           take: 1,
@@ -519,6 +510,7 @@ export class ChannelsService {
           project: {
             select: { id: true, name: true, archivedAt: true, preferences: true, ownerId: true },
           },
+          templateVariations: true,
           posts: {
             where: { status: 'PUBLISHED', publication: { archivedAt: null } },
             take: 1,
@@ -551,7 +543,7 @@ export class ChannelsService {
     const items = channels.map(channel => {
       const failed = failedCountsMap.get(channel.id) ?? 0;
       return this.mapper.mapToDto(channel, {
-        published: channel._count.posts,
+        published: (channel as any)._count?.posts || 0,
         failed,
       });
     });

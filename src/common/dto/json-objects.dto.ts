@@ -257,6 +257,10 @@ export class ProjectPreferencesDto {
  * DTO for Template Block.
  */
 export class TemplateBlockDto {
+  @IsOptional()
+  @IsUUID()
+  id?: string;
+
   @IsBoolean()
   enabled!: boolean;
 
@@ -329,7 +333,11 @@ export class BlockOverrideDto {
  * DTO for Channel Template Adaptation (linked to a project template).
  */
 export class ChannelTemplateVariationDto {
-  @IsString()
+  @IsUUID()
+  @IsOptional()
+  id?: string;
+
+  @IsUUID()
   projectTemplateId!: string;
 
   @IsOptional()
@@ -338,8 +346,7 @@ export class ChannelTemplateVariationDto {
 
   @IsOptional()
   @IsObject()
-  @ValidateNested({ each: true })
-  @Type(() => BlockOverrideDto)
+  // Record<blockId, BlockOverride>
   overrides?: Record<string, BlockOverrideDto>;
 }
 

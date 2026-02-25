@@ -1,6 +1,7 @@
 import { TagsFormatter, type TagCase } from './tags-formatter.js';
 
 export interface TemplateBlock {
+  id: string;
   enabled: boolean;
   insert: 'title' | 'content' | 'tags' | 'authorComment' | 'authorSignature' | 'footer' | 'custom';
   before: string;
@@ -57,13 +58,13 @@ export interface TemplateResolutionMeta {
 export class SocialPostingBodyFormatter {
   private static getDefaultBlocks(): TemplateBlock[] {
     return [
-      { enabled: false, insert: 'title', before: '', after: '' },
-      { enabled: true, insert: 'content', before: '', after: '' },
-      { enabled: true, insert: 'authorComment', before: '', after: '' },
-      { enabled: true, insert: 'authorSignature', before: '', after: '' },
-      { enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
-      { enabled: false, insert: 'custom', before: '', after: '', content: '' },
-      { enabled: true, insert: 'footer', before: '', after: '', content: '' },
+      { id: '8d2f00e0-32b4-4e94-9b2c-63e8a7287961', enabled: false, insert: 'title', before: '', after: '' },
+      { id: '9a1c2d3e-4f5a-6b7c-8d9e-0a1b2c3d4e5f', enabled: true, insert: 'content', before: '', after: '' },
+      { id: '1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e', enabled: true, insert: 'authorComment', before: '', after: '' },
+      { id: '2c3d4e5f-6a7b-8c9d-0e1f-2a3b4c5d6e7a', enabled: true, insert: 'authorSignature', before: '', after: '' },
+      { id: '3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7a8b', enabled: true, insert: 'tags', before: '', after: '', tagCase: 'snake_case' },
+      { id: '4e5f6a7b-8c9d-0e1f-2a3b-4c5d6e7a8b9c', enabled: false, insert: 'custom', before: '', after: '', content: '' },
+      { id: '5f6a7b8c-9d0e-1f2a-3b4c-5d6e7a8b9c0d', enabled: true, insert: 'footer', before: '', after: '', content: '' },
     ];
   }
 
@@ -74,7 +75,9 @@ export class SocialPostingBodyFormatter {
     if (!overrides) return projectBlocks;
 
     return projectBlocks.map(block => {
-      const override = overrides[block.insert];
+      // Try to find override by stable block ID first (Point 2)
+      // Fallback to block.insert for legacy support during migration
+      const override = overrides[block.id] || overrides[block.insert];
       if (!override) return block;
 
       return {
@@ -130,7 +133,8 @@ export class SocialPostingBodyFormatter {
         ? JSON.parse(channel.preferences)
         : channel.preferences;
 
-    const variations: ChannelTemplateVariation[] = preferences?.templates || [];
+    // Support both legacy JSON variations and new table variations (passed in as channel.templateVariations)
+    const variations: ChannelTemplateVariation[] = (channel as any).templateVariations || preferences?.templates || [];
 
     let resolution: TemplateResolutionMeta['resolution'] = 'fallback_default_blocks';
 

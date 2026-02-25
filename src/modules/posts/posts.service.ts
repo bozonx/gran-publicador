@@ -13,6 +13,7 @@ import { ChannelsService } from '../channels/channels.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { normalizeTags } from '../../common/utils/tags.util.js';
+import { PostSnapshotBuilderService } from '../social-posting/post-snapshot-builder.service.js';
 
 @Injectable()
 export class PostsService {
@@ -22,6 +23,7 @@ export class PostsService {
     private readonly permissions: PermissionsService,
     private readonly channelsService: ChannelsService,
     private readonly tagsService: TagsService,
+    private readonly snapshotBuilder: PostSnapshotBuilderService,
   ) {}
 
   private normalizePostResponse(post: any) {
@@ -687,6 +689,19 @@ export class PostsService {
 
     if (shouldRefreshPublicationEffectiveAt) {
       await this.refreshPublicationEffectiveAt(updatedPost.publicationId);
+    }
+
+    // Point 5: rebuild snapshot when post fields affecting the output are edited
+    const isPostContentUpdated =
+      data.content !== undefined || data.authorSignature !== undefined || data.tags !== undefined;
+
+    if (
+      isPostContentUpdated &&
+      (publicationStatus === PublicationStatus.READY ||
+        publicationStatus === PublicationStatus.SCHEDULED)
+    ) {
+      this.logger.log(`Post ${id} content updated in ${publicationStatus} status, rebuilding snapshot`);
+      await this.snapshotBuilder.buildForPublication(updatedPost.publicationId);
     }
 
     this.logger.log(

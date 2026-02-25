@@ -136,7 +136,7 @@ function handleSuccess() {
               {{ t('roles.customRole') }}
             </UBadge>
           </div>
-          <span v-if="row.original.description" class="text-xs text-gray-500 font-normal mt-0.5">{{ row.original.description }}</span>
+          <span v-if="row.original.note" class="text-xs text-gray-500 font-normal mt-0.5">{{ row.original.note }}</span>
         </div>
       </template>
 

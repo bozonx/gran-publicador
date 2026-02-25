@@ -337,8 +337,8 @@ async function handleDelete() {
                 </UBadge>
               </div>
 
-              <p v-if="currentProject.description" class="text-gray-600 dark:text-gray-400 mb-4">
-                {{ currentProject.description }}
+              <p v-if="currentProject.note" class="text-gray-600 dark:text-gray-400 mb-4">
+                {{ currentProject.note }}
               </p>
 
               <div
