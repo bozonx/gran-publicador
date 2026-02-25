@@ -470,8 +470,7 @@ export class SocialPostingService {
               ],
             }),
             errorMessage: null,
-            // Clear payload after successful sending to save space? Optional.
-            // preparedPayload: null,
+            preparedPayload: null, // Clear payload after successful sending to save space
           },
         });
 
