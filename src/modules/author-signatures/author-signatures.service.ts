@@ -5,6 +5,8 @@ import { SystemRoleType } from '../../common/types/permissions.types.js';
 import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
 import { UpsertVariantDto } from './dto/upsert-variant.dto.js';
+import { ReorderSignaturesDto } from './dto/reorder-signatures.dto.js';
+import { UpdateSignatureWithVariantsDto } from './dto/update-signature-with-variants.dto.js';
 
 @Injectable()
 export class AuthorSignaturesService {
@@ -43,12 +45,14 @@ export class AuthorSignaturesService {
   async create(projectId: string, userId: string, dto: CreateAuthorSignatureDto) {
     await this.assertNotViewer(projectId, userId);
 
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    // If userId is provided in DTO, we use it (e.g. admin creating for someone else)
+    const targetUserId = dto.userId || userId;
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: targetUserId } });
 
     return this.prisma.projectAuthorSignature.create({
       data: {
         projectId,
-        userId,
+        userId: targetUserId,
         variants: {
           create: {
             language: dto.language || user.language,
@@ -61,6 +65,79 @@ export class AuthorSignaturesService {
         user: { select: { id: true, fullName: true, telegramUsername: true } },
       },
     });
+  }
+
+  /**
+   * Update signature with all its variants at once.
+   */
+  async updateWithVariants(
+    signatureId: string,
+    userId: string,
+    dto: UpdateSignatureWithVariantsDto,
+  ) {
+    await this.assertWriteAccess(signatureId, userId);
+
+    return this.prisma.$transaction(async tx => {
+      // Update signature metadata
+      const signature = await tx.projectAuthorSignature.update({
+        where: { id: signatureId },
+        data: {
+          order: dto.order,
+        },
+      });
+
+      if (dto.variants) {
+        // Sync variants: delete missing ones and upsert current ones
+        const currentLangs = dto.variants.map(v => v.language);
+
+        await tx.projectAuthorSignatureVariant.deleteMany({
+          where: {
+            signatureId,
+            language: { notIn: currentLangs },
+          },
+        });
+
+        for (const v of dto.variants) {
+          await tx.projectAuthorSignatureVariant.upsert({
+            where: { signatureId_language: { signatureId, language: v.language } },
+            create: {
+              signatureId,
+              language: v.language,
+              content: this.normalizeSignatureContent(v.content),
+            },
+            update: {
+              content: this.normalizeSignatureContent(v.content),
+            },
+          });
+        }
+      }
+
+      return tx.projectAuthorSignature.findUnique({
+        where: { id: signatureId },
+        include: {
+          variants: true,
+          user: { select: { id: true, fullName: true, telegramUsername: true } },
+        },
+      });
+    });
+  }
+
+  /**
+   * Batch update order of signatures in a project.
+   */
+  async reorder(projectId: string, userId: string, dto: ReorderSignaturesDto) {
+    await this.assertNotViewer(projectId, userId);
+
+    await this.prisma.$transaction(
+      dto.signatureIds.map((id, index) =>
+        this.prisma.projectAuthorSignature.update({
+          where: { id, projectId },
+          data: { order: index },
+        }),
+      ),
+    );
+
+    return this.findAllByProject(projectId, userId);
   }
 
   /**

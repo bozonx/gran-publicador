@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateAuthorSignatureDto {
   @IsString()
@@ -10,4 +10,8 @@ export class CreateAuthorSignatureDto {
   @IsNotEmpty()
   @IsOptional()
   language?: string;
+
+  @IsUUID()
+  @IsOptional()
+  userId?: string;
 }

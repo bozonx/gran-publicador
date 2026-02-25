@@ -14,6 +14,7 @@ import { PublicationsLlmService } from './publications-llm.service.js';
 import { PublicationsMapper } from './publications.mapper.js';
 import { PublicationsMediaService } from './publications-media.service.js';
 import { PublicationsBulkService } from './publications-bulk.service.js';
+import { AuthorSignaturesModule } from '../author-signatures/author-signatures.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PublicationsBulkService } from './publications-bulk.service.js';
     LlmModule,
     TagsModule,
     forwardRef(() => ContentLibraryModule),
+    AuthorSignaturesModule,
   ],
   controllers: [PublicationsController, PublicationsLlmController],
   providers: [

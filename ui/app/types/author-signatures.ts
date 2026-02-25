@@ -31,6 +31,18 @@ export interface UpdateAuthorSignatureInput {
   order?: number;
 }
 
+export interface UpdateSignatureWithVariantsInput {
+  order?: number;
+  variants?: {
+    language: string;
+    content: string;
+  }[];
+}
+
+export interface ReorderSignaturesInput {
+  signatureIds: string[];
+}
+
 export interface UpsertVariantInput {
   content: string;
 }

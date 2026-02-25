@@ -14,6 +14,8 @@ import { AuthorSignaturesService } from './author-signatures.service.js';
 import { CreateAuthorSignatureDto } from './dto/create-author-signature.dto.js';
 import { UpdateAuthorSignatureDto } from './dto/update-author-signature.dto.js';
 import { UpsertVariantDto } from './dto/upsert-variant.dto.js';
+import { ReorderSignaturesDto } from './dto/reorder-signatures.dto.js';
+import { UpdateSignatureWithVariantsDto } from './dto/update-signature-with-variants.dto.js';
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import { SignatureAccessGuard } from './guards/signature-access.guard.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
@@ -37,13 +39,25 @@ export class AuthorSignaturesController {
     return this.authorSignaturesService.create(projectId, req.user.id, dto);
   }
 
+  @Post('projects/:projectId/author-signatures/reorder')
+  reorder(
+    @Param('projectId') projectId: string,
+    @Body() dto: ReorderSignaturesDto,
+    @Request() req: UnifiedAuthRequest,
+  ) {
+    return this.authorSignaturesService.reorder(projectId, req.user.id, dto);
+  }
+
   @Patch('author-signatures/:id')
   @UseGuards(SignatureAccessGuard)
   update(
     @Param('id') id: string,
-    @Body() dto: UpdateAuthorSignatureDto,
+    @Body() dto: UpdateSignatureWithVariantsDto,
     @Request() req: UnifiedAuthRequest,
   ) {
+    if (dto.variants) {
+      return this.authorSignaturesService.updateWithVariants(id, req.user.id, dto);
+    }
     return this.authorSignaturesService.update(id, req.user.id, dto);
   }
 

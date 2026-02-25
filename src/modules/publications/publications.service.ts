@@ -44,6 +44,7 @@ import { PublicationsMediaService } from './publications-media.service.js';
 import { PublicationsBulkService } from './publications-bulk.service.js';
 import { ApplyLlmResultDto } from './dto/apply-llm-result.dto.js';
 import { SocialPostingService } from '../social-posting/social-posting.service.js';
+import { AuthorSignaturesService } from '../author-signatures/author-signatures.service.js';
 
 @Injectable()
 export class PublicationsService {
@@ -63,6 +64,7 @@ export class PublicationsService {
     private mapper: PublicationsMapper,
     private mediaSubService: PublicationsMediaService,
     private bulkSubService: PublicationsBulkService,
+    private authorSignaturesService: AuthorSignaturesService,
   ) {}
 
   public async chatWithLlm(
@@ -648,18 +650,28 @@ export class PublicationsService {
   ) {
     const channels = await this.prisma.channel.findMany({ where: { id: { in: channelIds } } });
     const posts = await Promise.all(
-      channels.map(channel =>
-        this.prisma.post.create({
+      channels.map(async channel => {
+        let authorSignature = authorSignatureOverrides?.[channel.id];
+
+        // If no direct override but we have a signatureId, resolve it by language
+        if (!authorSignature && authorSignatureId) {
+          authorSignature = (await this.authorSignaturesService.resolveVariantContent(
+            authorSignatureId,
+            channel.language,
+          )) || undefined;
+        }
+
+        return this.prisma.post.create({
           data: {
             publicationId,
             channelId: channel.id,
             socialMedia: channel.socialMedia,
             status: PostStatus.PENDING,
             scheduledAt,
-            authorSignature: authorSignatureOverrides?.[channel.id],
+            authorSignature,
           },
-        }),
-      ),
+        });
+      }),
     );
     return { posts, warnings: [] };
   }

@@ -18,6 +18,8 @@ const {
   fetchByProject,
   create,
   update,
+  updateWithVariants,
+  reorder,
   upsertVariant,
   deleteVariant,
   remove,
@@ -151,21 +153,13 @@ async function handleSave() {
 
   try {
     if (editingSignature.value) {
-      // Update existing
-      const existingLangs = new Set(editingSignature.value.variants.map(v => v.language))
-      const newLangs = new Set(filledVariants.map(v => v.language))
-
-      // Upsert current ones
-      for (const variant of filledVariants) {
-        await upsertVariant(editingSignature.value.id, variant.language, { content: variant.content.trim() })
-      }
-
-      // Delete removed ones
-      for (const lang of existingLangs) {
-        if (!newLangs.has(lang)) {
-          await deleteVariant(editingSignature.value.id, lang)
-        }
-      }
+      // Update existing atomically
+      await updateWithVariants(editingSignature.value.id, {
+        variants: filledVariants.map(v => ({
+          language: v.language,
+          content: v.content.trim(),
+        })),
+      })
     } else {
       // Create new
       const userLang = user.value?.language || 'en-US'
@@ -181,11 +175,16 @@ async function handleSave() {
       })
 
       if (created) {
-        // Create additional variants
-        for (let i = 0; i < filledVariants.length; i++) {
-          if (i === primaryIndex) continue
-          const v = filledVariants[i]!
-          await upsertVariant(created.id, v.language, { content: v.content.trim() })
+        // Update additionally (we already have variants in the form, 
+        // some might be different from what was sent in create)
+        // Since create only supports ONE variant, we update the rest atomically
+        if (filledVariants.length > 1) {
+          await updateWithVariants(created.id, {
+            variants: filledVariants.map(v => ({
+              language: v.language,
+              content: v.content.trim(),
+            })),
+          })
         }
       }
     }
@@ -251,10 +250,8 @@ async function handleDelete(id: string) {
 
 async function handleDragEnd() {
   try {
-    let order = 0
-    for (const sig of signatures.value) {
-      await update(sig.id, { order: order++ })
-    }
+    const signatureIds = signatures.value.map(sig => sig.id)
+    await reorder(props.projectId, { signatureIds })
 
     toast.add({
       title: t('common.success', 'Success'),

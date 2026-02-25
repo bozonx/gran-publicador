@@ -94,6 +94,33 @@ export function useAuthorSignatures() {
     }
   }
 
+  async function reorder(projectId: string, data: { signatureIds: string[] }): Promise<ProjectAuthorSignature[]> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const items = await api.post<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures/reorder`, data);
+      return items;
+    } catch (err: any) {
+      error.value = err.message || 'Failed to reorder signatures';
+      return [];
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function updateWithVariants(id: string, data: any): Promise<ProjectAuthorSignature | null> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      return await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data);
+    } catch (err: any) {
+      error.value = err.message || 'Failed to update signature';
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   async function remove(id: string): Promise<boolean> {
     isLoading.value = true;
     error.value = null;
@@ -114,6 +141,8 @@ export function useAuthorSignatures() {
     fetchByProject,
     create,
     update,
+    updateWithVariants,
+    reorder,
     upsertVariant,
     deleteVariant,
     remove,
