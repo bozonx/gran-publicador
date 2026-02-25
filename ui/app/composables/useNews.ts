@@ -30,7 +30,7 @@ export interface NewsItem {
 
 export interface SearchNewsParams {
   q: string;
-  mode?: 'text' | 'vector' | 'hybrid';
+  mode?: 'text' | 'vector' | 'hybrid' | 'all';
   savedFrom?: string;
   savedTo?: string;
   afterSavedAt?: string;
@@ -84,35 +84,40 @@ export const useNews = () => {
     }
 
     try {
-      const queryParams: any = {
-        q: params.q,
-        mode: params.mode,
-        savedFrom: params.savedFrom,
-        savedTo: params.savedTo,
-        afterSavedAt: params.afterSavedAt,
-        afterId: params.afterId,
-        cursor: isLoadMore ? cursor.value : params.cursor,
-        source: params.source,
-        sourceTags: params.sourceTags,
-        lang: params.lang,
-        limit: NEWS_LIMIT,
-        minScore: params.minScore,
-        includeContent: params.includeContent,
-        orderBy: params.orderBy,
-        sources: params.sources,
+      const sanitizeParams = (p: SearchNewsParams) => {
+        const queryParams: any = {
+          q: p.q,
+          mode: p.mode === 'all' ? 'hybrid' : p.mode,
+          savedFrom: p.savedFrom,
+          savedTo: p.savedTo,
+          afterSavedAt: p.afterSavedAt,
+          afterId: p.afterId,
+          cursor: isLoadMore ? cursor.value : p.cursor,
+          source: p.source,
+          sourceTags: Array.isArray(p.sourceTags) ? p.sourceTags.join(',') : p.sourceTags,
+          lang: p.lang,
+          limit: NEWS_LIMIT,
+          minScore: p.minScore,
+          includeContent: p.includeContent,
+          orderBy: p.orderBy,
+          sources: Array.isArray(p.sources) ? p.sources.join(',') : p.sources,
+        };
+
+        // Filter out undefined, null, or empty string values
+        Object.keys(queryParams).forEach(key => {
+          if (
+            queryParams[key] === undefined ||
+            queryParams[key] === null ||
+            queryParams[key] === ''
+          ) {
+            delete queryParams[key];
+          }
+        });
+
+        return queryParams;
       };
 
-      // Filter out undefined, null, or empty string values
-      Object.keys(queryParams).forEach(key => {
-        if (
-          queryParams[key] === undefined ||
-          queryParams[key] === null ||
-          queryParams[key] === ''
-        ) {
-          delete queryParams[key];
-        }
-      });
-
+      const queryParams = sanitizeParams(params);
       const res = await api.get<any>(`/projects/${pId}/news/search`, { params: queryParams });
 
       let newItems: NewsItem[] = [];

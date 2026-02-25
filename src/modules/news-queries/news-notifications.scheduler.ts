@@ -167,39 +167,72 @@ export class NewsNotificationsScheduler {
 
     const stateByUserId = new Map(existingStates.map(state => [state.userId, state]));
 
+    // Find the earliest date to start fetching from
+    let minLastSentDate = cutoffDate;
+    for (const userId of usersToNotify.keys()) {
+      const state = stateByUserId.get(userId);
+      if (state && state.lastSentSavedAt < minLastSentDate) {
+        minLastSentDate = state.lastSentSavedAt;
+      }
+    }
+
+    // Fetch all items for the query starting from the earliest date
+    const allQueryItems = await this.fetchAllItemsForQuery({
+      query,
+      settings,
+      userId: Array.from(usersToNotify.keys())[0], // Use any user for the search request
+      sinceDate: minLastSentDate,
+      fetchLimit,
+    });
+
+    if (allQueryItems.length === 0) {
+      return {
+        hasNewItems: false,
+        createdNotificationsCount: 0,
+      };
+    }
+
     let hasNewItems = false;
     let createdNotificationsCount = 0;
 
     for (const [userId, lang] of usersToNotify.entries()) {
       const existingState = stateByUserId.get(userId);
-      const { items, newestItem } = await this.fetchNewItemsForUser({
-        query,
-        settings,
-        userId,
-        existingState,
-        cutoffDate,
-        fetchLimit,
+      const userCutoff = existingState ? existingState.lastSentSavedAt : cutoffDate;
+
+      // Filter items for this specific user
+      const userItems = allQueryItems.filter(item => {
+        const itemSavedAt = new Date(item._savedAt || item.savedAt);
+        if (isNaN(itemSavedAt.getTime())) return true;
+        const itemId = item._id || item.id;
+
+        if (itemSavedAt < userCutoff) return false;
+        if (existingState && itemSavedAt.getTime() === existingState.lastSentSavedAt.getTime()) {
+          return itemId !== existingState.lastSentNewsId;
+        }
+        return true;
       });
 
-      if (items.length === 0 || !newestItem) {
+      if (userItems.length === 0) {
         continue;
       }
 
       hasNewItems = true;
+      const newestItem = userItems[0]; // Items are assumed to be sorted descending by savedAt
+
       this.logger.log(
-        `Found ${items.length} new news for user ${userId}, project ${query.projectId}, query ${query.name}`,
+        `Found ${userItems.length} new news for user ${userId}, project ${query.projectId}, query ${query.name}`,
       );
 
-      const titlesList = items
+      const titlesList = userItems
         .slice(0, 5)
         .map((item: any) => `• ${item.title}`)
         .join('\n');
-      const suffix = items.length > 5 ? `\n... (+${items.length - 5})` : '';
+      const suffix = userItems.length > 5 ? `\n... (+${userItems.length - 5})` : '';
 
       const messageBase = this.i18n.t('notifications.NEW_NEWS_MESSAGE', {
         lang,
         args: {
-          count: items.length,
+          count: userItems.length,
           queryName: query.name,
         },
       });
@@ -215,9 +248,9 @@ export class NewsNotificationsScheduler {
         meta: {
           projectId: query.projectId,
           queryId: query.id,
-          newsCount: items.length,
-          firstNewsTitle: items[0]?.title,
-          firstNewsId: items[0]?._id || items[0]?.id,
+          newsCount: userItems.length,
+          firstNewsTitle: userItems[0]?.title,
+          firstNewsId: userItems[0]?._id || userItems[0]?.id,
         },
       });
 
@@ -257,21 +290,19 @@ export class NewsNotificationsScheduler {
     return usersToNotify;
   }
 
-  private async fetchNewItemsForUser(params: {
+  private async fetchAllItemsForQuery(params: {
     query: any;
     settings: Record<string, any>;
     userId: string;
-    existingState?: NewsNotificationState;
-    cutoffDate: Date;
+    sinceDate: Date;
     fetchLimit: number;
-  }): Promise<{ items: any[]; newestItem: any | null }> {
-    const { query, settings, userId, existingState, cutoffDate, fetchLimit } = params;
+  }): Promise<any[]> {
+    const { query, settings, userId, sinceDate, fetchLimit } = params;
 
     const allItems: any[] = [];
     let currentCursor: string | null = null;
     let hasMore = true;
     const limit = 20;
-    let newestItemEver: any = null;
 
     while (hasMore) {
       let mode = settings.mode;
@@ -295,42 +326,15 @@ export class NewsNotificationsScheduler {
 
       if (currentCursor) {
         searchParams.cursor = currentCursor;
-      } else if (existingState && existingState.lastSentSavedAt > cutoffDate) {
-        searchParams.afterSavedAt = existingState.lastSentSavedAt.toISOString();
-        searchParams.afterId = existingState.lastSentNewsId;
       } else {
-        searchParams.savedFrom = cutoffDate.toISOString();
+        searchParams.savedFrom = sinceDate.toISOString();
       }
 
       const results = await this.projectsService.searchNews(query.projectId, userId, searchParams);
       const items = results.items || (Array.isArray(results) ? results : []);
 
       if (items.length > 0) {
-        // Strict client-side filter to prevent duplicate notifications
-        const filteredItems = items.filter((item: any) => {
-          if (!existingState) return true;
-
-          const itemSavedAt = new Date(item._savedAt || item.savedAt);
-          if (isNaN(itemSavedAt.getTime())) return true; // fallback if date is invalid
-
-          const itemId = item._id || item.id;
-
-          if (itemSavedAt < existingState.lastSentSavedAt) return false;
-
-          if (itemSavedAt.getTime() === existingState.lastSentSavedAt.getTime()) {
-            if (itemId === existingState.lastSentNewsId) return false;
-            return false;
-          }
-
-          return true;
-        });
-
-        if (filteredItems.length > 0) {
-          allItems.push(...filteredItems);
-          if (!newestItemEver) {
-            newestItemEver = filteredItems[0];
-          }
-        }
+        allItems.push(...items);
       }
 
       currentCursor = results.nextCursor || null;
@@ -338,16 +342,13 @@ export class NewsNotificationsScheduler {
 
       if (allItems.length >= fetchLimit) {
         this.logger.warn(
-          `Reached fetch limit (${fetchLimit}) for query ${query.id}, user ${userId}, stopping pagination`,
+          `Reached fetch limit (${fetchLimit}) for query ${query.id}, project ${query.projectId}, stopping pagination`,
         );
         hasMore = false;
       }
     }
 
-    return {
-      items: allItems,
-      newestItem: newestItemEver,
-    };
+    return allItems;
   }
 
   private async getUserStates(

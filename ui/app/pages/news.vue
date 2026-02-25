@@ -48,25 +48,13 @@ async function handleSearch() {
   if (!currentTrackedQuery.value) return
   const query = currentTrackedQuery.value
   
-  // Sanitize mode: map 'all' to 'hybrid', ensures it's one of the allowed values
-  const validModes = ['text', 'vector', 'hybrid']
-  let mode = query.mode
-  if (mode === 'all' || !validModes.includes(mode)) {
-    mode = 'hybrid'
-  }
-
-  // Sanitize sourceTags: ensure it's a string
-  const sourceTags = Array.isArray(query.sourceTags) 
-    ? query.sourceTags.join(',') 
-    : query.sourceTags
-
   await searchNews({
     q: query.q,
-    mode: mode,
+    mode: query.mode,
     savedFrom: query.savedFrom || query.since, // Fallback
     savedTo: query.savedTo,
     lang: query.lang,
-    sourceTags: sourceTags,
+    sourceTags: query.sourceTags,
     sources: query.sources,
     orderBy: query.orderBy
   }, query.projectId)
@@ -77,26 +65,15 @@ async function loadMore() {
   
   const query = currentTrackedQuery.value
   
-  // Sanitize params for load more too
-  const validModes = ['text', 'vector', 'hybrid']
-  let mode = query.mode
-  if (mode === 'all' || !validModes.includes(mode)) {
-    mode = 'hybrid'
-  }
-
-  const sourceTags = Array.isArray(query.sourceTags) 
-    ? query.sourceTags.join(',') 
-    : query.sourceTags
-
   isLoadMoreLoading.value = true
   try {
     await searchNews({
       q: query.q,
-      mode: mode,
+      mode: query.mode,
       savedFrom: query.savedFrom || query.since,
       savedTo: query.savedTo,
       lang: query.lang,
-      sourceTags: sourceTags,
+      sourceTags: query.sourceTags,
       sources: query.sources
     }, query.projectId, true)
   } finally {
