@@ -81,7 +81,8 @@ const modalsRef = ref<any>(null)
 
 // Social posting
 const { 
-  publishPublication, 
+  publishPublication,
+  publishPublicationNow,
   isPublishing, 
   canPublishPublication: baseCanPublishPublication 
 } = useSocialPosting()
@@ -395,7 +396,7 @@ async function handlePublishNow() {
     return
   }
   
-  await executePublish(false)
+  await executePublish(false, true)
 }
 
 async function handleConfirmArchivePublish() {
@@ -409,20 +410,22 @@ async function handleConfirmArchivePublish() {
         return
     }
 
-    await executePublish(true)
+    await executePublish(false, true)
 }
 
 async function handleConfirmRepublish() {
     isRepublishModalOpen.value = false
     // When manually republishing, we use force=true to ensure all posts are processed
-    await executePublish(true)
+    await executePublish(true, false)
 }
 
-async function executePublish(force: boolean) {
+async function executePublish(force: boolean, now: boolean = false) {
   if (!currentPublication.value) return
 
   try {
-    const result = await publishPublication(currentPublication.value.id, force)
+    const result = now 
+      ? await publishPublicationNow(currentPublication.value.id)
+      : await publishPublication(currentPublication.value.id, force)
     
     // Always update status if returned from server
     if (result.data?.status) {
@@ -691,7 +694,7 @@ async function executePublish(force: boolean) {
                                 </div>
                                 <div class="flex items-center gap-2">
                                     <UIcon name="i-heroicons-squares-plus" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate max-w-[150px]">
+                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate max-w-37.5">
                                         {{ projectTemplates.find(tpl => tpl.id === currentPublication?.projectTemplateId)?.name || currentPublication?.projectTemplateId || '-' }}
                                     </span>
                                     <UButton

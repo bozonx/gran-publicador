@@ -29,16 +29,42 @@ export const useSocialPosting = () => {
   /**
    * Publish all posts of a publication
    */
-  const publishPublication = async (publicationId: string, force = false): Promise<PublishResponse> => {
+  const publishPublication = async (
+    publicationId: string,
+    force = false,
+  ): Promise<PublishResponse> => {
     isPublishing.value = true;
     publishError.value = null;
 
     try {
-      const response = await api.post<PublishResponse>(`/publications/${publicationId}/publish?force=${force}`);
+      const response = await api.post<PublishResponse>(
+        `/publications/${publicationId}/publish?force=${force}`,
+      );
 
       return response;
     } catch (error: any) {
       publishError.value = error.message || 'Failed to publish publication';
+      throw error;
+    } finally {
+      isPublishing.value = false;
+    }
+  };
+
+  /**
+   * Publish all posts of a publication immediately
+   */
+  const publishPublicationNow = async (publicationId: string): Promise<PublishResponse> => {
+    isPublishing.value = true;
+    publishError.value = null;
+
+    try {
+      const response = await api.post<PublishResponse>(
+        `/publications/${publicationId}/publish-now`,
+      );
+
+      return response;
+    } catch (error: any) {
+      publishError.value = error.message || 'Failed to publish publication immediately';
       throw error;
     } finally {
       isPublishing.value = false;
@@ -73,7 +99,7 @@ export const useSocialPosting = () => {
     // Check if publication has content or media
     const hasContent = !isTextContentEmpty(publication.content);
     const hasMedia = Array.isArray(publication.media) && publication.media.length > 0;
-    
+
     // Check if publication has at least one post
     const hasPosts = Array.isArray(publication.posts) && publication.posts.length > 0;
 
@@ -81,21 +107,21 @@ export const useSocialPosting = () => {
 
     // Validate against social media rules
     if (publication.posts) {
-        const mediaArray = publication.media?.map((m: any) => ({ type: m.media?.type })) || [];
-        const mediaCount = mediaArray.length;
+      const mediaArray = publication.media?.map((m: any) => ({ type: m.media?.type })) || [];
+      const mediaCount = mediaArray.length;
 
-        for (const post of publication.posts) {
-            if (post.channel?.socialMedia) {
-                const result = validatePostContent(
-                    post.content || publication.content,
-                    mediaCount,
-                    post.channel.socialMedia,
-                    mediaArray,
-                    publication.postType
-                );
-                if (!result.isValid) return false;
-            }
+      for (const post of publication.posts) {
+        if (post.channel?.socialMedia) {
+          const result = validatePostContent(
+            post.content || publication.content,
+            mediaCount,
+            post.channel.socialMedia,
+            mediaArray,
+            publication.postType,
+          );
+          if (!result.isValid) return false;
         }
+      }
     }
 
     return true;
@@ -118,15 +144,15 @@ export const useSocialPosting = () => {
 
     // Validate against social media rules
     if (post.channel?.socialMedia) {
-        const mediaArray = pub.media?.map((m: any) => ({ type: m.media?.type })) || [];
-        const result = validatePostContent(
-            post.content || pub.content,
-            mediaArray.length,
-            post.channel.socialMedia,
-            mediaArray,
-            pub.postType
-        );
-        if (!result.isValid) return false;
+      const mediaArray = pub.media?.map((m: any) => ({ type: m.media?.type })) || [];
+      const result = validatePostContent(
+        post.content || pub.content,
+        mediaArray.length,
+        post.channel.socialMedia,
+        mediaArray,
+        pub.postType,
+      );
+      if (!result.isValid) return false;
     }
 
     return true;
@@ -151,6 +177,7 @@ export const useSocialPosting = () => {
     isPublishing,
     publishError,
     publishPublication,
+    publishPublicationNow,
     publishPost,
     canPublishPublication,
     canPublishPost,
