@@ -41,6 +41,11 @@ services:
       - LOG_LEVEL=warn
       - DATABASE_URL=postgresql://gran:gran_password@postgres:5432/gran_db?schema=public
       - REDIS_URL=redis://redis:6379/0
+      - SOCIAL_POSTING_SERVICE_URL=http://social-media-posting-microservice:8080/api/v1
+      - SOCIAL_POSTING_SERVICE_API_TOKEN=your_token_if_needed
+      - JWT_SECRET=your_jwt_secret
+      - SYSTEM_API_SECRET=your_system_secret
+      - BULL_CONCURRENCY=5
     depends_on:
       - redis
       - postgres

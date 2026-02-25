@@ -10,6 +10,14 @@ This document describes production deployment for Gran Publicador backend and fr
 - Configure Render Web Service to pull the image from GHCR.
 - Run database migrations as a separate one-off job.
 
+### Architecture Overview
+
+For production, the backend consists of two separate processes that use the same Docker image:
+1. **API Service** - Runs the main HTTP/WebSocket server (`node dist/src/main.js`).
+2. **Background Worker** - Processes async queues like publications (`node dist/src/worker.js`).
+
+Both need access to the same Database and Redis instance.
+
 ### Required environment variables
 
 - `DATABASE_URL` — PostgreSQL connection string
