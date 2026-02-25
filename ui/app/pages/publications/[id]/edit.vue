@@ -651,7 +651,7 @@ async function executePublish(force: boolean, now: boolean = false) {
                             </div>
                         </div>
 
-                        <!-- Project and Language Row -->
+                        <!-- Project and Template Row -->
                         <div class="grid grid-cols-2 gap-4">
                             <!-- Project Selector -->
                             <div>
@@ -710,8 +710,31 @@ async function executePublish(force: boolean, now: boolean = false) {
                             </div>
                         </div>
 
-                        <!-- Type and Language Row -->
+                        <!-- News Source and Language Row -->
                         <div class="grid grid-cols-2 gap-4">
+                            <!-- News Source -->
+                            <div>
+                                <div v-if="currentPublication.meta?.newsData?.url">
+                                    <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
+                                        {{ t('news.source', 'News Source') }}
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-5 h-5 text-gray-400" />
+                                        <a 
+                                            :href="currentPublication.meta.newsData.url" 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            class="text-info-600 dark:text-info-400 font-medium text-base truncate hover:underline"
+                                        >
+                                            {{ currentPublication.meta.newsData.source || 'Original News' }}
+                                        </a>
+                                    </div>
+                                </div>
+                                <div v-else class="text-gray-500 dark:text-gray-400 italic text-xs pt-4">
+                                    {{ t('publication.noNewsSource', 'No news source linked') }}
+                                </div>
+                            </div>
+
                             <!-- Language -->
                             <div>
                                 <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
@@ -724,7 +747,10 @@ async function executePublish(force: boolean, now: boolean = false) {
                                     </span>
                                 </div>
                             </div>
+                        </div>
 
+                        <!-- Type Row -->
+                        <div class="grid grid-cols-2 gap-4">
                             <!-- Type -->
                             <div>
                                 <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">

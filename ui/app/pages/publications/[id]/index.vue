@@ -70,8 +70,8 @@ const hasInactiveChannels = computed(() => currentPublication.value?.posts?.some
 const showDescription = computed(() => {
   if (!currentPublication.value?.description) return false
   
-  // Show for ARTICLE and for publications with SITE posts
-  if (currentPublication.value.postType === 'ARTICLE') return true
+  // Show for ARTICLE, NEWS and for publications with SITE posts
+  if (['ARTICLE', 'NEWS'].includes(currentPublication.value.postType)) return true
   
   return currentPublication.value.posts?.some(post => {
     const socialMedia = post.channel?.socialMedia || post.socialMedia
@@ -352,6 +352,19 @@ async function handleApplyLlm(data: any) {
               <UIcon name="i-heroicons-user" class="w-4 h-4 mr-1 text-gray-500" />
               {{ t('publication.personal_draft') }}
             </UBadge>
+
+            <!-- News Source Link -->
+            <a 
+              v-if="currentPublication.meta?.newsData?.url" 
+              :href="currentPublication.meta.newsData.url" 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <UBadge variant="soft" color="info" class="hover:bg-info-100 dark:hover:bg-info-900/30 transition-colors cursor-pointer font-normal">
+                <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-4 h-4 mr-1 text-info-500" />
+                {{ currentPublication.meta.newsData.source || t('news.source', 'News Source') }}
+              </UBadge>
+            </a>
           </div>
 
           <!-- Social Media & Dates Row -->

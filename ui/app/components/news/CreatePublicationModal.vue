@@ -205,53 +205,44 @@ async function handleNext() {
     return
   }
 
+  if (!selectedProjectId.value) {
+    toast.add({ title: t('common.error'), description: t('publication.validation.projectRequired', 'Please select a project'), color: 'error' })
+    return
+  }
+
   isCreating.value = true
   
   try {
     const sd = scrapedData.value
     
-    // Format news content as Markdown with h1 title
-    const title = sd.title || ''
+    // Just use the body text for content to avoid title duplication when templates are used
     const body = sd.body || ''
-    const sourceTextContent = `# ${title}\n\n${body}`
     
     // Get language from scraped data or user preferences or fallback to 'en-US'
     const lang = sd.meta?.lang || user.value?.language || locale.value
     
-    // Prepare metadata: remove fields we use directly to avoid duplication
     // Use sourceNewsItem if available for richer metadata
     const sourceData = props.sourceNewsItem || sd
-    const otherData: any = { ...sourceData }
-    
-    // User requested to NOT save title and description in the card data
-    delete otherData.title
-    delete otherData.description
-    
-    // Clean up other fields that might have been mapped or are not needed in meta
-    delete otherData.body
-    delete otherData.date
-    delete otherData.url
-    
-    // Also clean up meta nested object if coming from scraped data
-    if (otherData.meta) {
-      otherData.meta = { ...otherData.meta }
-      delete otherData.meta.lang
-      if (Object.keys(otherData.meta).length === 0) delete otherData.meta
-    }
     
     // Create publication with all available news info
     const publication = await createPublication({
-      projectId: selectedProjectId.value || undefined,
-      postType: 'NEWS',
-      newsItemId: props.sourceNewsItem?.id,
+      projectId: selectedProjectId.value,
+      postType: 'NEWS' as any,
+      newsItemId: props.sourceNewsItem?.id || sd.id,
       title: sd.title || undefined,
-      note: sd.description || undefined,
+      description: sd.description || undefined,
       postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
       language: lang,
       imageUrl: sd.image || undefined,
-      content: sourceTextContent,
+      content: body,
+      tags: sourceData.tags || sd.tags || undefined,
       meta: {
-        newsData: otherData
+        newsData: {
+          url: sd.url || sourceData.url,
+          source: sd.source || sourceData.source,
+          taskId: (sourceData as any).taskId,
+          batchId: (sourceData as any).batchId
+        }
       }
     })
     
