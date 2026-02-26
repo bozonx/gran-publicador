@@ -40,7 +40,7 @@ const thumbData = computed(() => {
     order: m.order, 
     media: m.media 
   }))
-  return getMediaLinksThumbDataLoose(links, authStore.accessToken || undefined)
+  return getMediaLinksThumbDataLoose(links)
 })
 
 function handleSuccess(publicationId: string) {

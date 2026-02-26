@@ -446,7 +446,7 @@ function handleDragStart() {
 function handleNativeDragStart(event: DragEvent, media?: MediaItem) {
   if (!media) return
   try {
-    const url = getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt, true)
+    const url = getMediaFileUrl(media.id, undefined, media.updatedAt, true)
     const absoluteUrl = new URL(url, window.location.origin).href
     const mime = media.mimeType || 'application/octet-stream'
     const filename = media.filename || 'file'

@@ -28,7 +28,7 @@ const thumbData = computed(() => {
   try {
     const media = JSON.parse(publication.value.mediaFiles)
     if (!Array.isArray(media)) return { first: null, totalCount: 0 }
-    return getMediaLinksThumbDataLoose(media as any, authStore.accessToken || undefined)
+    return getMediaLinksThumbDataLoose(media as any)
   } catch (e) {
     return { first: null, totalCount: 0 }
   }

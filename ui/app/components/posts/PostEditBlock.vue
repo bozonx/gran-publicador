@@ -915,14 +915,14 @@ async function executePublish() {
                     <UFormField :label="t('post.options.title', 'Platform Options')">
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 
-                                v-model="formData.platformOptions.telegram.disableNotification" 
+                                v-model="formData.platformOptions.TELEGRAM.disableNotification" 
                                 :label="t('post.options.disableNotification')" 
                                 :disabled="isLocked"
                             />
                         </div>
                         <div class="flex items-center gap-2 py-1">
                             <UCheckbox 
-                                v-model="formData.platformOptions.telegram.show_caption_above_media" 
+                                v-model="formData.platformOptions.TELEGRAM.show_caption_above_media" 
                                 :label="t('post.options.showCaptionAboveMedia')" 
                                 :disabled="isLocked"
                             />

@@ -34,7 +34,7 @@ function getMediaIcon(type: string) {
   <div class="absolute inset-0 flex items-center justify-center">
     <img
       v-if="media.type === 'IMAGE'"
-      :src="getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt || undefined)"
+      :src="getMediaFileUrl(media.id, undefined, media.updatedAt || undefined)"
       :alt="media.filename || 'Media'"
       class="max-w-full max-h-full object-contain"
     />
@@ -43,7 +43,7 @@ function getMediaIcon(type: string) {
         controls
         :autoplay="authStore.user?.videoAutoplay !== false"
         class="max-w-full max-h-full"
-        :src="getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt || undefined)"
+        :src="getMediaFileUrl(media.id, undefined, media.updatedAt || undefined)"
       >
         Your browser does not support the video tag.
       </video>
@@ -76,7 +76,7 @@ function getMediaIcon(type: string) {
               controls
               :autoplay="authStore.user?.videoAutoplay !== false"
               class="w-full mt-2"
-              :src="getMediaFileUrl(media.id, authStore.accessToken || undefined, media.updatedAt || undefined)"
+              :src="getMediaFileUrl(media.id, undefined, media.updatedAt || undefined)"
           >
                Your browser does not support the audio element.
           </audio>

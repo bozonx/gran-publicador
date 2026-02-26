@@ -32,7 +32,7 @@ const thumbData = computed(() => {
     return { first: null, totalCount: 0 }
   }
 
-  return getMediaLinksThumbDataLoose(props.publication.media as any, authStore.accessToken || undefined)
+  return getMediaLinksThumbDataLoose(props.publication.media as any)
 })
 
 // Compute problems for this publication

@@ -65,12 +65,12 @@ const previewUrl = computed(() => {
 
   if (firstMedia.value.type === 'IMAGE') {
     if (firstMedia.value.storageType === 'STORAGE') {
-      return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined, version)
+      return getThumbnailUrl(firstMedia.value.id, 400, 400, undefined, version)
     }
-    return getMediaFileUrl(firstMedia.value.id, authStore.accessToken || undefined, version)
+    return getMediaFileUrl(firstMedia.value.id, undefined, version)
   }
 
-  return getThumbnailUrl(firstMedia.value.id, 400, 400, authStore.accessToken || undefined, version)
+  return getThumbnailUrl(firstMedia.value.id, 400, 400, undefined, version)
 })
 
 const previewSrcset = computed(() => {
@@ -79,9 +79,8 @@ const previewSrcset = computed(() => {
   if (firstMedia.value.type !== 'IMAGE') return null
   if (firstMedia.value.storageType !== 'STORAGE') return null
 
-  const token = authStore.accessToken || undefined
   const version = firstMedia.value.updatedAt
-  return `${getThumbnailUrl(firstMedia.value.id, 400, 400, token, version)} 1x, ${getThumbnailUrl(firstMedia.value.id, 800, 800, token, version)} 2x`
+  return `${getThumbnailUrl(firstMedia.value.id, 400, 400, undefined, version)} 1x, ${getThumbnailUrl(firstMedia.value.id, 800, 800, undefined, version)} 2x`
 })
 
 function handleImageError() {

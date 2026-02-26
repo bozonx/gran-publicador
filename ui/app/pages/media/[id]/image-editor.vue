@@ -47,7 +47,7 @@ const saveOptimization = ref({ stripMetadata: false, lossless: false })
 
 const source = computed(() => {
   if (!media.value) return ''
-  return getMediaFileUrl(media.value.id, authStore.accessToken || undefined, media.value.updatedAt)
+  return getMediaFileUrl(media.value.id, undefined, media.value.updatedAt)
 })
 
 onMounted(async () => {

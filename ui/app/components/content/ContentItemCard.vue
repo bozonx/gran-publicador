@@ -134,7 +134,7 @@ const thumbData = computed(() => {
   }
 
   const links = rawLinks.map(l => ({ order: l.order, media: toMediaItemLike(l.media) }))
-  return getMediaLinksThumbDataLoose(links, authStore.accessToken || undefined)
+  return getMediaLinksThumbDataLoose(links)
 })
 
 const getItemTextBlocks = (item: ContentItem): string[] => {

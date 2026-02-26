@@ -62,12 +62,12 @@ const previewUrl = computed(() => {
 
   if (props.media.type === 'IMAGE') {
     if (props.media.storageType === 'STORAGE') {
-      return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined, version)
+      return getThumbnailUrl(props.media.id, 400, 400, undefined, version)
     }
-    return getMediaFileUrl(props.media.id, authStore.accessToken || undefined, version)
+    return getMediaFileUrl(props.media.id, undefined, version)
   }
 
-  return getThumbnailUrl(props.media.id, 400, 400, authStore.accessToken || undefined, version)
+  return getThumbnailUrl(props.media.id, 400, 400, undefined, version)
 })
 
 const previewSrcset = computed(() => {
@@ -75,9 +75,8 @@ const previewSrcset = computed(() => {
   if (props.media.type !== 'IMAGE') return null
   if (props.media.storageType !== 'STORAGE') return null
 
-  const token = authStore.accessToken || undefined
   const version = props.media.updatedAt
-  return `${getThumbnailUrl(props.media.id, 400, 400, token, version)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, token, version)} 2x`
+  return `${getThumbnailUrl(props.media.id, 400, 400, undefined, version)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, undefined, version)} 2x`
 })
 
 const sizeClasses = computed(() => {
@@ -117,7 +116,7 @@ function handleClick() {
 
 function handleDragStart(event: DragEvent) {
   try {
-    const url = getMediaFileUrl(props.media.id, authStore.accessToken || undefined, props.media.updatedAt, true)
+    const url = getMediaFileUrl(props.media.id, undefined, props.media.updatedAt, true)
     const absoluteUrl = new URL(url, window.location.origin).href
     const mime = props.media.mimeType || 'application/octet-stream'
     const filename = props.media.filename || 'file'
