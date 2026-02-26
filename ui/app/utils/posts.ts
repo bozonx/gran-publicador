@@ -130,9 +130,9 @@ export function getPostUrl(post: any): string | null {
       const channelId = post.channel?.channelIdentifier;
       
       if (platformPostId && channelId) {
-        if (socialMedia === 'telegram') {
+        if (socialMedia?.toUpperCase() === 'TELEGRAM') {
           return `https://t.me/${channelId.replace('@', '')}/${platformPostId}`;
-        } else if (socialMedia === 'vk') {
+        } else if (socialMedia?.toUpperCase() === 'VK') {
           const vkGroupId = channelId.startsWith('-') ? channelId : `-${channelId}`;
           return `https://vk.com/wall${vkGroupId}_${platformPostId}`;
         }

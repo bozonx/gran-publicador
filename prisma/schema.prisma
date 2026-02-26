@@ -719,9 +719,9 @@ model Tag {
 }
 
 enum SocialMedia {
-  TELEGRAM @map("telegram")
-  VK       @map("vk")
-  SITE     @map("site")
+  TELEGRAM
+  VK
+  SITE
 }
 
 enum PostType {

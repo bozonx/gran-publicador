@@ -11,7 +11,7 @@ You will receive a JSON instruction block in the user message with:
 - "channels": an array of channel objects, each with:
   - "channelId": unique identifier
   - "channelName": display name
-  - "socialMedia": social network identifier (e.g. "telegram", "vk", "site")
+  - "socialMedia": social network identifier (e.g. "TELEGRAM", "VK", "SITE")
   - "tags": array of the channel's predefined tags (may be empty)
   - "maxContentLength": maximum allowed length (in characters) for this channel post content (may be missing)
 

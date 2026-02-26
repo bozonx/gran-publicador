@@ -75,7 +75,7 @@ const showDescription = computed(() => {
   
   return currentPublication.value.posts?.some(post => {
     const socialMedia = post.channel?.socialMedia || post.socialMedia
-    return socialMedia === 'site'
+    return socialMedia?.toUpperCase() === 'SITE'
   })
 })
 

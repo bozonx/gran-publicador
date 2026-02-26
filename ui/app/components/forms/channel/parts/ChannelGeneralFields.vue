@@ -39,25 +39,26 @@ const tagsModel = computed<string[]>({
  * Get identifier placeholder based on selected social media
  */
 function getIdentifierPlaceholder(socialMedia: SocialMedia | undefined): string {
-  const placeholders: Record<SocialMedia, string> = {
-    telegram: '@channel_name',
-    vk: 'club123456789',
-    site: 'https://example.com',
+  const placeholders: Partial<Record<string, string>> = {
+    TELEGRAM: '@channel_name',
+    VK: 'club123456789',
+    SITE: 'https://example.com',
   }
-  return socialMedia ? placeholders[socialMedia] : t('channel.identifierPlaceholder')
-
+  const key = socialMedia?.toUpperCase()
+  return (key && placeholders[key]) ? placeholders[key]! : t('channel.identifierPlaceholder')
 }
 
 /**
  * Get identifier help text based on selected social media
  */
 function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
-  const helps: Record<SocialMedia, string> = {
-    telegram: t('channel.identifierHelpTelegram'),
-    vk: t('channel.identifierHelpVk'),
-    site: t('channel.identifierHelpSite'),
+  const helps: Partial<Record<string, string>> = {
+    TELEGRAM: t('channel.identifierHelpTelegram'),
+    VK: t('channel.identifierHelpVk'),
+    SITE: t('channel.identifierHelpSite'),
   }
-  return socialMedia ? helps[socialMedia] : t('channel.identifierHelp')
+  const key = socialMedia?.toUpperCase()
+  return (key && helps[key]) ? helps[key]! : t('channel.identifierHelp')
 }
 </script>
 
@@ -74,12 +75,12 @@ function getIdentifierHelp(socialMedia: SocialMedia | undefined): string {
           <dd class="flex items-center gap-2 text-sm text-gray-900 dark:text-white">
             <div 
               class="p-1.5 rounded"
-              :style="{ backgroundColor: getSocialMediaColor(channel?.socialMedia || 'telegram') + '20' }"
+              :style="{ backgroundColor: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') + '20' }"
             >
               <UIcon 
-                :name="getSocialMediaIcon(channel?.socialMedia || 'telegram')" 
+                :name="getSocialMediaIcon(channel?.socialMedia || 'TELEGRAM')" 
                 class="w-5 h-5"
-                :style="{ color: getSocialMediaColor(channel?.socialMedia || 'telegram') }"
+                :style="{ color: getSocialMediaColor(channel?.socialMedia || 'TELEGRAM') }"
               />
             </div>
             <span class="font-medium">{{ socialMediaOptions.find((o) => o.value === channel?.socialMedia)?.label }}</span>

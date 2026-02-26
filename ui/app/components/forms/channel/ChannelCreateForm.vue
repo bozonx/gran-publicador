@@ -21,7 +21,7 @@ const emit = defineEmits<{
 const formState = reactive({
   projectId: props.initialProjectId || '',
   name: '',
-  socialMedia: 'telegram' as SocialMedia | '',
+  socialMedia: 'TELEGRAM' as SocialMedia | '',
   language: user.value?.language || 'en-US',
   channelIdentifier: '',
   note: '',
@@ -172,7 +172,7 @@ defineExpose({
       :state="formState"
       :is-edit-mode="false"
       :show-project="false"
-      :current-social-media="currentSocialMedia || 'telegram'"
+      :current-social-media="currentSocialMedia || 'TELEGRAM'"
       :name-input-ref="nameInputRef"
     />
 

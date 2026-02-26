@@ -14,7 +14,7 @@ export function isChannelCredentialsEmpty(credentials: any, socialMedia?: string
   }
 
   // Social-media specific checks
-  if (socialMedia === 'telegram') {
+  if (socialMedia?.toUpperCase() === 'TELEGRAM') {
     const { telegramBotToken, telegramChannelId } = credentials;
     if (
       !telegramBotToken ||
@@ -24,7 +24,7 @@ export function isChannelCredentialsEmpty(credentials: any, socialMedia?: string
     ) {
       return true;
     }
-  } else if (socialMedia === 'vk') {
+  } else if (socialMedia?.toUpperCase() === 'VK') {
     const { vkAccessToken } = credentials;
     if (!vkAccessToken || String(vkAccessToken).trim().length === 0) {
       return true;

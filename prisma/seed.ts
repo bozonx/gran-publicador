@@ -371,7 +371,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222221',
       projectId: projectData[0].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Main Tech Channel',
       channelIdentifier: '@tech_main',
       language: 'ru-RU',
@@ -382,7 +382,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222222',
       projectId: projectData[0].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Tech Tutorials YT',
       channelIdentifier: 'UC_TechTuts',
       language: 'en-US',
@@ -393,7 +393,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222223',
       projectId: projectData[1].id,
-      socialMedia: SocialMedia.vk,
+      socialMedia: SocialMedia.VK,
       name: 'Wanderlust VK',
       channelIdentifier: 'wander_vk_page',
       language: 'ru-RU',
@@ -404,7 +404,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222224',
       projectId: projectData[1].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Travel Daily',
       channelIdentifier: '@travel_daily',
       language: 'ru-RU',
@@ -415,7 +415,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222225',
       projectId: projectData[2].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Crypto Signals',
       channelIdentifier: '@crypto_signals',
       language: 'ru-RU',
@@ -426,7 +426,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222226',
       projectId: projectData[0].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Tech Shorts',
       channelIdentifier: '@tech_shorts',
       language: 'en-US',
@@ -437,7 +437,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222227',
       projectId: projectData[4].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Stress Test Channel',
       channelIdentifier: '@stress_test',
       language: 'ru-RU',
@@ -448,7 +448,7 @@ async function main() {
     {
       id: '99999999-9999-4999-8999-999999999999',
       projectId: projectData[5].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Pagination Channel',
       channelIdentifier: '@pag_test',
       language: 'ru-RU',
@@ -459,7 +459,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222228',
       projectId: projectData[6].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Stale Channel',
       channelIdentifier: '@stale_channel',
       language: 'ru-RU',
@@ -470,7 +470,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222230',
       projectId: projectData[7].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'No Credentials Channel',
       channelIdentifier: '@no_creds',
       language: 'ru-RU',
@@ -481,7 +481,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222231',
       projectId: projectData[7].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Inactive Channel',
       channelIdentifier: '@inactive_ch',
       language: 'ru-RU',
@@ -492,7 +492,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222232',
       projectId: projectData[7].id,
-      socialMedia: SocialMedia.telegram,
+      socialMedia: SocialMedia.TELEGRAM,
       name: 'Failed Posts Channel',
       channelIdentifier: '@failed_posts',
       language: 'ru-RU',
@@ -503,7 +503,7 @@ async function main() {
     {
       id: '22222222-2222-4222-8222-222222222233',
       projectId: projectData[0].id,
-      socialMedia: SocialMedia.site,
+      socialMedia: SocialMedia.SITE,
       name: 'Official Blog',
       channelIdentifier: 'https://blog.example.com',
       language: 'en-US',
