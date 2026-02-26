@@ -33,7 +33,8 @@
     "test:debug": "node --inspect-brk --loader ts-node/esm node_modules/.bin/jest --runInBand --detectOpenHandles",
     "test:unit:debug": "node --inspect-brk --loader ts-node/esm node_modules/.bin/jest --runInBand --selectProjects unit --detectOpenHandles",
     "test:e2e:debug": "node --inspect-brk --loader ts-node/esm node_modules/.bin/jest --runInBand --selectProjects e2e --detectOpenHandles",
-    "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' dotenv -e .env.development -- jest --selectProjects e2e --runInBand"
+    "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' dotenv -e .env.development -- jest --selectProjects e2e --runInBand",
+    "test:e2e:docker": "docker compose -f docker-compose.example.yml up --build --exit-code-from playwright playwright"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
