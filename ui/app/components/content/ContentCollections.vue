@@ -4,6 +4,7 @@ import { calculateRecursiveGroupCounters } from '@gran/shared/content-library-tr
 import type { ContentCollection } from '~/composables/useContentCollections'
 import CreateCollectionModal from '~/components/content/CreateCollectionModal.vue'
 import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'
+import { useSafeLocalStorage } from '~/composables/useSafeLocalStorage'
 
 const props = defineProps<{
   scope: 'project' | 'personal'
@@ -112,6 +113,8 @@ const resolveTopLevelCollectionId = (collectionId: string | null | undefined): s
 
 const highlightedCollectionId = computed(() => resolveTopLevelCollectionId(activeCollectionId.value))
 
+const safeLocalStorage = useSafeLocalStorage()
+
 const getStorageKey = () => {
   return `content-library-collection-${props.scope}-${props.projectId || 'global'}`
 }
@@ -137,7 +140,7 @@ const fetchCollections = async () => {
     if (!hasRestoredFromStorage.value && !hasUserSelection.value) {
       hasRestoredFromStorage.value = true
 
-      const savedCollectionId = localStorage.getItem(getStorageKey())
+      const savedCollectionId = safeLocalStorage.getItem(getStorageKey())
       const resolvedSavedCollectionId = resolveTopLevelCollectionId(savedCollectionId)
       const collectionToRestore = resolvedSavedCollectionId
         ? topLevelCollections.value.find(t => t.id === resolvedSavedCollectionId)
@@ -337,7 +340,7 @@ watch(() => props.projectId, () => {
 watch(activeCollectionId, (newId) => {
   const idToSave = resolveTopLevelCollectionId(newId)
   if (idToSave) {
-    localStorage.setItem(getStorageKey(), idToSave)
+    safeLocalStorage.setItem(getStorageKey(), idToSave)
   }
 })
 

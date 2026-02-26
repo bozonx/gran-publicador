@@ -1,13 +1,14 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch } from 'vue';
+import { useSafeLocalStorage } from '~/composables/useSafeLocalStorage';
 
-export type ViewMode = 'list' | 'cards'
+export type ViewMode = 'list' | 'cards';
 
 interface UseViewModeReturn {
-  viewMode: Ref<ViewMode>
-  toggleViewMode: () => void
-  setViewMode: (mode: ViewMode) => void
-  isListView: ComputedRef<boolean>
-  isCardsView: ComputedRef<boolean>
+  viewMode: Ref<ViewMode>;
+  toggleViewMode: () => void;
+  setViewMode: (mode: ViewMode) => void;
+  isListView: ComputedRef<boolean>;
+  isCardsView: ComputedRef<boolean>;
 }
 
 /**
@@ -15,37 +16,29 @@ interface UseViewModeReturn {
  * @param storageKey - unique key for localStorage
  * @param defaultMode - default view mode if not set in localStorage
  */
-export function useViewMode(
-  storageKey: string,
-  defaultMode: ViewMode = 'list'
-): UseViewModeReturn {
-  const viewMode = ref<ViewMode>(defaultMode)
+export function useViewMode(storageKey: string, defaultMode: ViewMode = 'list'): UseViewModeReturn {
+  const viewMode = ref<ViewMode>(defaultMode);
+  const safeLocalStorage = useSafeLocalStorage();
 
-  // Load from localStorage on client side
-  if (import.meta.client) {
-    const stored = localStorage.getItem(storageKey)
-    if (stored === 'list' || stored === 'cards') {
-      viewMode.value = stored
-    }
+  const stored = safeLocalStorage.getItem(storageKey);
+  if (stored === 'list' || stored === 'cards') {
+    viewMode.value = stored;
   }
 
-  // Watch for changes and save to localStorage
-  if (import.meta.client) {
-    watch(viewMode, (newMode) => {
-      localStorage.setItem(storageKey, newMode)
-    })
-  }
+  watch(viewMode, newMode => {
+    safeLocalStorage.setItem(storageKey, newMode);
+  });
 
   const toggleViewMode = () => {
-    viewMode.value = viewMode.value === 'list' ? 'cards' : 'list'
-  }
+    viewMode.value = viewMode.value === 'list' ? 'cards' : 'list';
+  };
 
   const setViewMode = (mode: ViewMode) => {
-    viewMode.value = mode
-  }
+    viewMode.value = mode;
+  };
 
-  const isListView = computed(() => viewMode.value === 'list')
-  const isCardsView = computed(() => viewMode.value === 'cards')
+  const isListView = computed(() => viewMode.value === 'list');
+  const isCardsView = computed(() => viewMode.value === 'cards');
 
   return {
     viewMode,
@@ -53,5 +46,5 @@ export function useViewMode(
     setViewMode,
     isListView,
     isCardsView,
-  }
+  };
 }
