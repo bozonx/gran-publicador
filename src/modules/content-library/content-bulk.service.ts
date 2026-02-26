@@ -194,7 +194,7 @@ export class ContentBulkService {
           }),
         );
 
-        await this.prisma.contentItemGroup.deleteMany({
+        await this.prisma.contentCollectionItem.deleteMany({
           where: {
             contentItemId: { in: authorizedIds },
           },
@@ -203,7 +203,7 @@ export class ContentBulkService {
         if (dto.groupId) {
           await this.prisma.$transaction(
             authorizedIds.map(id =>
-              this.prisma.contentItemGroup.create({
+              this.prisma.contentCollectionItem.create({
                 data: {
                   contentItemId: id,
                   collectionId: dto.groupId!,
@@ -308,7 +308,7 @@ export class ContentBulkService {
             }
 
             if (dto.groupId) {
-              await tx.contentItemGroup.create({
+              await tx.contentCollectionItem.create({
                 data: {
                   contentItemId: created.id,
                   collectionId: dto.groupId,
@@ -486,10 +486,10 @@ export class ContentBulkService {
           });
         }
 
-        const existingLinks = await this.prisma.contentItemGroup.findMany({
+        const existingLinks = await this.prisma.contentCollectionItem.findMany({
           where: {
             contentItemId: { in: authorizedIds },
-            collectionId: dto.groupId,
+            collectionId: dto.groupId!,
           },
           select: { contentItemId: true },
         });
@@ -498,7 +498,7 @@ export class ContentBulkService {
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
             if (alreadyLinkedItemIds.has(id)) continue;
-            await tx.contentItemGroup.upsert({
+            await tx.contentCollectionItem.upsert({
               where: {
                 contentItemId_collectionId: {
                   contentItemId: id,
@@ -569,10 +569,10 @@ export class ContentBulkService {
         }
 
         const existingTargetLinks = dto.groupId
-          ? await this.prisma.contentItemGroup.findMany({
+          ? await this.prisma.contentCollectionItem.findMany({
               where: {
                 contentItemId: { in: authorizedIds },
-                collectionId: dto.groupId,
+                collectionId: dto.groupId!,
               },
               select: { contentItemId: true },
             })
@@ -582,7 +582,7 @@ export class ContentBulkService {
         await this.prisma.$transaction(async tx => {
           for (const id of authorizedIds) {
             if (dto.sourceGroupId && dto.sourceGroupId !== dto.groupId) {
-              await tx.contentItemGroup.deleteMany({
+              await tx.contentCollectionItem.deleteMany({
                 where: {
                   contentItemId: id,
                   collectionId: dto.sourceGroupId,
@@ -592,16 +592,16 @@ export class ContentBulkService {
 
             if (dto.groupId) {
               if (alreadyLinkedToTargetItemIds.has(id)) continue;
-              await tx.contentItemGroup.upsert({
+              await tx.contentCollectionItem.upsert({
                 where: {
                   contentItemId_collectionId: {
                     contentItemId: id,
-                    collectionId: dto.groupId,
+                    collectionId: dto.groupId!,
                   },
                 },
                 create: {
                   contentItemId: id,
-                  collectionId: dto.groupId,
+                  collectionId: dto.groupId!,
                 },
                 update: {},
               });

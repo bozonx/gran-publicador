@@ -228,7 +228,7 @@ export class ApiTokensService {
 
       // If switching to allProjects=true, remove all specific project links
       if (dto.allProjects) {
-        await this.prisma.apiTokenProject.deleteMany({
+        await this.prisma.projectApiToken.deleteMany({
           where: { apiTokenId: id },
         });
       }
@@ -268,12 +268,12 @@ export class ApiTokensService {
       }
 
       // Update project relations: delete old, create new
-      await this.prisma.apiTokenProject.deleteMany({
+      await this.prisma.projectApiToken.deleteMany({
         where: { apiTokenId: id },
       });
 
       if (projectIds.length > 0) {
-        await this.prisma.apiTokenProject.createMany({
+        await this.prisma.projectApiToken.createMany({
           data: projectIds.map(projectId => ({
             apiTokenId: id,
             projectId,

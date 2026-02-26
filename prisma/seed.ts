@@ -51,7 +51,7 @@ async function main() {
     // Delete in order to respect FK constraints
     await prisma.publicationRelationItem.deleteMany({});
     await prisma.publicationRelationGroup.deleteMany({});
-    await prisma.apiTokenProject.deleteMany({});
+    await prisma.projectApiToken.deleteMany({});
     await prisma.apiToken.deleteMany({});
     await prisma.notification.deleteMany({});
     await prisma.post.deleteMany({});
@@ -60,20 +60,19 @@ async function main() {
     // Content Library cleanup
     await prisma.publicationContentItem.deleteMany({});
     await prisma.contentItemMedia.deleteMany({});
-    await prisma.contentItemGroup.deleteMany({});
+    await prisma.contentCollectionItem.deleteMany({});
     await prisma.contentItem.deleteMany({});
     await prisma.contentCollection.deleteMany({});
 
     await prisma.media.deleteMany({});
     await prisma.publication.deleteMany({});
-    await prisma.projectAuthorSignatureVariant.deleteMany({});
-    await prisma.projectAuthorSignature.deleteMany({});
+    await prisma.authorSignatureVariant.deleteMany({});
+    await prisma.authorSignature.deleteMany({});
     await prisma.channel.deleteMany({});
     await prisma.projectNewsQuery.deleteMany({});
     await prisma.projectMember.deleteMany({});
     await prisma.role.deleteMany({});
     await prisma.llmPromptTemplate.deleteMany({});
-    await prisma.llmSystemPromptHidden.deleteMany({});
     await prisma.projectTemplate.deleteMany({});
     await prisma.tag.deleteMany({});
     await prisma.project.deleteMany({});
@@ -599,7 +598,7 @@ async function main() {
 
   for (const sig of authorSignatures) {
     const { variants, ...sigData } = sig;
-    await prisma.projectAuthorSignature.upsert({
+    await prisma.authorSignature.upsert({
       where: { id: sig.id },
       update: sigData,
       create: sig,
@@ -788,11 +787,11 @@ async function main() {
         publicationId: publications[0].id,
       },
     },
-    update: { position: 0 },
+    update: { order: 0 },
     create: {
       groupId: '55555555-5555-4555-8555-555555555551',
       publicationId: publications[0].id,
-      position: 0,
+      order: 0,
     },
   });
 
@@ -803,11 +802,11 @@ async function main() {
         publicationId: publications[1].id,
       },
     },
-    update: { position: 1 },
+    update: { order: 1 },
     create: {
       groupId: '55555555-5555-4555-8555-555555555551',
       publicationId: publications[1].id,
-      position: 1,
+      order: 1,
     },
   });
 
@@ -1176,7 +1175,7 @@ async function main() {
     });
 
     if (typeof _groupId === 'string' && _groupId.length > 0) {
-      await prisma.contentItemGroup.upsert({
+      await prisma.contentCollectionItem.upsert({
         where: {
           contentItemId_collectionId: {
             contentItemId: item.id,

@@ -279,14 +279,14 @@ export class PublicationsService {
           include: {
             items: {
               include: { publication: { include: { posts: { include: { channel: true } } } } },
-              orderBy: { position: 'asc' },
+              orderBy: { order: 'asc' },
             },
           },
         },
       },
     });
 
-    const relations = relationItems.map(ri => ri.group);
+    const relations = relationItems.map(ri => (ri as any).group);
     return this.normalizePublicationTags({
       ...publication,
       relations,
@@ -655,10 +655,11 @@ export class PublicationsService {
 
         // If no direct override but we have a signatureId, resolve it by language
         if (!authorSignature && authorSignatureId) {
-          authorSignature = (await this.authorSignaturesService.resolveVariantContent(
-            authorSignatureId,
-            channel.language,
-          )) || undefined;
+          authorSignature =
+            (await this.authorSignaturesService.resolveVariantContent(
+              authorSignatureId,
+              channel.language,
+            )) || undefined;
         }
 
         return this.prisma.post.create({
