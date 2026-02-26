@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file.
   - Introduced timeline document model (`TimelineDocument/Track/TrackItem`) and command-based updates (add/move/remove).
   - Track items use microsecond time ranges; overlap is denied for items on the same track.
   - Timeline UI, Monitor and Export now read from the timeline document instead of the legacy flat clips list.
+- **Gateway authentication cleanup**: replaced manual cookie parsing with a standard utility using the `cookie` library in `SttGateway` and `NotificationsGateway`.
 
 ### Changed
 - **Posts: platformOptions are now namespaced by platform**: UI stores platform-specific options under `platformOptions.<platform>` (e.g. `platformOptions.telegram.*`). Backend social-posting formatter reads platform options only from the namespaced object.

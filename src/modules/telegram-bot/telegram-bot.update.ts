@@ -115,8 +115,23 @@ export class TelegramBotUpdate {
     });
 
     const lang = user.uiLanguage ?? fallbackLang;
-    await ctx.reply(String(this.i18n.t('telegram.welcome', { lang })));
+    await ctx.reply(String(this.i18n.t('telegram.welcome', { lang })), { parse_mode: 'Markdown' });
     await ctx.reply(String(this.i18n.t('telegram.start_message', { lang })));
+  }
+
+  /**
+   * Handle /help command
+   */
+  public async onHelp(ctx: Context): Promise<void> {
+    const from = ctx.from;
+    if (!from) return;
+
+    const user = await this.usersService.findByTelegramId(BigInt(from.id)).catch(() => null);
+    const lang = user?.uiLanguage ?? from.language_code;
+
+    await ctx.reply(String(this.i18n.t('telegram.help', { lang })), {
+      parse_mode: 'Markdown',
+    });
   }
 
   /**
@@ -139,6 +154,10 @@ export class TelegramBotUpdate {
     if ('text' in message && message.text?.startsWith('/')) {
       const command = message.text.split(' ')[0];
       if (command === '/start') return; // Ignore, handled by onStart
+      if (command === '/help') {
+        await this.onHelp(ctx);
+        return;
+      }
 
       const user = await this.usersService.findByTelegramId(BigInt(from.id)).catch(() => null);
       const lang = user?.uiLanguage ?? fallbackLang;
@@ -249,6 +268,15 @@ export class TelegramBotUpdate {
         return;
       }
 
+      // Show typing/uploading indicator
+      if (voiceMedia.length > 0) {
+        await ctx.api.sendChatAction(message.chat.id, 'record_voice').catch(() => {});
+      } else if (supportedMedia.length > 0) {
+        await ctx.api.sendChatAction(message.chat.id, 'upload_photo').catch(() => {});
+      } else {
+        await ctx.api.sendChatAction(message.chat.id, 'typing').catch(() => {});
+      }
+
       const mgid = message.media_group_id;
       if (mgid) {
         const created = await this.addMediaGroupMessageToContentItem({
@@ -306,7 +334,7 @@ export class TelegramBotUpdate {
     const user = await this.usersService.findByTelegramId(BigInt(telegramUserId));
     if (!user) return false;
 
-    const existing = await (this.prisma as any).contentItem.findFirst({
+    const existing = await this.prisma.contentItem.findFirst({
       where: {
         userId: user.id,
         projectId: null,
@@ -422,7 +450,7 @@ export class TelegramBotUpdate {
           },
         });
 
-        await (tx as any).contentItemMedia.create({
+        await tx.contentItemMedia.create({
           data: {
             contentItemId: item.id,
             mediaId: createdMedia.id,
@@ -461,7 +489,7 @@ export class TelegramBotUpdate {
       language,
     } = options;
 
-    const existingItem = await (this.prisma as any).contentItem.findFirst({
+    const existingItem = await this.prisma.contentItem.findFirst({
       where: {
         userId,
         projectId: null,
@@ -492,12 +520,12 @@ export class TelegramBotUpdate {
     if (voiceMedia.length > 0) {
       const transcribed = await this.transcribeVoice(ctx, voiceMedia[0].fileId, language);
       if (transcribed) {
-        const current = await (this.prisma as any).contentItem.findUnique({
+        const current = await this.prisma.contentItem.findUnique({
           where: { id: existingItem.id },
           select: { text: true },
         });
         const nextText = current?.text ? `${current.text}\n\n${transcribed}` : transcribed;
-        await (this.prisma as any).contentItem.update({
+        await this.prisma.contentItem.update({
           where: { id: existingItem.id },
           data: { text: nextText },
         });
@@ -511,14 +539,14 @@ export class TelegramBotUpdate {
       return { reportCreated: false, contentItemId: existingItem.id };
     }
 
-    const maxOrderAgg = await (this.prisma as any).contentItemMedia.aggregate({
+    const maxOrderAgg = await this.prisma.contentItemMedia.aggregate({
       where: { contentItemId: existingItem.id },
       _max: { order: true },
     });
     let nextOrder = (maxOrderAgg._max.order ?? -1) + 1;
 
     for (const m of allMediaToSave) {
-      const alreadyAttached = await (this.prisma as any).contentItemMedia.findFirst({
+      const alreadyAttached = await this.prisma.contentItemMedia.findFirst({
         where: {
           contentItemId: existingItem.id,
           media: {
@@ -550,7 +578,7 @@ export class TelegramBotUpdate {
         },
       });
 
-      await (this.prisma as any).contentItemMedia.create({
+      await this.prisma.contentItemMedia.create({
         data: {
           contentItemId: existingItem.id,
           mediaId: createdMedia.id,
@@ -573,6 +601,12 @@ export class TelegramBotUpdate {
     language?: string,
   ): Promise<string> {
     try {
+      const lang = ctx.from?.language_code;
+      await ctx.api.sendChatAction(ctx.from?.id ?? 0, 'typing').catch(() => {});
+      await ctx.reply(String(this.i18n.t('telegram.stt_processing', { lang })), {
+        parse_mode: 'Markdown',
+      });
+
       const file = await ctx.api.getFile(fileId);
       if (!file.file_path) {
         throw new Error('Could not get file path from Telegram');

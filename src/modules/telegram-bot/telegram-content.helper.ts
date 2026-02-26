@@ -156,7 +156,7 @@ export function extractRepostInfo(message: Message): any {
   if (!message.forward_origin) return undefined;
 
   const origin = message.forward_origin;
-  const info: any = {
+  const info: Record<string, any> = {
     type: origin.type,
     date: origin.date,
   };

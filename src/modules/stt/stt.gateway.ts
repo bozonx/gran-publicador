@@ -16,25 +16,7 @@ import { UsersService } from '../users/users.service.js';
 import { PassThrough } from 'node:stream';
 import type { SttConfig } from '../../config/stt.config.js';
 
-const getCookieValue = (cookieHeader: unknown, key: string): string | null => {
-  if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) return null;
-
-  const parts = cookieHeader.split(';');
-  for (const part of parts) {
-    const [rawName, ...rest] = part.trim().split('=');
-    if (!rawName) continue;
-    if (rawName !== key) continue;
-    const rawValue = rest.join('=');
-    if (!rawValue) return null;
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-
-  return null;
-};
+import { getCookieValue } from '../../common/utils/cookie.util.js';
 
 @WebSocketGateway({
   namespace: '/stt',

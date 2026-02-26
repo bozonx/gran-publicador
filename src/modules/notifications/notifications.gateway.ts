@@ -8,25 +8,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 
-const getCookieValue = (cookieHeader: unknown, key: string): string | null => {
-  if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) return null;
-
-  const parts = cookieHeader.split(';');
-  for (const part of parts) {
-    const [rawName, ...rest] = part.trim().split('=');
-    if (!rawName) continue;
-    if (rawName !== key) continue;
-    const rawValue = rest.join('=');
-    if (!rawValue) return null;
-    try {
-      return decodeURIComponent(rawValue);
-    } catch {
-      return rawValue;
-    }
-  }
-
-  return null;
-};
+import { getCookieValue } from '../../common/utils/cookie.util.js';
 
 @WebSocketGateway({
   namespace: '/notifications',
