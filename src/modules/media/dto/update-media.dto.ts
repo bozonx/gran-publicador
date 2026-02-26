@@ -38,4 +38,7 @@ export class UpdateMediaDto {
   @IsObject()
   @IsOptional()
   meta?: Record<string, any>;
+
+  @IsOptional()
+  version?: number;
 }

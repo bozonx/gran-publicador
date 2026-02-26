@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -538,6 +539,7 @@ export class PostsService {
       meta?: any;
       platformOptions?: any;
       authorSignature?: string | null;
+      version?: number;
     },
   ) {
     const post = await this.findOne(id, userId);
@@ -647,39 +649,72 @@ export class PostsService {
       `Updating post ${id}. platformOptions: ${JSON.stringify(data.platformOptions)}`,
     );
 
-    const updatedPost = await this.prisma.post.update({
-      where: { id },
-      data: {
-        status: data.status,
-        scheduledAt: data.scheduledAt,
-        publishedAt: data.publishedAt,
-        errorMessage: data.errorMessage,
-        content: data.content,
-        meta: data.meta,
-        platformOptions: data.platformOptions,
-        authorSignature: data.authorSignature,
-        tagObjects:
-          data.tags !== undefined
-            ? await this.tagsService.prepareTagsConnectOrCreate(
-                normalizeTags(data.tags),
-                {
-                  projectId: post.channel?.projectId || '',
-                },
-                'PUBLICATIONS',
-                true,
-              )
-            : undefined,
-      },
-      include: {
-        channel: true,
-        publication: {
-          include: {
-            tagObjects: true,
-          },
+    const updateData: any = {
+      status: data.status,
+      scheduledAt: data.scheduledAt,
+      publishedAt: data.publishedAt,
+      errorMessage: data.errorMessage,
+      content: data.content,
+      meta: data.meta,
+      platformOptions: data.platformOptions,
+      authorSignature: data.authorSignature,
+      tagObjects:
+        data.tags !== undefined
+          ? await this.tagsService.prepareTagsConnectOrCreate(
+              normalizeTags(data.tags),
+              {
+                projectId: post.channel?.projectId || '',
+              },
+              'PUBLICATIONS',
+              true,
+            )
+          : undefined,
+    };
+
+    let updatedPost: any;
+
+    if (data.version !== undefined) {
+      const { count } = await this.prisma.post.updateMany({
+        where: { id, version: data.version },
+        data: {
+          ...updateData,
+          version: { increment: 1 },
         },
-        tagObjects: true,
-      },
-    });
+      });
+
+      if (count === 0) {
+        throw new ConflictException(
+          'Post has been modified in another tab. Please refresh the page.',
+        );
+      }
+
+      updatedPost = await this.prisma.post.findUnique({
+        where: { id },
+        include: {
+          channel: true,
+          publication: {
+            include: {
+              tagObjects: true,
+            },
+          },
+          tagObjects: true,
+        },
+      });
+    } else {
+      updatedPost = await this.prisma.post.update({
+        where: { id },
+        data: updateData,
+        include: {
+          channel: true,
+          publication: {
+            include: {
+              tagObjects: true,
+            },
+          },
+          tagObjects: true,
+        },
+      });
+    }
 
     const shouldRefreshPublicationEffectiveAt =
       data.publishedAt !== undefined ||

@@ -44,4 +44,7 @@ export class UpdatePostDto {
   @ValidateIf((_, value) => value !== null && value !== undefined)
   @IsString()
   public authorSignature?: string;
+
+  @IsOptional()
+  public version?: number;
 }

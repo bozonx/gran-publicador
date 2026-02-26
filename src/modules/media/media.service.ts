@@ -9,6 +9,7 @@ import {
   BadGatewayException,
   InternalServerErrorException,
   HttpException,
+  ConflictException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Readable } from 'stream';
@@ -432,15 +433,36 @@ export class MediaService {
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    const { meta, sizeBytes, ...rest } = data;
-    const updated = await this.prisma.media.update({
-      where: { id },
-      data: {
-        ...rest,
-        sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
-        meta: meta ? (meta as any) : undefined,
-      },
-    });
+    const { meta, sizeBytes, version, ...rest } = data;
+    const updateData: any = {
+      ...rest,
+      sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
+      meta: meta ? (meta as any) : undefined,
+    };
+
+    if (version !== undefined) {
+      const { count } = await this.prisma.media.updateMany({
+        where: { id, version },
+        data: {
+          ...updateData,
+          version: { increment: 1 },
+        },
+      });
+
+      if (count === 0) {
+        throw new ConflictException(
+          'Media has been modified in another tab. Please refresh the page.',
+        );
+      }
+    } else {
+      await this.prisma.media.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    const updated = await this.prisma.media.findUnique({ where: { id } });
+    if (!updated) throw new NotFoundException(`Media with ID ${id} not found`);
     return {
       ...updated,
       meta: this.parseMeta(updated.meta),

@@ -195,7 +195,7 @@ model ProjectTemplate {
   // If null, template applies to all languages
   language  String?   @map("language")
   // Array of TemplateBlock objects. Each block has an 'id' (UUID) for stable references.
-  template  Json
+  template  Json      @default("[]")
   // Optimistic locking version
   version   Int       @default(1)
   createdAt DateTime  @default(now()) @map("created_at")
@@ -497,6 +497,8 @@ model Post {
   scheduledAt DateTime? @map("scheduled_at")
   // Actual timestamp when post was published to platform. Set by the publishing service only.
   publishedAt DateTime? @map("published_at")
+  // Optimistic locking version
+  version     Int       @default(1)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
@@ -633,6 +635,8 @@ model Media {
   // Metadata stored as JSON. For StorageType.TELEGRAM, contains:
   // { telegram: { thumbnailFileId: string } }
   meta        Json        @default("{}")
+  // Optimistic locking version
+  version     Int         @default(1)
   createdAt   DateTime    @default(now()) @map("created_at")
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
