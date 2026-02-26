@@ -323,12 +323,44 @@ describe('MediaService (unit)', () => {
       const oldStoragePath = 'old-file-id';
       const newStoragePath = 'new-file-id';
 
-      mockPrismaService.media.findUnique.mockResolvedValue({
+      const updatedMedia = {
         id: mediaId,
+        type: MediaType.IMAGE,
         storageType: StorageType.STORAGE,
-        storagePath: oldStoragePath,
-        meta: { customKey: 'customValue', width: 10 },
-      });
+        storagePath: newStoragePath,
+        filename: 'new.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 100n,
+        meta: {
+          customKey: 'customValue',
+          originalSize: 200,
+          size: 100,
+          width: 20,
+          height: 30,
+          mimeType: 'image/jpeg',
+          checksum: 'hash',
+          url: 'http://storage/file',
+          gp: { editedAt: new Date().toISOString() },
+        },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      mockPrismaService.media.findUnique
+        .mockResolvedValueOnce({
+          id: mediaId,
+          storageType: StorageType.STORAGE,
+          storagePath: oldStoragePath,
+          meta: { customKey: 'customValue', width: 10 },
+        })
+        .mockResolvedValueOnce({
+          id: mediaId,
+          storageType: StorageType.STORAGE,
+          storagePath: oldStoragePath,
+          meta: { customKey: 'customValue', width: 10 },
+        })
+        .mockResolvedValueOnce(updatedMedia)
+        .mockResolvedValueOnce(updatedMedia);
 
       const client = mockAgent.get('http://localhost:8083');
       client
@@ -355,28 +387,7 @@ describe('MediaService (unit)', () => {
         })
         .reply(200, {});
 
-      mockPrismaService.media.update.mockResolvedValue({
-        id: mediaId,
-        type: MediaType.IMAGE,
-        storageType: StorageType.STORAGE,
-        storagePath: newStoragePath,
-        filename: 'new.jpg',
-        mimeType: 'image/jpeg',
-        sizeBytes: 100n,
-        meta: {
-          customKey: 'customValue',
-          originalSize: 200,
-          size: 100,
-          width: 20,
-          height: 30,
-          mimeType: 'image/jpeg',
-          checksum: 'hash',
-          url: 'http://storage/file',
-          gp: { editedAt: new Date().toISOString() },
-        },
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
+      mockPrismaService.media.update.mockResolvedValue({});
 
       const result = await service.replaceMediaFile(
         mediaId,

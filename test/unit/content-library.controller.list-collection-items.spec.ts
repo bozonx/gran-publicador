@@ -14,13 +14,13 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     findAll: jest.fn() as any,
   };
 
-  const mockPublicationsService = {
-    findAll: jest.fn() as any,
-    findAllForUser: jest.fn() as any,
+  const mockBulkService = {
+    bulkOperation: jest.fn() as any,
   };
 
-  const mockUnsplashService = {
-    searchPhotos: jest.fn() as any,
+  const mockVirtualService = {
+    listPublicationItems: jest.fn() as any,
+    listUnsplashItems: jest.fn() as any,
   };
 
   const mockPrismaService = {
@@ -41,8 +41,10 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     controller = new ContentLibraryController(
       mockCollectionsService as any,
       mockItemsService as any,
-      mockPublicationsService as any,
-      mockUnsplashService as any,
+      {} as any,
+      {} as any,
+      mockBulkService as any,
+      mockVirtualService as any,
       mockPrismaService as any,
       mockApiTokenScopeService as any,
     );
@@ -56,37 +58,40 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
       projectId: 'p1',
     });
 
-    mockPublicationsService.findAll.mockResolvedValue({ items: [], total: 0, totalUnfiltered: 0 });
+    mockVirtualService.listPublicationItems.mockResolvedValue({
+      items: [],
+      total: 0,
+      totalUnfiltered: 0,
+    });
 
     const req: any = {
       user: { userId: 'u1', allProjects: true, projectIds: ['p1'], tokenId: 't1' },
     };
 
-    await controller.listCollectionItems(
-      req,
-      'c1',
-      'project',
-      'p1',
-      'q',
-      't1',
-      'combined',
-      'desc',
-      20,
-      0,
-      undefined,
-    );
+    await controller.listCollectionItems(req, 'c1', {
+      scope: 'project',
+      projectId: 'p1',
+      search: 'q',
+      tags: ['t1'],
+      sortBy: 'combined' as any,
+      sortOrder: 'desc' as any,
+      limit: 20,
+      offset: 0,
+    } as any);
 
-    expect(mockPublicationsService.findAll).toHaveBeenCalledWith(
-      'p1',
-      'u1',
+    expect(mockVirtualService.listPublicationItems).toHaveBeenCalledWith(
       expect.objectContaining({
+        scope: 'project',
+        projectId: 'p1',
+        userId: 'u1',
         search: 'q',
-        sortBy: 'chronology',
+        tags: 't1',
+        sortBy: 'combined',
         sortOrder: 'desc',
-        tags: ['t1'],
+        limit: 20,
+        offset: 0,
       }),
     );
-    expect(mockPublicationsService.findAllForUser).not.toHaveBeenCalled();
   });
 
   it('maps publications for PUBLICATION_MEDIA_VIRTUAL', async () => {
@@ -97,7 +102,7 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
       projectId: null,
     });
 
-    mockPublicationsService.findAllForUser.mockResolvedValue({
+    mockVirtualService.listPublicationItems.mockResolvedValue({
       items: [
         {
           id: 'p1',
@@ -114,27 +119,26 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     });
 
     const req: any = { user: { userId: 'u1' } };
-    const res = await controller.listCollectionItems(
-      req,
-      'c1',
-      'personal',
-      undefined,
-      'q',
-      't1',
-      'combined',
-      'desc',
-      20,
-      0,
-      undefined,
-    );
+    const res = await controller.listCollectionItems(req, 'c1', {
+      scope: 'personal',
+      search: 'q',
+      tags: ['t1'],
+      sortBy: 'combined' as any,
+      sortOrder: 'desc' as any,
+      limit: 20,
+      offset: 0,
+    } as any);
 
-    expect(mockPublicationsService.findAllForUser).toHaveBeenCalledWith(
-      'u1',
+    expect(mockVirtualService.listPublicationItems).toHaveBeenCalledWith(
       expect.objectContaining({
+        scope: 'personal',
+        userId: 'u1',
         search: 'q',
-        sortBy: 'chronology',
+        tags: 't1',
+        sortBy: 'combined',
         sortOrder: 'desc',
-        tags: ['t1'],
+        limit: 20,
+        offset: 0,
       }),
     );
 
@@ -146,10 +150,9 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
           expect.objectContaining({
             id: 'p1',
             title: 'Pub',
-            text: 'Text',
+            content: 'Text',
             tags: ['t1'],
             media: [expect.objectContaining({ mediaId: 'm1' })],
-            _virtual: { source: 'publication', publicationId: 'p1' },
           }),
         ],
       }),
@@ -167,30 +170,24 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
     mockItemsService.findAll.mockResolvedValue({ items: [], total: 0 });
     const req: any = { user: { userId: 'u1' } };
 
-    await controller.listCollectionItems(
-      req,
-      'g1',
-      'personal',
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      20,
-      0,
-      undefined,
-    );
+    await controller.listCollectionItems(req, 'g1', {
+      scope: 'personal',
+      limit: 20,
+      offset: 0,
+    } as any);
 
     expect(mockItemsService.findAll).toHaveBeenCalledWith(
       expect.objectContaining({
         scope: 'personal',
         groupIds: ['g1'],
+        includeTotalInScope: true,
+        includeTotalUnfiltered: true,
       }),
       'u1',
     );
   });
 
-  it('rejects when project scope request violates api-token project scope', async () => {
+  it('does not enforce api-token scope validation inside controller method (covered by guards)', async () => {
     const req: any = {
       user: { userId: 'u1', allProjects: false, projectIds: ['p1'], tokenId: 't1' },
     };
@@ -210,20 +207,17 @@ describe('ContentLibraryController.listCollectionItems (unit)', () => {
       projectId: 'p1',
     });
 
+    mockItemsService.findAll.mockResolvedValue({ items: [], total: 0 });
+
     await expect(
-      controller.listCollectionItems(
-        req,
-        'g1',
-        'project',
-        'p2',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        20,
-        0,
-        undefined,
-      ),
-    ).rejects.toThrow(ForbiddenException);
+      controller.listCollectionItems(req, 'g1', {
+        scope: 'project',
+        projectId: 'p2',
+        limit: 20,
+        offset: 0,
+      } as any),
+    ).resolves.toEqual({ items: [], total: 0 });
+
+    expect(mockApiTokenScopeService.validateProjectScopeOrThrow).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
+import { PostSnapshotBuilderService } from '../../src/modules/social-posting/post-snapshot-builder.service.js';
 import { jest, describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import { PostStatus, SocialMedia, PublicationStatus } from '../../src/generated/prisma/index.js';
 
@@ -49,6 +50,11 @@ describe('PostsService (unit)', () => {
     prepareTagsConnectOrCreate: jest.fn() as any,
   };
 
+  const mockPostSnapshotBuilderService = {
+    buildForPublication: jest.fn() as any,
+    clearForPublication: jest.fn() as any,
+  };
+
   beforeAll(async () => {
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -68,6 +74,10 @@ describe('PostsService (unit)', () => {
         {
           provide: TagsService,
           useValue: mockTagsService,
+        },
+        {
+          provide: PostSnapshotBuilderService,
+          useValue: mockPostSnapshotBuilderService,
         },
       ],
     }).compile();
@@ -161,7 +171,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({});
       mockPrismaService.channel.findUnique.mockResolvedValue({
         projectId: 'p1',
-        socialMedia: SocialMedia.telegram,
+        socialMedia: SocialMedia.TELEGRAM,
       });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined); // Authorized
       mockPrismaService.post.update.mockResolvedValue({ ...mockPost, ...updateDto });
@@ -314,7 +324,7 @@ describe('PostsService (unit)', () => {
       mockChannelsService.findOne.mockResolvedValue({
         id: channelId,
         projectId,
-        socialMedia: SocialMedia.telegram,
+        socialMedia: SocialMedia.TELEGRAM,
       });
       mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
       mockPrismaService.publication.findFirst.mockResolvedValue({ id: 'pub-1', projectId });

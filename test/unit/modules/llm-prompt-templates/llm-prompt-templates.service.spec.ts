@@ -5,7 +5,8 @@ import { PrismaService } from '../../../../src/modules/prisma/prisma.service.js'
 import { PermissionsService } from '../../../../src/common/services/permissions.service.js';
 import type { CreateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/create-llm-prompt-template.dto.js';
 import type { UpdateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/update-llm-prompt-template.dto.js';
-import { jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { VALIDATION_LIMITS } from '../../../../src/common/constants/validation.constants.js';
 
 describe('LlmPromptTemplatesService', () => {
   let service: LlmPromptTemplatesService;
@@ -27,6 +28,10 @@ describe('LlmPromptTemplatesService', () => {
     project: {
       findMany: jest.fn() as any,
     },
+    user: {
+      findUnique: jest.fn() as any,
+      update: jest.fn() as any,
+    },
     $transaction: jest.fn() as any,
   };
 
@@ -35,6 +40,9 @@ describe('LlmPromptTemplatesService', () => {
   };
 
   beforeEach(async () => {
+    mockPrismaService.user.findUnique.mockResolvedValue({ preferences: {} });
+    mockPrismaService.user.update.mockResolvedValue({});
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LlmPromptTemplatesService,
@@ -58,8 +66,6 @@ describe('LlmPromptTemplatesService', () => {
 
   describe('getSystemTemplates', () => {
     it('should return system templates with hidden state', async () => {
-      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
-
       const result = await service.getSystemTemplates('user-1', true);
 
       expect(result.length).toBeGreaterThan(0);
@@ -71,9 +77,13 @@ describe('LlmPromptTemplatesService', () => {
       const hiddenId = allBefore[0]?.id;
       if (!hiddenId) return;
 
-      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([
-        { systemTemplateId: hiddenId },
-      ]);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        preferences: {
+          llmPromptTemplates: {
+            hiddenSystemTemplateIds: [hiddenId],
+          },
+        },
+      });
 
       const allTemplates = await service.getSystemTemplates('user-1', true);
       expect(allTemplates.some(t => t.isHidden)).toBe(true);
@@ -86,18 +96,14 @@ describe('LlmPromptTemplatesService', () => {
 
   describe('hideSystemTemplate', () => {
     it('should hide a system template for the user', async () => {
-      mockPrismaService.llmSystemPromptHidden.upsert.mockResolvedValue({});
-
       const allTemplates = await service.getSystemTemplates('user-1', true);
       const firstId = allTemplates[0]?.id;
       if (!firstId) return;
 
-      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
-
       const result = await service.hideSystemTemplate('user-1', firstId);
 
       expect(result).toEqual({ success: true });
-      expect(mockPrismaService.llmSystemPromptHidden.upsert).toHaveBeenCalled();
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException for unknown system template', async () => {
@@ -109,17 +115,22 @@ describe('LlmPromptTemplatesService', () => {
 
   describe('unhideSystemTemplate', () => {
     it('should unhide a system template for the user', async () => {
-      mockPrismaService.llmSystemPromptHidden.deleteMany.mockResolvedValue({ count: 1 });
-      mockPrismaService.llmSystemPromptHidden.findMany.mockResolvedValue([]);
-
       const allTemplates = await service.getSystemTemplates('user-1', true);
       const firstId = allTemplates[0]?.id;
       if (!firstId) return;
 
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        preferences: {
+          llmPromptTemplates: {
+            hiddenSystemTemplateIds: [firstId],
+          },
+        },
+      });
+
       const result = await service.unhideSystemTemplate('user-1', firstId);
 
       expect(result).toEqual({ success: true });
-      expect(mockPrismaService.llmSystemPromptHidden.deleteMany).toHaveBeenCalled();
+      expect(mockPrismaService.user.update).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException for unknown system template', async () => {
@@ -236,7 +247,7 @@ describe('LlmPromptTemplatesService', () => {
       const dto: CreateLlmPromptTemplateDto = {
         userId: 'user-1',
         name: 'Test',
-        prompt: 'a'.repeat(5001),
+        prompt: 'a'.repeat(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_PROMPT_LENGTH + 1),
       };
 
       await expect(service.create(dto)).rejects.toThrow(BadRequestException);
@@ -291,7 +302,9 @@ describe('LlmPromptTemplatesService', () => {
 
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
 
-      const result = await service.findAllByProject('project-1');
+      mockPermissionsService.checkProjectAccess.mockResolvedValue(undefined);
+
+      const result = await service.findAllByProject('project-1', 'user-1');
 
       expect(mockPrismaService.llmPromptTemplate.findMany).toHaveBeenCalledWith({
         where: { projectId: 'project-1', isHidden: false },
@@ -345,7 +358,7 @@ describe('LlmPromptTemplatesService', () => {
 
     it('should throw error when updating with too long prompt', async () => {
       const updateDto: UpdateLlmPromptTemplateDto = {
-        prompt: 'a'.repeat(5001),
+        prompt: 'a'.repeat(VALIDATION_LIMITS.MAX_PROMPT_TEMPLATE_PROMPT_LENGTH + 1),
       };
 
       mockPrismaService.llmPromptTemplate.findUnique.mockResolvedValue({
@@ -438,7 +451,7 @@ describe('LlmPromptTemplatesService', () => {
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
       mockPrismaService.$transaction.mockResolvedValue([]);
 
-      const result = await service.reorder(ids, userId);
+      const result = await service.reorder({ ids, userId });
 
       expect(result.success).toBe(true);
       expect(mockPrismaService.$transaction).toHaveBeenCalled();
@@ -464,7 +477,7 @@ describe('LlmPromptTemplatesService', () => {
       mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
       mockPrismaService.$transaction.mockResolvedValue([]);
 
-      const result = await service.reorder(ids, userId);
+      const result = await service.reorder({ ids, userId, projectId });
 
       expect(result.success).toBe(true);
     });
@@ -477,35 +490,31 @@ describe('LlmPromptTemplatesService', () => {
         { id: 'template-1', userId },
       ]);
 
-      await expect(service.reorder(ids, userId)).rejects.toThrow(NotFoundException);
+      await expect(service.reorder({ ids, userId })).rejects.toThrow(NotFoundException);
     });
 
     it('should throw error when templates belong to different scopes', async () => {
       const ids = ['template-1', 'template-2'];
       const userId = 'user-1';
 
-      const templates = [
+      // Current implementation queries by scope (userId when projectId is not provided),
+      // so templates from a different scope should not be returned by Prisma.
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue([
         { id: 'template-1', userId, projectId: null },
-        { id: 'template-2', userId: null, projectId: 'project-1' },
-      ];
+      ]);
 
-      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
-
-      await expect(service.reorder(ids, userId)).rejects.toThrow(BadRequestException);
+      await expect(service.reorder({ ids, userId })).rejects.toThrow(NotFoundException);
     });
 
     it('should throw error when user does not own templates', async () => {
       const ids = ['template-1', 'template-2'];
       const userId = 'user-1';
 
-      const templates = [
-        { id: 'template-1', userId: 'other-user', projectId: null },
-        { id: 'template-2', userId: 'other-user', projectId: null },
-      ];
+      // Current implementation queries by userId, so templates owned by another user
+      // should not be returned by Prisma.
+      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue([]);
 
-      mockPrismaService.llmPromptTemplate.findMany.mockResolvedValue(templates);
-
-      await expect(service.reorder(ids, userId)).rejects.toThrow(ForbiddenException);
+      await expect(service.reorder({ ids, userId })).rejects.toThrow(NotFoundException);
     });
   });
 

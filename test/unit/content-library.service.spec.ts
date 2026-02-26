@@ -9,8 +9,10 @@ import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
 import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { BulkOperationType } from '../../src/modules/content-library/dto/bulk-operation.dto.js';
+import { ContentBulkService } from '../../src/modules/content-library/content-bulk.service.js';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
+import { ContentLibraryMapper } from '../../src/modules/content-library/content-library.mapper.js';
 
 describe('ContentLibraryService (unit)', () => {
   let service: ContentLibraryService;
@@ -33,6 +35,13 @@ describe('ContentLibraryService (unit)', () => {
       findMany: jest.fn() as any,
       findFirst: jest.fn() as any,
       groupBy: jest.fn() as any,
+    },
+    contentCollectionItem: {
+      findMany: jest.fn() as any,
+      deleteMany: jest.fn() as any,
+      createMany: jest.fn() as any,
+      upsert: jest.fn() as any,
+      updateMany: jest.fn() as any,
     },
     contentCollection: {
       findUnique: jest.fn() as any,
@@ -77,6 +86,15 @@ describe('ContentLibraryService (unit)', () => {
     search: jest.fn() as any,
   };
 
+  const mockContentLibraryMapper = {
+    mapIncomingMediaIds: jest.fn(
+      (dto: any) => dto?.mediaIds ?? dto?.media?.map((m: any) => m.mediaId) ?? [],
+    ),
+    mapContentItem: jest.fn((item: any) => item),
+    getItemsInclude: jest.fn(() => ({})),
+    normalizeItemText: jest.fn((text: any) => (typeof text === 'string' ? text : null)),
+  };
+
   beforeAll(async () => {
     mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
 
@@ -85,6 +103,7 @@ describe('ContentLibraryService (unit)', () => {
         ContentLibraryService,
         ContentItemsService,
         ContentCollectionsService,
+        ContentBulkService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
@@ -105,6 +124,10 @@ describe('ContentLibraryService (unit)', () => {
           provide: UnsplashService,
           useValue: mockUnsplashService,
         },
+        {
+          provide: ContentLibraryMapper,
+          useValue: mockContentLibraryMapper,
+        },
       ],
     }).compile();
 
@@ -115,7 +138,14 @@ describe('ContentLibraryService (unit)', () => {
     jest.restoreAllMocks();
     jest.clearAllMocks();
 
+    mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
+
     mockPrismaService.contentItemGroup.findMany.mockResolvedValue([]);
+    mockPrismaService.contentCollectionItem.findMany.mockResolvedValue([]);
+    mockPrismaService.contentCollectionItem.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrismaService.contentCollectionItem.createMany.mockResolvedValue({ count: 0 });
+    mockPrismaService.contentCollectionItem.upsert.mockResolvedValue({});
+    mockPrismaService.contentCollectionItem.updateMany.mockResolvedValue({ count: 0 });
     mockPrismaService.$queryRaw.mockResolvedValue([]);
   });
 
@@ -169,7 +199,7 @@ describe('ContentLibraryService (unit)', () => {
             domain: 'CONTENT_LIBRARY',
             contentItems: {
               some: {
-                groups: { some: { collectionId: 'g1' } },
+                collectionItems: { some: { collectionId: 'g1' } },
               },
             },
           }),
@@ -297,8 +327,8 @@ describe('ContentLibraryService (unit)', () => {
         groupId: 'g-target',
       } as any);
 
-      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledTimes(2);
-      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledWith(
+      expect(mockPrismaService.contentCollectionItem.upsert).toHaveBeenCalledTimes(2);
+      expect(mockPrismaService.contentCollectionItem.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             contentItemId_collectionId: {
@@ -378,13 +408,13 @@ describe('ContentLibraryService (unit)', () => {
         sourceGroupId: 'g-source',
       } as any);
 
-      expect(mockPrismaService.contentItemGroup.deleteMany).toHaveBeenCalledWith(
+      expect(mockPrismaService.contentCollectionItem.deleteMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { contentItemId: 'ci-1', collectionId: 'g-source' } }),
       );
-      expect(mockPrismaService.contentItemGroup.deleteMany).toHaveBeenCalledWith(
+      expect(mockPrismaService.contentCollectionItem.deleteMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { contentItemId: 'ci-2', collectionId: 'g-source' } }),
       );
-      expect(mockPrismaService.contentItemGroup.upsert).toHaveBeenCalledTimes(2);
+      expect(mockPrismaService.contentCollectionItem.upsert).toHaveBeenCalledTimes(2);
       expect(res).toEqual({ count: 2 });
     });
 
@@ -566,7 +596,7 @@ describe('ContentLibraryService (unit)', () => {
           } as any,
           'user-1',
         ),
-      ).resolves.toEqual({ id: 'ci-1', tagObjects: [], tags: [] });
+      ).resolves.toEqual({ id: 'ci-1', tagObjects: [] });
     });
 
     it('should create personal item', async () => {
@@ -582,7 +612,7 @@ describe('ContentLibraryService (unit)', () => {
       );
 
       expect(mockPrismaService.contentItem.create).toHaveBeenCalled();
-      expect(result).toEqual({ id: 'ci-1', tagObjects: [], tags: [] });
+      expect(result).toEqual({ id: 'ci-1', tagObjects: [] });
     });
 
     it('should require projectId for project scope', async () => {
@@ -706,7 +736,7 @@ describe('ContentLibraryService (unit)', () => {
       expect(mockPrismaService.contentItem.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            groups: { some: { collectionId: { in: ['f-1'] } } },
+            collectionItems: { some: { collectionId: { in: ['f-1'] } } },
           }),
         }),
       );
@@ -848,7 +878,7 @@ describe('ContentLibraryService (unit)', () => {
       mockPrismaService.$transaction.mockImplementationOnce(async (fn: any) => {
         return fn({
           $executeRaw: executeRaw,
-          contentItemGroup: {
+          contentCollectionItem: {
             deleteMany,
           },
           contentCollection: {

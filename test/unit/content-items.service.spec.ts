@@ -1,6 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { ContentItemsService } from '../../src/modules/content-library/content-items.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -9,6 +9,7 @@ import { TagsService } from '../../src/modules/tags/tags.service.js';
 import { ContentCollectionsService } from '../../src/modules/content-library/content-collections.service.js';
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
+import { ContentLibraryMapper } from '../../src/modules/content-library/content-library.mapper.js';
 
 describe('ContentItemsService (unit)', () => {
   let service: ContentItemsService;
@@ -58,6 +59,15 @@ describe('ContentItemsService (unit)', () => {
     search: jest.fn() as any,
   };
 
+  const mockContentLibraryMapper = {
+    mapIncomingMediaIds: jest.fn(
+      (dto: any) => dto?.mediaIds ?? dto?.media?.map((m: any) => m.mediaId) ?? [],
+    ),
+    mapContentItem: jest.fn((item: any) => item),
+    getItemsInclude: jest.fn(() => ({})),
+    normalizeItemText: jest.fn((text: any) => (typeof text === 'string' ? text : null)),
+  };
+
   beforeAll(async () => {
     mockPrismaService.$transaction.mockImplementation(async (fn: any) => fn(mockPrismaService));
 
@@ -88,10 +98,20 @@ describe('ContentItemsService (unit)', () => {
           provide: UnsplashService,
           useValue: mockUnsplashService,
         },
+        {
+          provide: ContentLibraryMapper,
+          useValue: mockContentLibraryMapper,
+        },
       ],
     }).compile();
 
     service = moduleRef.get<ContentItemsService>(ContentItemsService);
+  });
+
+  afterAll(async () => {
+    if (moduleRef) {
+      await moduleRef.close();
+    }
   });
 
   beforeEach(() => {
@@ -208,7 +228,7 @@ describe('ContentItemsService (unit)', () => {
           where: expect.objectContaining({
             userId: 'user-1',
             projectId: null,
-            groups: { none: {} },
+            collectionItems: { none: {} },
           }),
         }),
       );

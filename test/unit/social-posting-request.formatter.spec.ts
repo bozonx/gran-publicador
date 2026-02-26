@@ -13,7 +13,7 @@ describe('SocialPostingRequestFormatter', () => {
   };
 
   const mockChannel = {
-    socialMedia: SocialMedia.telegram,
+    socialMedia: SocialMedia.TELEGRAM,
     language: 'ru-RU',
     preferences: {},
   };
@@ -47,7 +47,7 @@ describe('SocialPostingRequestFormatter', () => {
   it('should format request correctly for Telegram using snapshot body', () => {
     const request = SocialPostingRequestFormatter.prepareRequest(params);
 
-    expect(request.platform).toBe('telegram');
+    expect(request.platform).toBe('TELEGRAM');
     expect(request.bodyFormat).toBe('html');
     expect(request.title).toBeUndefined();
     expect(request.description).toBeUndefined();
@@ -60,11 +60,11 @@ describe('SocialPostingRequestFormatter', () => {
   it('should format request correctly for non-Telegram platforms', () => {
     const vkParams = {
       ...params,
-      channel: { ...mockChannel, socialMedia: SocialMedia.vk },
+      channel: { ...mockChannel, socialMedia: SocialMedia.VK },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(vkParams);
 
-    expect(request.platform).toBe('vk');
+    expect(request.platform).toBe('VK');
     expect(request.bodyFormat).toBe('markdown');
     expect(request.title).toBe('Pub Title');
     expect(request.description).toBe('Pub Desc');
@@ -75,7 +75,7 @@ describe('SocialPostingRequestFormatter', () => {
       ...params,
       post: {
         ...mockPost,
-        platformOptions: { telegram: { disableNotification: true } },
+        platformOptions: { TELEGRAM: { disableNotification: true } },
       },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithNamespacedOpts);
@@ -87,7 +87,7 @@ describe('SocialPostingRequestFormatter', () => {
       ...params,
       post: {
         ...mockPost,
-        platformOptions: { telegram: { show_caption_above_media: true } },
+        platformOptions: { TELEGRAM: { show_caption_above_media: true } },
       },
     };
     const request = SocialPostingRequestFormatter.prepareRequest(paramsWithTelegramOptions);

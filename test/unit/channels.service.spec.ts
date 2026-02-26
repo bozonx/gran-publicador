@@ -2,6 +2,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ChannelsService } from '../../src/modules/channels/channels.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
+import { ChannelsMapper } from '../../src/modules/channels/channels.mapper.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { PermissionKey } from '../../src/common/types/permissions.types.js';
 
@@ -49,6 +50,7 @@ describe('ChannelsService (unit)', () => {
         ChannelsService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: PermissionsService, useValue: mockPermissionsService },
+        { provide: ChannelsMapper, useValue: { mapToDto: jest.fn((v: any) => v) } },
       ],
     }).compile();
 
@@ -56,7 +58,9 @@ describe('ChannelsService (unit)', () => {
   });
 
   afterAll(async () => {
-    await moduleRef.close();
+    if (moduleRef) {
+      await moduleRef.close();
+    }
   });
 
   beforeEach(() => {
@@ -74,7 +78,7 @@ describe('ChannelsService (unit)', () => {
 
       await service.create(userId, projectId, {
         name: 'New Channel',
-        socialMedia: 'telegram',
+        socialMedia: 'TELEGRAM',
         channelIdentifier: '@test',
         language: 'en',
       });

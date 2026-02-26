@@ -197,7 +197,7 @@ describe('PostSnapshotBuilderService', () => {
           authorSignature: null,
           tagObjects: [],
           channel: {
-            socialMedia: 'telegram',
+            socialMedia: 'TELEGRAM',
             language: 'ru-RU',
             preferences: {},
           },
@@ -231,7 +231,7 @@ describe('PostSnapshotBuilderService', () => {
           language: null,
           authorSignature: null,
           channel: {
-            socialMedia: 'telegram',
+            socialMedia: 'TELEGRAM',
             language: 'ru-RU',
             preferences: {},
           },
@@ -267,7 +267,7 @@ describe('PostSnapshotBuilderService', () => {
           authorSignature: null,
           tagObjects: [],
           channel: {
-            socialMedia: 'vk',
+            socialMedia: 'VK',
             language: 'ru-RU',
             preferences: {},
           },

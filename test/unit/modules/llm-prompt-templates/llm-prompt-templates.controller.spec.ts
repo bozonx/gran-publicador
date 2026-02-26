@@ -6,7 +6,7 @@ import { PrismaService } from '../../../../src/modules/prisma/prisma.service.js'
 import type { CreateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/create-llm-prompt-template.dto.js';
 import type { UpdateLlmPromptTemplateDto } from '../../../../src/modules/llm-prompt-templates/dto/update-llm-prompt-template.dto.js';
 import type { ReorderLlmPromptTemplatesDto } from '../../../../src/modules/llm-prompt-templates/dto/reorder-llm-prompt-templates.dto.js';
-import { jest } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 describe('LlmPromptTemplatesController', () => {
   let controller: LlmPromptTemplatesController;
@@ -193,7 +193,7 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.findAllByProject('project-1', 'false', mockRequest);
 
-      expect(mockService.findAllByProject).toHaveBeenCalledWith('project-1', false);
+      expect(mockService.findAllByProject).toHaveBeenCalledWith('project-1', 'user-1', false);
       expect(result).toEqual(templates);
     });
   });
@@ -271,7 +271,11 @@ describe('LlmPromptTemplatesController', () => {
 
       const result = await controller.reorder(dto, mockRequest);
 
-      expect(mockService.reorder).toHaveBeenCalledWith(dto.ids, 'user-1');
+      expect(mockService.reorder).toHaveBeenCalledWith({
+        ids: dto.ids,
+        userId: 'user-1',
+        projectId: undefined,
+      });
       expect(result).toEqual({ success: true });
     });
   });

@@ -33,9 +33,10 @@ const mockPrismaService = {
     findMany: jest.fn() as any,
     findUnique: jest.fn() as any,
   },
-  $queryRaw: jest.fn() as any,
-  $executeRaw: jest.fn() as any,
-  $queryRawUnsafe: jest.fn() as any,
+  newsQueryNotificationState: {
+    findMany: jest.fn() as any,
+    upsert: jest.fn() as any,
+  },
 };
 
 const mockProjectsService = {
@@ -109,20 +110,36 @@ describe('NewsNotificationsScheduler (unit)', () => {
     };
 
     mockPrismaService.projectNewsQuery.findUnique.mockResolvedValue(query);
-    mockPrismaService.$queryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        userId: 'user-owner',
-        queryId: 'query-1',
-        lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
-        lastSentNewsId: 'news-1',
-      },
-      {
-        userId: 'user-member',
-        queryId: 'query-1',
-        lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
-        lastSentNewsId: 'news-1',
-      },
-    ]);
+
+    mockPrismaService.newsQueryNotificationState.findMany
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-owner',
+          queryId: 'query-1',
+          lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
+          lastSentNewsId: 'news-1',
+        },
+        {
+          userId: 'user-member',
+          queryId: 'query-1',
+          lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
+          lastSentNewsId: 'news-1',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          userId: 'user-owner',
+          queryId: 'query-1',
+          lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
+          lastSentNewsId: 'news-1',
+        },
+        {
+          userId: 'user-member',
+          queryId: 'query-1',
+          lastSentSavedAt: new Date('2026-02-15T10:00:00.000Z'),
+          lastSentNewsId: 'news-1',
+        },
+      ]);
 
     mockProjectsService.searchNews
       .mockResolvedValueOnce({
@@ -148,20 +165,16 @@ describe('NewsNotificationsScheduler (unit)', () => {
       .mockResolvedValueOnce({ items: [], nextCursor: null })
       .mockResolvedValueOnce({ items: [], nextCursor: null });
 
-    mockPrismaService.$queryRawUnsafe
-      .mockResolvedValueOnce([{ locked: true }])
-      .mockResolvedValueOnce([{ pg_advisory_unlock: true }])
-      .mockResolvedValueOnce([{ locked: true }])
-      .mockResolvedValueOnce([{ pg_advisory_unlock: true }]);
-
     mockNotificationsService.create.mockResolvedValue({ id: 'notif-1' });
 
-    await service.processQueryById('query-1');
+    mockPrismaService.newsQueryNotificationState.upsert.mockResolvedValue(undefined);
 
     await service.processQueryById('query-1');
 
-    expect(mockNotificationsService.create).toHaveBeenCalledTimes(2);
-    expect(mockPrismaService.$executeRaw).toHaveBeenCalledTimes(2);
+    await service.processQueryById('query-1');
+
+    expect(mockNotificationsService.create).not.toHaveBeenCalled();
+    expect(mockPrismaService.newsQueryNotificationState.upsert).not.toHaveBeenCalled();
   });
 
   it('should queue jobs in runNow', async () => {

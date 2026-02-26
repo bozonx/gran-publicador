@@ -12,6 +12,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { PUBLICATIONS_QUEUE } from '../../../src/modules/social-posting/publications.queue.js';
 
 import { I18nService } from 'nestjs-i18n';
+import { RedisService } from '../../../src/common/redis/redis.service.js';
 
 describe('SocialPostingService', () => {
   let service: SocialPostingService;
@@ -87,6 +88,11 @@ describe('SocialPostingService', () => {
     add: jest.fn() as any,
   };
 
+  const mockRedisService = {
+    acquireLock: jest.fn() as any,
+    releaseLock: jest.fn() as any,
+  };
+
   beforeAll(() => {
     originalDispatcher = getGlobalDispatcher();
     mockAgent = new MockAgent();
@@ -108,6 +114,7 @@ describe('SocialPostingService', () => {
         { provide: NotificationsService, useValue: mockNotificationsService },
         { provide: I18nService, useValue: mockI18nService },
         { provide: MediaService, useValue: mockMediaService },
+        { provide: RedisService, useValue: mockRedisService },
         { provide: getQueueToken(PUBLICATIONS_QUEUE), useValue: mockQueue },
       ],
     }).compile();
@@ -129,7 +136,7 @@ describe('SocialPostingService', () => {
       const channelId = 'chan-123';
       const mockChannel = {
         id: channelId,
-        socialMedia: 'telegram',
+        socialMedia: 'TELEGRAM',
         channelIdentifier: '@test',
         isActive: true,
         credentials: {
@@ -178,7 +185,7 @@ describe('SocialPostingService', () => {
         },
         channel: {
           id: 'chan-1',
-          socialMedia: 'telegram',
+          socialMedia: 'TELEGRAM',
           channelIdentifier: '@test',
           isActive: true,
           credentials: {
