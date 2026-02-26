@@ -36,6 +36,7 @@
     "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' dotenv -e .env.development -- jest --selectProjects e2e --runInBand"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.0.2",
     "@fastify/helmet": "^13.0.2",
     "@fastify/multipart": "^9.4.0",
     "@gran/shared": "workspace:*",

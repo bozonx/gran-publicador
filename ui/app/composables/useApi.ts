@@ -63,8 +63,8 @@ const isTimeoutError = (error: any): boolean => {
 
 export const useApi = () => {
   const config = useRuntimeConfig();
-  const accessToken = useLocalStorage<string | null>('auth_access_token', null);
-  const refreshToken = useLocalStorage<string | null>('auth_refresh_token', null);
+  const accessToken = useState<string | null>('auth_access_token', () => null);
+  const refreshToken = useState<string | null>('auth_refresh_token', () => null);
   let refreshPromise: Promise<void> | null = null;
 
   // Base path for API, matching NestJS global prefix
@@ -76,10 +76,6 @@ export const useApi = () => {
   const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
 
   const refreshTokens = async (): Promise<void> => {
-    if (!refreshToken.value) {
-      throw createApiError('No refresh token');
-    }
-
     if (!refreshPromise) {
       refreshPromise = (async () => {
         try {
@@ -87,9 +83,8 @@ export const useApi = () => {
             `${apiBase}/auth/refresh`,
             {
               method: 'POST',
-              body: {
-                refreshToken: refreshToken.value,
-              },
+              credentials: 'include',
+              body: refreshToken.value ? { refreshToken: refreshToken.value } : undefined,
             },
           );
 
@@ -135,6 +130,8 @@ export const useApi = () => {
   ): Promise<T> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
+
+      xhr.withCredentials = true;
 
       // Track upload progress
       if (options.onUploadProgress) {
@@ -232,6 +229,7 @@ export const useApi = () => {
     try {
       return await $fetch<T>(`${apiBase}${url}`, {
         ...options,
+        credentials: 'include',
         headers,
       });
     } catch (error: any) {

@@ -16,10 +16,31 @@ import { UsersService } from '../users/users.service.js';
 import { PassThrough } from 'node:stream';
 import type { SttConfig } from '../../config/stt.config.js';
 
+const getCookieValue = (cookieHeader: unknown, key: string): string | null => {
+  if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) return null;
+
+  const parts = cookieHeader.split(';');
+  for (const part of parts) {
+    const [rawName, ...rest] = part.trim().split('=');
+    if (!rawName) continue;
+    if (rawName !== key) continue;
+    const rawValue = rest.join('=');
+    if (!rawValue) return null;
+    try {
+      return decodeURIComponent(rawValue);
+    } catch {
+      return rawValue;
+    }
+  }
+
+  return null;
+};
+
 @WebSocketGateway({
   namespace: '/stt',
   cors: {
-    origin: '*',
+    origin: true,
+    credentials: true,
   },
 })
 export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -43,9 +64,11 @@ export class SttGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket) {
     try {
-      const token =
-        (client.handshake.auth?.token as string) ||
-        (client.handshake.headers?.authorization?.split(' ')[1] as string);
+      const cookieToken = getCookieValue(client.handshake.headers?.cookie, 'access_token');
+      const authToken = client.handshake.auth?.token as string;
+      const bearerToken = client.handshake.headers?.authorization?.split(' ')[1] as string;
+
+      const token = cookieToken || authToken || bearerToken;
 
       if (!token) {
         this.logger.debug(`Client ${client.id} connected to STT without token, disconnecting`);

@@ -29,8 +29,8 @@ interface AuthResponse {
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const accessToken = useLocalStorage<string | null>('auth_access_token', null);
-  const refreshToken = useLocalStorage<string | null>('auth_refresh_token', null);
+  const accessToken = useState<string | null>('auth_access_token', () => null);
+  const refreshToken = useState<string | null>('auth_refresh_token', () => null);
   const api = useApi();
 
   const isLoading = ref(false);
@@ -124,15 +124,15 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null;
     accessToken.value = null;
     refreshToken.value = null;
+    try {
+      await api.post('/auth/logout', undefined);
+    } catch {
+      // noop
+    }
     navigateTo('/auth/login');
   }
 
   async function fetchMe() {
-    if (!accessToken.value) {
-      isInitialized.value = true;
-      return null;
-    }
-
     isLoading.value = true;
     try {
       const userData = await api.get<User>('/auth/me');

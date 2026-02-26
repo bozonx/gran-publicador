@@ -17,9 +17,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new Error('JWT secret is not configured');
     }
 
+    const cookieExtractor = (req: any): string | null => {
+      const token = req?.cookies?.access_token;
+      return typeof token === 'string' && token.length > 0 ? token : null;
+    };
+
     super({
       ignoreExpiration: false,
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        cookieExtractor,
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ]),
       secretOrKey: secret,
     });
   }

@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
+import fastifyCookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import fastifyHelmet from '@fastify/helmet';
 import { Logger } from 'nestjs-pino';
@@ -78,6 +79,8 @@ async function bootstrap() {
 
   // Register BigInt interceptor to handle serialization
   app.useGlobalInterceptors(new BigIntInterceptor());
+
+  await app.register(fastifyCookie);
 
   // Register helmet for security headers
   // We configure CSP to allow Telegram widgets and Nuxt scripts
