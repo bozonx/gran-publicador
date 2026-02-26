@@ -15,7 +15,8 @@
     "test:watch": "vitest --watch",
     "test:unit": "vitest run --project unit",
     "test:nuxt": "vitest run --project nuxt",
-    "test:e2e": "vitest run --project e2e",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps",
     "test:cov": "vitest run --coverage"
   },
   "dependencies": {
@@ -67,6 +68,7 @@
     "@eslint/js": "^10.0.1",
     "@nuxt/icon": "^2.2.1",
     "@nuxt/test-utils": "^4.0.0",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/vite": "^4.2.0",
     "@types/js-yaml": "^4.0.9",
     "@typescript-eslint/parser": "^8.56.0",

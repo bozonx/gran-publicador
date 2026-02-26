@@ -39,15 +39,6 @@ export default defineConfig(async () => ({
           testTimeout: 60_000,
         },
       }),
-      {
-        test: {
-          name: 'e2e',
-          include: ['test/e2e/**/*.{test,spec}.ts'],
-          environment: 'node',
-          hookTimeout: 60_000,
-          testTimeout: 60_000,
-        },
-      },
     ],
   },
-}));
+} as any));
