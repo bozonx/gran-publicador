@@ -167,12 +167,15 @@ export class PublicationQueryBuilder {
     if (filters?.tags) {
       const tagList = normalizeTags(filters.tags);
       if (tagList.length > 0) {
-        conditions.push({
-          tagObjects: {
-            some: {
-              normalizedName: { in: tagList.map(t => t.toLowerCase()) },
+        // We use AND to ensure the publication has ALL of the specified tags
+        tagList.forEach(tag => {
+          conditions.push({
+            tagObjects: {
+              some: {
+                normalizedName: tag.toLowerCase(),
+              },
             },
-          },
+          });
         });
       }
     }

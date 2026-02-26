@@ -7,9 +7,10 @@ import { UsersModule } from '../users/users.module.js';
 import { LocalNetworkGuard } from '../../common/guards/local-network.guard.js';
 import { SystemAuthGuard } from '../../common/guards/system-auth.guard.js';
 import { SystemOrAdminGuard } from './system-or-admin.guard.js';
+import { TagsModule } from '../tags/tags.module.js';
 
 @Module({
-  imports: [SocialPostingModule, NewsQueriesModule, NotificationsModule, UsersModule],
+  imports: [SocialPostingModule, NewsQueriesModule, NotificationsModule, UsersModule, TagsModule],
   controllers: [SystemController],
   providers: [LocalNetworkGuard, SystemAuthGuard, SystemOrAdminGuard],
 })

@@ -20,7 +20,9 @@ export class TagsController {
     const hasProjectId = Boolean(query.projectId);
     const hasUserId = Boolean(query.userId);
 
-    if (hasProjectId === hasUserId) {
+    if (!hasProjectId && !hasUserId) {
+      query.userId = req.user.userId;
+    } else if (hasProjectId && hasUserId) {
       throw new BadRequestException('Exactly one of projectId or userId must be provided');
     }
 

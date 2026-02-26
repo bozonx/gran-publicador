@@ -132,4 +132,18 @@ export class TagsService {
       connectOrCreate,
     };
   }
+
+  /**
+   * Remove tags that are not connected to any content items, publications or posts.
+   * Useful for periodic maintenance.
+   */
+  async cleanupOrphanedTags() {
+    return this.prisma.tag.deleteMany({
+      where: {
+        contentItems: { none: {} },
+        publications: { none: {} },
+        posts: { none: {} },
+      },
+    });
+  }
 }

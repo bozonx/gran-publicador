@@ -2,6 +2,7 @@ import { Controller, Post, UseGuards, HttpCode, HttpStatus } from '@nestjs/commo
 import { PublicationSchedulerService } from '../social-posting/publication-scheduler.service.js';
 import { NewsNotificationsScheduler } from '../news-queries/news-notifications.scheduler.js';
 import { NotificationsScheduler } from '../notifications/notifications.scheduler.js';
+import { TagsService } from '../tags/tags.service.js';
 import { SystemOrAdminGuard } from './system-or-admin.guard.js';
 
 @Controller('system/schedulers')
@@ -11,6 +12,7 @@ export class SystemController {
     private readonly publicationScheduler: PublicationSchedulerService,
     private readonly newsScheduler: NewsNotificationsScheduler,
     private readonly notificationsScheduler: NotificationsScheduler,
+    private readonly tagsService: TagsService,
   ) {}
 
   @Post('publications/run')
@@ -39,12 +41,16 @@ export class SystemController {
   @HttpCode(HttpStatus.OK)
   public async runMaintenance() {
     const notificationsCleanup = await this.notificationsScheduler.runCleanupNow();
+    const tagsCleanup = await this.tagsService.cleanupOrphanedTags();
 
     return {
       status: 'completed',
       scheduler: 'maintenance',
       result: {
         notificationsCleanup,
+        tagsCleanup: {
+          deletedCount: tagsCleanup.count,
+        },
       },
     };
   }

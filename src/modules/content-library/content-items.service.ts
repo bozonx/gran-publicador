@@ -183,7 +183,17 @@ export class ContentItemsService {
     }
 
     if (query.tags && query.tags.length > 0) {
-      where.tagObjects = { some: { normalizedName: { in: query.tags.map(t => t.toLowerCase()) } } };
+      const tagList = normalizeTags(query.tags);
+      if (tagList.length > 0) {
+        if (!where.AND) where.AND = [];
+        tagList.forEach(tag => {
+          where.AND.push({
+            tagObjects: {
+              some: { normalizedName: tag.toLowerCase() },
+            },
+          });
+        });
+      }
     }
 
     if (query.search) {
