@@ -28,15 +28,27 @@ onMounted(async () => {
 
 watch(activeCollection, loadEntities);
 
+const isDeleteModalOpen = ref(false);
+const deletingEntityId = ref<string | null>(null);
+const deletingEntityName = ref('');
+
 const handleRestore = async (id: string) => {
     await restoreEntity(activeCollection.value, id);
     await loadEntities();
 };
 
-const handleDelete = async (id: string) => {
-    if (confirm(t('archive.delete_confirm_permanent'))) {
-        await deletePermanently(activeCollection.value, id);
+const openDeleteConfirm = (entity: any) => {
+    deletingEntityId.value = entity.id;
+    deletingEntityName.value = getEntityName(entity);
+    isDeleteModalOpen.value = true;
+};
+
+const handleDeleteConfirm = async () => {
+    if (deletingEntityId.value) {
+        await deletePermanently(activeCollection.value, deletingEntityId.value);
         await loadEntities();
+        isDeleteModalOpen.value = false;
+        deletingEntityId.value = null;
     }
 };
 
@@ -118,7 +130,7 @@ const columns = computed(() => [
                                 color="error"
                                 variant="soft"
                                 class="rounded-xl transition-all duration-200 hover:scale-105"
-                                @click="handleDelete(row.id)"
+                                @click="openDeleteConfirm(row)"
                             >
                                 {{ t('archive.delete_permanent') }}
                             </UButton>
@@ -136,6 +148,12 @@ const columns = computed(() => [
                 </UTable>
             </div>
         </UContainer>
+
+        <ArchiveDeleteModal
+            v-model:open="isDeleteModalOpen"
+            :entity-name="deletingEntityName"
+            @confirm="handleDeleteConfirm"
+        />
     </div>
 </template>
 

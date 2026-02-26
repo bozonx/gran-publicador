@@ -13,7 +13,7 @@ services:
       - gran_p_postgres_data:/var/lib/postgresql/data
     user: '1000:1000'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U gran -d gran_db']
+      test: [ 'CMD-SHELL', 'pg_isready -U gran -d gran_db' ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,6 +27,50 @@ services:
     #  - ./test-data/redis:/data
     user: '1000:1000'
     command: redis-server --save "" --appendonly no
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: gran_publicador_api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://gran:gran_password@postgres:5432/gran_db?schema=public
+      - REDIS_URL=redis://redis:6379/0
+      - NODE_ENV=development
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=8080
+    ports:
+      - '8080:8080'
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/ui/node_modules
+
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.50.0-jammy # Используем готовый образ
+    container_name: gran_publicador_e2e
+    security_opt:
+      - seccomp:unconfined # Рекомендуется для Chromium в Docker
+    depends_on:
+      api:
+        condition: service_started
+    ipc: host # Важно для корректной работы браузеров (shared memory)
+    environment:
+      - NODE_ENV=development
+      - NUXT_PUBLIC_API_BASE=http://api:8080
+      - CI=true
+    volumes:
+      - .:/app
+    working_dir: /app/ui
+    # При запуске включаем pnpm и запускаем тесты. 
+    # Предполагается, что node_modules уже есть в корне проекта
+    command: >
+      bash -c "corepack enable && pnpm playwright test"
 
 volumes:
   gran_p_postgres_data:
