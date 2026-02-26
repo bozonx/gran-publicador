@@ -85,13 +85,7 @@ async function bootstrap() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'",
-          'https://telegram.org',
-          'https://*.telegram.org',
-        ],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://telegram.org', 'https://*.telegram.org'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https:', 'http:'], // Allow external images (like from Telegram)
         fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],

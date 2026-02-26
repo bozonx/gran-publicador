@@ -4,6 +4,7 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import { SocialPostingBodyFormatter } from '~/utils/bodyFormatter'
 import { getSocialMediaDisplayName } from '~/utils/socialMedia'
 import { marked, type Tokens } from 'marked'
+import DOMPurify from 'isomorphic-dompurify'
 import { preformatMarkdownForPlatform } from '@gran/shared/social-posting/md-preformatter'
 import { mdToTelegramHtml } from '@gran/shared/social-posting/md-to-telegram-html'
 import { getPlatformConfig } from '@gran/shared/social-media-platforms'
@@ -179,6 +180,49 @@ const selectedHtml = computed(() => {
   return previewHtml.value
 })
 
+const safeSelectedHtml = computed(() => {
+  const html = selectedHtml.value || ''
+
+  if (!html) {
+    return ''
+  }
+
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'p',
+      'br',
+      'strong',
+      'em',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'ul',
+      'ol',
+      'li',
+      'a',
+      'blockquote',
+      'code',
+      'pre',
+      'u',
+      's',
+      'del',
+      'ins',
+      'sub',
+      'sup',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'td',
+      'th',
+    ],
+    ALLOWED_ATTR: ['href', 'target', 'rel', 'title'],
+  })
+})
+
 const rawContent = computed(() => {
   if (sourceMode.value === 'snapshot') {
     return snapshotContent.value
@@ -242,7 +286,7 @@ watch(sourceMode, () => {
       <div
         v-else
         class="post-preview-html"
-        v-html="selectedHtml"
+        v-html="safeSelectedHtml"
       />
     </div>
 
