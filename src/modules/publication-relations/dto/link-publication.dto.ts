@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsString, IsUUID } from 'class-validator';
-import { RelationGroupType } from '../../../generated/prisma/index.js';
+import { PublicationRelationGroupType } from '../../../generated/prisma/index.js';
 
 /**
  * DTO for linking a publication to another via a relation group.
@@ -10,6 +10,6 @@ export class LinkPublicationDto {
   @IsUUID()
   public targetPublicationId!: string;
 
-  @IsEnum(RelationGroupType)
-  public type!: RelationGroupType;
+  @IsEnum(PublicationRelationGroupType)
+  public type!: PublicationRelationGroupType;
 }

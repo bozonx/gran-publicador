@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { RelationGroupType, PublicationStatus } from '../../generated/prisma/index.js';
+import { PublicationRelationGroupType, PublicationStatus } from '../../generated/prisma/index.js';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
@@ -107,11 +107,11 @@ export class PublicationRelationsService {
       },
     });
 
-    if (dto.type === RelationGroupType.SERIES && sourceExistingItem) {
+    if (dto.type === PublicationRelationGroupType.SERIES && sourceExistingItem) {
       throw new BadRequestException('Publication already belongs to a SERIES group');
     }
 
-    if (dto.type === RelationGroupType.LOCALIZATION && sourceExistingItem) {
+    if (dto.type === PublicationRelationGroupType.LOCALIZATION && sourceExistingItem) {
       throw new BadRequestException('Publication already belongs to a LOCALIZATION group');
     }
 
@@ -125,7 +125,7 @@ export class PublicationRelationsService {
     });
 
     // For LOCALIZATION: validate language uniqueness
-    if (dto.type === RelationGroupType.LOCALIZATION && targetExistingItem) {
+    if (dto.type === PublicationRelationGroupType.LOCALIZATION && targetExistingItem) {
       const existingLanguages = await this.getGroupLanguages(targetExistingItem.groupId);
       if (existingLanguages.includes(source.language)) {
         throw new BadRequestException(
@@ -329,7 +329,7 @@ export class PublicationRelationsService {
     const language = dto.language || source.language;
 
     // For LOCALIZATION: validate language uniqueness
-    if (dto.type === RelationGroupType.LOCALIZATION && sourceExistingItem) {
+    if (dto.type === PublicationRelationGroupType.LOCALIZATION && sourceExistingItem) {
       const existingLanguages = await this.getGroupLanguages(sourceExistingItem.groupId);
       if (existingLanguages.includes(language)) {
         throw new BadRequestException(

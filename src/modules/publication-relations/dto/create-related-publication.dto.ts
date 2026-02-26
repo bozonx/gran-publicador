@@ -1,13 +1,13 @@
 import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
-import { RelationGroupType } from '../../../generated/prisma/index.js';
+import { PublicationRelationGroupType } from '../../../generated/prisma/index.js';
 import { VALIDATION_LIMITS } from '../../../common/constants/validation.constants.js';
 
 /**
  * DTO for creating a new publication based on the current one and linking them.
  */
 export class CreateRelatedPublicationDto {
-  @IsEnum(RelationGroupType)
-  public type!: RelationGroupType;
+  @IsEnum(PublicationRelationGroupType)
+  public type!: PublicationRelationGroupType;
 
   @IsString()
   @IsOptional()

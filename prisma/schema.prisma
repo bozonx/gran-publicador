@@ -679,7 +679,7 @@ model PublicationMedia {
 model PublicationRelationGroup {
   id        String            @id @default(uuid())
   projectId String            @map("project_id")
-  type      RelationGroupType
+  type      PublicationRelationGroupType
   createdBy String?           @map("created_by")
   createdAt DateTime          @default(now()) @map("created_at")
 
@@ -768,7 +768,7 @@ enum PostStatus {
   PUBLISHED // Post was successfully published to the channel
 }
 
-enum RelationGroupType {
+enum PublicationRelationGroupType {
   SERIES
   LOCALIZATION
 }

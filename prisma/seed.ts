@@ -5,7 +5,7 @@ import {
   PostStatus,
   PublicationStatus,
   NotificationType,
-  RelationGroupType,
+  PublicationRelationGroupType,
   TagDomain,
 } from '../src/generated/prisma/index.js';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -776,7 +776,7 @@ async function main() {
     create: {
       id: '55555555-5555-4555-8555-555555555551',
       projectId: projectData[0].id,
-      type: RelationGroupType.LOCALIZATION,
+      type: PublicationRelationGroupType.LOCALIZATION,
       createdBy: devUser.id,
     },
   });
