@@ -48,7 +48,6 @@ model User {
   apiTokens              ApiToken[]
   notifications          Notification[]
   llmPromptTemplates     LlmPromptTemplate[]
-  llmSystemPromptHidden  LlmSystemPromptHidden[]
   authorSignatures       ProjectAuthorSignature[]
   contentCollections     ContentCollection[]
   tags                   Tag[]
@@ -360,21 +359,6 @@ model LlmPromptTemplate {
   @@map("llm_prompt_templates")
 }
 
-// Tracks which system prompt templates a user has hidden (per-user state)
-model LlmSystemPromptHidden {
-  id               String @id @default(uuid())
-  userId           String @map("user_id")
-  // Stable ID of the system template from the constants
-  systemTemplateId String @map("system_template_id")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, systemTemplateId])
-  @@index([userId])
-  @@map("llm_system_prompt_hidden")
-}
 
 model Channel {
   id                String      @id @default(uuid())

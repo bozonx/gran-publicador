@@ -25,6 +25,7 @@ export class LlmPromptTemplatesService {
     return {
       rootKey: 'llmPromptTemplates',
       availableOrderByProjectIdKey: 'availableOrderByProjectId',
+      hiddenSystemTemplateIdsKey: 'hiddenSystemTemplateIds',
     };
   }
 
@@ -82,18 +83,62 @@ export class LlmPromptTemplatesService {
     });
   }
 
+  private async getHiddenSystemTemplatesFromPreferences(
+    userId: string,
+  ): Promise<string[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    const prefs = (user?.preferences as any) || {};
+    const { rootKey, hiddenSystemTemplateIdsKey } = this.getPreferencePath();
+
+    const ids = prefs?.[rootKey]?.[hiddenSystemTemplateIdsKey];
+    if (!Array.isArray(ids)) return [];
+
+    return ids.filter((id: unknown): id is string => typeof id === 'string');
+  }
+
+  private async setHiddenSystemTemplatesToPreferences(
+    userId: string,
+    ids: string[],
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { preferences: true },
+    });
+
+    const currentPreferences = (user?.preferences as any) || {};
+    const { rootKey, hiddenSystemTemplateIdsKey } = this.getPreferencePath();
+
+    const nextPreferences = {
+      ...currentPreferences,
+      [rootKey]: {
+        ...(currentPreferences?.[rootKey] || {}),
+        [hiddenSystemTemplateIdsKey]: ids,
+      },
+    };
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        preferences: JSON.parse(JSON.stringify(nextPreferences)),
+      },
+    });
+  }
+
   // ─── System templates ───────────────────────────────────────────────
 
   /**
    * Returns all system templates with hidden state for the given user.
    */
+  /**
+   * Returns all system templates with hidden state for the given user.
+   */
   async getSystemTemplates(userId: string, includeHidden = false) {
-    const hiddenRecords = await this.prisma.llmSystemPromptHidden.findMany({
-      where: { userId },
-      select: { systemTemplateId: true },
-    });
-
-    const hiddenIds = new Set(hiddenRecords.map(r => r.systemTemplateId));
+    const hiddenRecords = await this.getHiddenSystemTemplatesFromPreferences(userId);
+    const hiddenIds = new Set(hiddenRecords);
 
     return SYSTEM_LLM_PROMPT_TEMPLATES.map(tpl => ({
       id: tpl.id,
@@ -115,17 +160,13 @@ export class LlmPromptTemplatesService {
       throw new NotFoundException('System template not found');
     }
 
-    await this.prisma.llmSystemPromptHidden.upsert({
-      where: {
-        userId_systemTemplateId: { userId, systemTemplateId },
-      },
-      create: {
-        id: crypto.randomUUID(),
-        userId,
+    const currentHidden = await this.getHiddenSystemTemplatesFromPreferences(userId);
+    if (!currentHidden.includes(systemTemplateId)) {
+      await this.setHiddenSystemTemplatesToPreferences(userId, [
+        ...currentHidden,
         systemTemplateId,
-      },
-      update: {},
-    });
+      ]);
+    }
 
     return { success: true };
   }
@@ -139,9 +180,12 @@ export class LlmPromptTemplatesService {
       throw new NotFoundException('System template not found');
     }
 
-    await this.prisma.llmSystemPromptHidden.deleteMany({
-      where: { userId, systemTemplateId },
-    });
+    const currentHidden = await this.getHiddenSystemTemplatesFromPreferences(userId);
+    const nextHidden = currentHidden.filter(id => id !== systemTemplateId);
+
+    if (nextHidden.length !== currentHidden.length) {
+      await this.setHiddenSystemTemplatesToPreferences(userId, nextHidden);
+    }
 
     return { success: true };
   }
