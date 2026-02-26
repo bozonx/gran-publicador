@@ -27,7 +27,6 @@ export type {
   ChannelCreateInput,
   ChannelUpdateInput,
   ChannelsFilter,
-  SocialMedia,
 };
 
 export function useChannels() {
