@@ -61,7 +61,7 @@ export class PublicationRelationsService {
                   },
                 },
               },
-              orderBy: { position: 'asc' as const },
+              orderBy: { order: 'asc' as const },
             },
           },
         },
@@ -136,16 +136,16 @@ export class PublicationRelationsService {
 
     return this.prisma.$transaction(async tx => {
       let groupId: string;
-      let nextPosition: number;
+      let nextOrder: number;
 
       if (targetExistingItem) {
         // Join existing group
         groupId = targetExistingItem.groupId;
-        const maxPos = await tx.publicationRelationItem.aggregate({
+        const maxOrder = await tx.publicationRelationItem.aggregate({
           where: { groupId },
-          _max: { position: true },
+          _max: { order: true },
         });
-        nextPosition = (maxPos._max.position ?? -1) + 1;
+        nextOrder = (maxOrder._max.order ?? -1) + 1;
       } else {
         // Create new group with target as first member
         const group = await tx.publicationRelationGroup.create({
@@ -161,10 +161,10 @@ export class PublicationRelationsService {
           data: {
             groupId,
             publicationId: dto.targetPublicationId,
-            position: 0,
+            order: 0,
           },
         });
-        nextPosition = 1;
+        nextOrder = 1;
       }
 
       // Add source publication to the group
@@ -172,7 +172,7 @@ export class PublicationRelationsService {
         data: {
           groupId,
           publicationId,
-          position: nextPosition,
+          order: nextOrder,
         },
       });
 
@@ -222,14 +222,14 @@ export class PublicationRelationsService {
         // Re-compact positions
         const items = await tx.publicationRelationItem.findMany({
           where: { groupId: dto.groupId },
-          orderBy: { position: 'asc' },
+          orderBy: { order: 'asc' },
         });
 
         for (let i = 0; i < items.length; i++) {
-          if (items[i].position !== i) {
+          if (items[i].order !== i) {
             await tx.publicationRelationItem.update({
               where: { id: items[i].id },
-              data: { position: i },
+              data: { order: i },
             });
           }
         }
@@ -266,10 +266,10 @@ export class PublicationRelationsService {
     }
 
     // Validate positions are unique and sequential from 0
-    const positions = dto.items.map(i => i.position).sort((a, b) => a - b);
-    for (let i = 0; i < positions.length; i++) {
-      if (positions[i] !== i) {
-        throw new BadRequestException('Positions must be sequential starting from 0');
+    const orders = dto.items.map(i => i.order).sort((a, b) => a - b);
+    for (let i = 0; i < orders.length; i++) {
+      if (orders[i] !== i) {
+        throw new BadRequestException('Orders must be sequential starting from 0');
       }
     }
 
@@ -282,7 +282,7 @@ export class PublicationRelationsService {
         if (existing) {
           await tx.publicationRelationItem.update({
             where: { id: existing.id },
-            data: { position: -(item.position + 1) },
+            data: { order: -(item.order + 1) },
           });
         }
       }
@@ -292,7 +292,7 @@ export class PublicationRelationsService {
         if (existing) {
           await tx.publicationRelationItem.update({
             where: { id: existing.id },
-            data: { position: item.position },
+            data: { order: item.order },
           });
         }
       }
@@ -364,14 +364,14 @@ export class PublicationRelationsService {
 
       // If the source already belongs to a group of this type, append to that group.
       if (sourceExistingItem) {
-        const nextPosition =
-          sourceExistingItem.group.items.reduce((max, i) => Math.max(max, i.position), -1) + 1;
+        const nextOrder =
+          sourceExistingItem.group.items.reduce((max, i) => Math.max(max, i.order), -1) + 1;
 
         await tx.publicationRelationItem.create({
           data: {
             groupId: sourceExistingItem.groupId,
             publicationId: newPublication.id,
-            position: nextPosition,
+            order: nextOrder,
           },
         });
 
@@ -393,8 +393,8 @@ export class PublicationRelationsService {
 
       await tx.publicationRelationItem.createMany({
         data: [
-          { groupId: group.id, publicationId, position: 0 },
-          { groupId: group.id, publicationId: newPublication.id, position: 1 },
+          { groupId: group.id, publicationId, order: 0 },
+          { groupId: group.id, publicationId: newPublication.id, order: 1 },
         ],
       });
 

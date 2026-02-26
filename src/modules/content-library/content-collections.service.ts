@@ -12,7 +12,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ContentCollectionType,
-  ContentLibraryGroupType,
+  ContentCollectionGroupType,
   Prisma,
 } from '../../generated/prisma/index.js';
 
@@ -51,18 +51,18 @@ export class ContentCollectionsService {
 
   public resolveGroupType(collection: {
     type: ContentCollectionType;
-    groupType?: ContentLibraryGroupType | null;
+    groupType?: ContentCollectionGroupType | null;
     userId: string | null;
     projectId: string | null;
-  }): ContentLibraryGroupType {
+  }): ContentCollectionGroupType {
     if (collection.type !== ContentCollectionType.GROUP) {
       throw new BadRequestException('Collection is not a group');
     }
 
     if (
-      collection.groupType === ContentLibraryGroupType.PERSONAL_USER ||
-      collection.groupType === ContentLibraryGroupType.PROJECT_USER ||
-      collection.groupType === ContentLibraryGroupType.PROJECT_SHARED
+      collection.groupType === ContentCollectionGroupType.PERSONAL_USER ||
+      collection.groupType === ContentCollectionGroupType.PROJECT_USER ||
+      collection.groupType === ContentCollectionGroupType.PROJECT_SHARED
     ) {
       return collection.groupType;
     }
@@ -145,7 +145,7 @@ export class ContentCollectionsService {
 
       if (collection.type === ContentCollectionType.GROUP) {
         const groupType = this.resolveGroupType(collection);
-        if (groupType !== ContentLibraryGroupType.PERSONAL_USER) {
+        if (groupType !== ContentCollectionGroupType.PERSONAL_USER) {
           throw new ForbiddenException('You do not have access to this collection');
         }
       }
@@ -178,14 +178,14 @@ export class ContentCollectionsService {
 
     const groupType = this.resolveGroupType(collection);
     if (
-      groupType === ContentLibraryGroupType.PROJECT_USER &&
+      groupType === ContentCollectionGroupType.PROJECT_USER &&
       collection.userId !== options.userId
     ) {
       throw new ForbiddenException('You do not have access to this collection');
     }
 
     if (options.requireMutationPermission) {
-      if (groupType === ContentLibraryGroupType.PROJECT_SHARED) {
+      if (groupType === ContentCollectionGroupType.PROJECT_SHARED) {
         await this.assertProjectOwnerOrAdmin(options.projectId, options.userId);
       } else {
         await this.assertNotViewer(options.projectId, options.userId);
@@ -260,7 +260,7 @@ export class ContentCollectionsService {
     scope: 'personal' | 'project';
     projectId?: string;
     userId: string;
-    childGroupType?: ContentLibraryGroupType;
+    childGroupType?: ContentCollectionGroupType;
   }): Promise<string | null | undefined> {
     if (options.parentId === undefined) {
       return undefined;
@@ -367,7 +367,7 @@ export class ContentCollectionsService {
             SELECT 
               cig.collection_id as "collectionId",
               COUNT(*) as count
-            FROM content_item_groups cig
+            FROM content_collection_items cig
             INNER JOIN content_items ci ON ci.id = cig.content_item_id
             WHERE cig.collection_id IN (${Prisma.join(groupIds)})
               AND ci.archived_at IS NULL
@@ -382,7 +382,7 @@ export class ContentCollectionsService {
         query.scope === 'personal'
           ? 'PERSONAL'
           : collection.type === ContentCollectionType.GROUP
-            ? this.resolveGroupType(collection) === ContentLibraryGroupType.PROJECT_SHARED
+            ? this.resolveGroupType(collection) === ContentCollectionGroupType.PROJECT_SHARED
               ? 'PROJECT_SHARED'
               : 'PROJECT_PRIVATE'
             : 'PROJECT_PRIVATE';
@@ -407,7 +407,7 @@ export class ContentCollectionsService {
       scope: 'personal' | 'project';
       projectId?: string;
       type: ContentCollectionType;
-      groupType?: ContentLibraryGroupType;
+      groupType?: ContentCollectionGroupType;
       parentId?: string;
       title: string;
       config?: unknown;
@@ -433,7 +433,7 @@ export class ContentCollectionsService {
             'groupType is required for GROUP collections in project scope',
           );
         }
-        if (dto.groupType === ContentLibraryGroupType.PROJECT_SHARED) {
+        if (dto.groupType === ContentCollectionGroupType.PROJECT_SHARED) {
           await this.assertProjectOwnerOrAdmin(dto.projectId!, userId);
         }
       }
@@ -452,8 +452,8 @@ export class ContentCollectionsService {
               {
                 type: ContentCollectionType.GROUP,
                 OR: [
-                  { groupType: ContentLibraryGroupType.PROJECT_SHARED },
-                  { groupType: ContentLibraryGroupType.PROJECT_USER, userId },
+                  { groupType: ContentCollectionGroupType.PROJECT_SHARED },
+                  { groupType: ContentCollectionGroupType.PROJECT_USER, userId },
                 ],
               },
               { type: ContentCollectionType.SAVED_VIEW, userId },
@@ -466,10 +466,10 @@ export class ContentCollectionsService {
       throw new BadRequestException('Only groups can have parent groups');
     }
 
-    const resolvedChildGroupType: ContentLibraryGroupType | undefined =
+    const resolvedChildGroupType: ContentCollectionGroupType | undefined =
       dto.type === ContentCollectionType.GROUP
         ? dto.scope === 'personal'
-          ? ContentLibraryGroupType.PERSONAL_USER
+          ? ContentCollectionGroupType.PERSONAL_USER
           : dto.groupType
         : undefined;
 
@@ -506,7 +506,7 @@ export class ContentCollectionsService {
                       dto.type === 'PUBLICATION_MEDIA_VIRTUAL' ||
                       dto.type === 'UNSPLASH'
                     ? userId
-                    : resolvedChildGroupType === ContentLibraryGroupType.PROJECT_SHARED
+                    : resolvedChildGroupType === ContentCollectionGroupType.PROJECT_SHARED
                       ? null
                       : userId,
               projectId: dto.scope === 'project' ? dto.projectId! : null,
@@ -619,18 +619,18 @@ export class ContentCollectionsService {
         const parentId = collection.parentId;
 
         await tx.$executeRaw`
-          UPDATE content_item_groups AS g
+          UPDATE content_collection_items AS g
           SET collection_id = ${parentId}
           WHERE g.collection_id = ${collectionId}
             AND NOT EXISTS (
               SELECT 1
-              FROM content_item_groups AS g2
+              FROM content_collection_items AS g2
               WHERE g2.content_item_id = g.content_item_id
                 AND g2.collection_id = ${parentId}
             )
         `;
 
-        await tx.contentItemGroup.deleteMany({ where: { collectionId } });
+        await tx.contentCollectionItem.deleteMany({ where: { collectionId } });
 
         await tx.contentCollection.updateMany({
           where: { parentId: collectionId },
@@ -647,7 +647,7 @@ export class ContentCollectionsService {
           UNION ALL
           SELECT c.id FROM content_collections c JOIN children p ON c.parent_id = p.id
         )
-        DELETE FROM content_item_groups WHERE collection_id IN (SELECT id FROM children)
+        DELETE FROM content_collection_items WHERE collection_id IN (SELECT id FROM children)
       `;
 
       return tx.$executeRaw`
@@ -682,8 +682,8 @@ export class ContentCollectionsService {
               {
                 type: ContentCollectionType.GROUP,
                 OR: [
-                  { groupType: ContentLibraryGroupType.PROJECT_SHARED },
-                  { groupType: ContentLibraryGroupType.PROJECT_USER, userId },
+                  { groupType: ContentCollectionGroupType.PROJECT_SHARED },
+                  { groupType: ContentCollectionGroupType.PROJECT_USER, userId },
                 ],
               },
               { type: ContentCollectionType.SAVED_VIEW, userId },

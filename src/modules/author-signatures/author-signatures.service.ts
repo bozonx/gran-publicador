@@ -29,7 +29,7 @@ export class AuthorSignaturesService {
   async findAllByProject(projectId: string, userId: string) {
     await this.assertNotViewer(projectId, userId);
 
-    return this.prisma.projectAuthorSignature.findMany({
+    return this.prisma.authorSignature.findMany({
       where: { projectId },
       include: {
         variants: true,
@@ -49,7 +49,7 @@ export class AuthorSignaturesService {
     const targetUserId = dto.userId || userId;
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: targetUserId } });
 
-    return this.prisma.projectAuthorSignature.create({
+    return this.prisma.authorSignature.create({
       data: {
         projectId,
         userId: targetUserId,
@@ -79,7 +79,7 @@ export class AuthorSignaturesService {
 
     return this.prisma.$transaction(async tx => {
       // Update signature metadata
-      const signature = await tx.projectAuthorSignature.update({
+      const signature = await tx.authorSignature.update({
         where: { id: signatureId },
         data: {
           order: dto.order,
@@ -90,7 +90,7 @@ export class AuthorSignaturesService {
         // Sync variants: delete missing ones and upsert current ones
         const currentLangs = dto.variants.map(v => v.language);
 
-        await tx.projectAuthorSignatureVariant.deleteMany({
+        await tx.authorSignatureVariant.deleteMany({
           where: {
             signatureId,
             language: { notIn: currentLangs },
@@ -98,7 +98,7 @@ export class AuthorSignaturesService {
         });
 
         for (const v of dto.variants) {
-          await tx.projectAuthorSignatureVariant.upsert({
+          await tx.authorSignatureVariant.upsert({
             where: { signatureId_language: { signatureId, language: v.language } },
             create: {
               signatureId,
@@ -112,7 +112,7 @@ export class AuthorSignaturesService {
         }
       }
 
-      return tx.projectAuthorSignature.findUnique({
+      return tx.authorSignature.findUnique({
         where: { id: signatureId },
         include: {
           variants: true,
@@ -130,7 +130,7 @@ export class AuthorSignaturesService {
 
     await this.prisma.$transaction(
       dto.signatureIds.map((id, index) =>
-        this.prisma.projectAuthorSignature.update({
+        this.prisma.authorSignature.update({
           where: { id, projectId },
           data: { order: index },
         }),
@@ -146,7 +146,7 @@ export class AuthorSignaturesService {
   async update(signatureId: string, userId: string, dto: UpdateAuthorSignatureDto) {
     await this.assertWriteAccess(signatureId, userId);
 
-    return this.prisma.projectAuthorSignature.update({
+    return this.prisma.authorSignature.update({
       where: { id: signatureId },
       data: dto,
       include: {
@@ -167,7 +167,7 @@ export class AuthorSignaturesService {
   ) {
     await this.assertWriteAccess(signatureId, userId);
 
-    return this.prisma.projectAuthorSignatureVariant.upsert({
+    return this.prisma.authorSignatureVariant.upsert({
       where: { signatureId_language: { signatureId, language } },
       create: { signatureId, language, content: this.normalizeSignatureContent(dto.content) },
       update: { content: this.normalizeSignatureContent(dto.content) },
@@ -180,7 +180,7 @@ export class AuthorSignaturesService {
   async deleteVariant(signatureId: string, language: string, userId: string) {
     await this.assertWriteAccess(signatureId, userId);
 
-    const variant = await this.prisma.projectAuthorSignatureVariant.findUnique({
+    const variant = await this.prisma.authorSignatureVariant.findUnique({
       where: { signatureId_language: { signatureId, language } },
     });
 
@@ -188,7 +188,7 @@ export class AuthorSignaturesService {
       throw new NotFoundException('Variant not found');
     }
 
-    return this.prisma.projectAuthorSignatureVariant.delete({
+    return this.prisma.authorSignatureVariant.delete({
       where: { id: variant.id },
     });
   }
@@ -199,7 +199,7 @@ export class AuthorSignaturesService {
   async delete(signatureId: string, userId: string) {
     await this.assertWriteAccess(signatureId, userId);
 
-    return this.prisma.projectAuthorSignature.delete({
+    return this.prisma.authorSignature.delete({
       where: { id: signatureId },
     });
   }
@@ -209,7 +209,7 @@ export class AuthorSignaturesService {
    * Returns the content string or null if no variant exists for the language.
    */
   async resolveVariantContent(signatureId: string, language: string): Promise<string | null> {
-    const variant = await this.prisma.projectAuthorSignatureVariant.findUnique({
+    const variant = await this.prisma.authorSignatureVariant.findUnique({
       where: { signatureId_language: { signatureId, language } },
     });
 
@@ -220,7 +220,7 @@ export class AuthorSignaturesService {
    * Delete all signatures belonging to a project (used when transferring project ownership).
    */
   async deleteAllByProject(projectId: string) {
-    return this.prisma.projectAuthorSignature.deleteMany({
+    return this.prisma.authorSignature.deleteMany({
       where: { projectId },
     });
   }
@@ -237,7 +237,7 @@ export class AuthorSignaturesService {
 
     if (user?.isAdmin) return true;
 
-    const signature = await this.prisma.projectAuthorSignature.findUnique({
+    const signature = await this.prisma.authorSignature.findUnique({
       where: { id: signatureId },
       include: {
         project: {

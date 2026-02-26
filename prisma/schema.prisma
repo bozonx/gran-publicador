@@ -48,10 +48,10 @@ model User {
   apiTokens              ApiToken[]
   notifications          Notification[]
   llmPromptTemplates     LlmPromptTemplate[]
-  authorSignatures       ProjectAuthorSignature[]
+  authorSignatures       AuthorSignature[]
   contentCollections     ContentCollection[]
   tags                   Tag[]
-  newsNotificationStates NewsNotificationUserState[]
+  newsQueryNotificationStates NewsQueryNotificationState[]
 
   @@index([telegramUsername])
   @@map("users")
@@ -96,18 +96,18 @@ model Project {
   contentItems       ContentItem[]
   newsQueries        ProjectNewsQuery[]
   llmPromptTemplates LlmPromptTemplate[]
-  apiTokens          ApiTokenProject[]
+  apiTokens          ProjectApiToken[]
   roles              Role[]
   contentCollections ContentCollection[]
   relationGroups     PublicationRelationGroup[]
   projectTemplates   ProjectTemplate[]
-  authorSignatures   ProjectAuthorSignature[]
+  authorSignatures   AuthorSignature[]
   tags               Tag[]
 
   @@map("projects")
 }
 
-model ApiTokenProject {
+model ProjectApiToken {
   id         String   @id @default(uuid())
   apiTokenId String   @map("api_token_id")
   projectId  String   @map("project_id")
@@ -119,7 +119,7 @@ model ApiTokenProject {
   @@unique([apiTokenId, projectId])
   @@index([apiTokenId])
   @@index([projectId])
-  @@map("api_token_projects")
+  @@map("project_api_tokens")
 }
 
 model ApiToken {
@@ -139,7 +139,7 @@ model ApiToken {
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects ApiTokenProject[]
+  projects ProjectApiToken[]
 
   @@index([userId])
   @@map("api_tokens")
@@ -229,7 +229,7 @@ model ChannelTemplateVariation {
   @@map("channel_template_variations")
 }
 
-model ProjectAuthorSignature {
+model AuthorSignature {
   id        String @id @default(uuid())
   projectId String @map("project_id")
   userId    String @map("user_id")
@@ -239,16 +239,16 @@ model ProjectAuthorSignature {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project  Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user     User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  variants ProjectAuthorSignatureVariant[]
+  project  Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user     User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variants AuthorSignatureVariant[]
 
   @@index([projectId, userId])
   @@index([projectId, order])
-  @@map("project_author_signatures")
+  @@map("author_signatures")
 }
 
-model ProjectAuthorSignatureVariant {
+model AuthorSignatureVariant {
   id          String @id @default(uuid())
   signatureId String @map("signature_id")
   // Language code (e.g., ru-RU, en-US)
@@ -259,10 +259,10 @@ model ProjectAuthorSignatureVariant {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  signature ProjectAuthorSignature @relation(fields: [signatureId], references: [id], onDelete: Cascade)
+  signature AuthorSignature @relation(fields: [signatureId], references: [id], onDelete: Cascade)
 
   @@unique([signatureId, language])
-  @@map("project_author_signature_variants")
+  @@map("author_signature_variants")
 }
 
 model ProjectNewsQuery {
@@ -287,14 +287,14 @@ model ProjectNewsQuery {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   project                Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  notificationUserStates NewsNotificationUserState[]
+  notificationUserStates NewsQueryNotificationState[]
 
   @@index([projectId])
   @@index([isNotificationEnabled, lastCheckedAt]) // Index for worker polling
   @@map("project_news_queries")
 }
 
-model NewsNotificationUserState {
+model NewsQueryNotificationState {
   id              String   @id @default(uuid())
   userId          String   @map("user_id")
   queryId         String   @map("query_id")
@@ -309,7 +309,7 @@ model NewsNotificationUserState {
   @@unique([userId, queryId])
   @@index([queryId])
   @@index([userId])
-  @@map("news_notification_user_states")
+  @@map("news_query_notification_states")
 }
 
 model Notification {
@@ -517,7 +517,7 @@ model ContentCollection {
   type  ContentCollectionType
   title String
 
-  groupType ContentLibraryGroupType? @map("group_type")
+  groupType ContentCollectionGroupType? @map("group_type")
 
   userId    String? @map("user_id")
   projectId String? @map("project_id")
@@ -535,7 +535,7 @@ model ContentCollection {
   project           Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent            ContentCollection?  @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children          ContentCollection[] @relation("ContentCollectionHierarchy")
-  contentItemGroups ContentItemGroup[]
+  items             ContentCollectionItem[]
 
   @@index([userId, order])
   @@index([projectId, order])
@@ -580,10 +580,10 @@ model ContentItem {
   user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  media        ContentItemMedia[]
-  groups       ContentItemGroup[]
-  publications PublicationContentItem[]
-  tagObjects   Tag[]
+  media           ContentItemMedia[]
+  collectionItems ContentCollectionItem[]
+  publications    PublicationContentItem[]
+  tagObjects      Tag[]
 
   @@index([userId, createdAt])
   @@index([projectId, createdAt])
@@ -591,7 +591,7 @@ model ContentItem {
   @@map("content_items")
 }
 
-model ContentItemGroup {
+model ContentCollectionItem {
   id            String   @id @default(uuid())
   contentItemId String   @map("content_item_id")
   collectionId  String   @map("collection_id")
@@ -603,7 +603,7 @@ model ContentItemGroup {
   @@unique([contentItemId, collectionId])
   @@index([contentItemId])
   @@index([collectionId])
-  @@map("content_item_groups")
+  @@map("content_collection_items")
 }
 
 model ContentItemMedia {
@@ -682,14 +682,14 @@ model PublicationRelationItem {
   id            String   @id @default(uuid())
   groupId       String   @map("group_id")
   publicationId String   @map("publication_id")
-  position      Int      @default(0)
+  order         Int      @default(0)
   createdAt     DateTime @default(now()) @map("created_at")
 
   group       PublicationRelationGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   publication Publication              @relation(fields: [publicationId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, publicationId])
-  @@unique([groupId, position])
+  @@unique([groupId, order])
   @@index([publicationId])
   @@map("publication_relation_items")
 }
@@ -719,9 +719,9 @@ model Tag {
 }
 
 enum SocialMedia {
-  telegram
-  vk
-  site
+  TELEGRAM @map("telegram")
+  VK       @map("vk")
+  SITE     @map("site")
 }
 
 enum PostType {
@@ -793,7 +793,7 @@ enum ContentCollectionType {
   UNSPLASH
 }
 
-enum ContentLibraryGroupType {
+enum ContentCollectionGroupType {
   PERSONAL_USER
   PROJECT_USER
   PROJECT_SHARED

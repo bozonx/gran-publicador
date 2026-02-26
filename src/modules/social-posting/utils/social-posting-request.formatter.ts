@@ -8,8 +8,8 @@ export type { FormatterParams } from './strategies/abstract-platform.formatter.j
 
 export class SocialPostingRequestFormatter {
   private static strategies = {
-    telegram: new TelegramFormatter(),
-    default: new DefaultFormatter(),
+    TELEGRAM: new TelegramFormatter(),
+    DEFAULT: new DefaultFormatter(),
   };
 
   /**
@@ -21,7 +21,7 @@ export class SocialPostingRequestFormatter {
 
     // Select strategy
     const strategy =
-      this.strategies[platform as keyof typeof this.strategies] || this.strategies.default;
+      this.strategies[platform as keyof typeof this.strategies] || this.strategies.DEFAULT;
 
     return strategy.format(params);
   }

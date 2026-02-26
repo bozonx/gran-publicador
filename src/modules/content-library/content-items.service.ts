@@ -156,7 +156,7 @@ export class ContentItemsService {
       if (query.groupIds && query.groupIds.length > 0) {
         throw new BadRequestException('groupIds cannot be used together with orphansOnly');
       }
-      where.groups = { none: {} };
+      where.collectionItems = { none: {} };
     }
 
     const groupIds = Array.isArray(query.groupIds)
@@ -173,7 +173,7 @@ export class ContentItemsService {
         });
       }
 
-      where.groups = {
+      where.collectionItems = {
         some: {
           collectionId: {
             in: groupIds,
@@ -220,7 +220,7 @@ export class ContentItemsService {
         skip: offset,
         include: {
           tagObjects: true,
-          groups: {
+          collectionItems: {
             include: {
               collection: {
                 select: {
@@ -309,7 +309,7 @@ export class ContentItemsService {
       where: { id },
       include: {
         tagObjects: true,
-        groups: {
+        collectionItems: {
           include: {
             collection: {
               select: {
@@ -444,7 +444,7 @@ export class ContentItemsService {
         data: {
           userId: dto.scope === 'personal' ? userId : null,
           projectId: dto.scope === 'project' ? dto.projectId! : null,
-          groups: dto.groupId
+          collectionItems: dto.groupId
             ? {
                 create: [{ collectionId: dto.groupId }],
               }
@@ -516,9 +516,9 @@ export class ContentItemsService {
     const updated = await this.prisma.$transaction(async tx => {
       if (dto.groupId !== undefined) {
         if (dto.groupId === null) {
-          await tx.contentItemGroup.deleteMany({ where: { contentItemId: id } });
+          await tx.contentCollectionItem.deleteMany({ where: { contentItemId: id } });
         } else {
-          await tx.contentItemGroup.upsert({
+          await tx.contentCollectionItem.upsert({
             where: {
               contentItemId_collectionId: {
                 contentItemId: id,
@@ -685,7 +685,7 @@ export class ContentItemsService {
         contentItems: groupId
           ? {
               some: {
-                groups: { some: { collectionId: groupId } },
+                collectionItems: { some: { collectionId: groupId } },
               },
             }
           : { some: {} },
@@ -741,13 +741,11 @@ export class ContentItemsService {
     }
 
     if (query.groupId) {
-      where.AND.push({
-        contentItems: {
-          some: {
-            groups: { some: { collectionId: query.groupId } },
-          },
+      where.contentItems = {
+        some: {
+          collectionItems: { some: { collectionId: query.groupId } },
         },
-      });
+      };
     } else {
       where.AND.push({ contentItems: { some: {} } });
     }
@@ -780,7 +778,7 @@ export class ContentItemsService {
       userId,
     });
 
-    await this.prisma.contentItemGroup.upsert({
+    await this.prisma.contentCollectionItem.upsert({
       where: {
         contentItemId_collectionId: {
           contentItemId,
@@ -865,7 +863,7 @@ export class ContentItemsService {
   public async unlinkItemFromGroup(contentItemId: string, collectionId: string, userId: string) {
     const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
 
-    const groupsCount = await this.prisma.contentItemGroup.count({
+    const groupsCount = await this.prisma.contentCollectionItem.count({
       where: { contentItemId },
     });
 
@@ -873,7 +871,7 @@ export class ContentItemsService {
       throw new BadRequestException('Cannot unlink the last group from the content item');
     }
 
-    await this.prisma.contentItemGroup.delete({
+    await this.prisma.contentCollectionItem.delete({
       where: {
         contentItemId_collectionId: {
           contentItemId,

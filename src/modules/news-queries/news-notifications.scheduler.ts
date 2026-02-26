@@ -363,7 +363,7 @@ export class NewsNotificationsScheduler {
       return [];
     }
 
-    const states = await this.prisma.newsNotificationUserState.findMany({
+    const states = await this.prisma.newsQueryNotificationState.findMany({
       where: {
         queryId,
         userId: { in: userIds },
@@ -380,7 +380,7 @@ export class NewsNotificationsScheduler {
   }
 
   private async upsertUserState(state: NewsNotificationState): Promise<void> {
-    await this.prisma.newsNotificationUserState.upsert({
+    await this.prisma.newsQueryNotificationState.upsert({
       where: {
         userId_queryId: {
           userId: state.userId,

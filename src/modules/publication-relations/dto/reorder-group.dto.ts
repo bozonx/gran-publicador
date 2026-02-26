@@ -12,7 +12,7 @@ export class ReorderItemDto {
 
   @IsInt()
   @Min(0)
-  public position!: number;
+  public order!: number;
 }
 
 /**

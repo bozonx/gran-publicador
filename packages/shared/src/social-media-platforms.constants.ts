@@ -1,7 +1,7 @@
 export const SocialMedia = {
-  TELEGRAM: 'telegram',
-  VK: 'vk',
-  SITE: 'site',
+  TELEGRAM: 'TELEGRAM',
+  VK: 'VK',
+  SITE: 'SITE',
 } as const;
 
 export type SocialMedia = (typeof SocialMedia)[keyof typeof SocialMedia];

@@ -15,7 +15,7 @@ export function resolvePlatformParams(
   credentials: any,
 ): PlatformParams {
   switch (platform) {
-    case SocialMedia.telegram:
+    case SocialMedia.TELEGRAM:
       /**
        * For Telegram, we strictly use the telegramChannelId from credentials.
        * We DO NOT fallback to channelIdentifier as per user requirement.
@@ -25,7 +25,7 @@ export function resolvePlatformParams(
         apiKey: credentials?.telegramBotToken || '',
       };
 
-    case SocialMedia.vk:
+    case SocialMedia.VK:
       /**
        * For VK, channelIdentifier is used as the target ID (club or user ID).
        */
@@ -34,7 +34,7 @@ export function resolvePlatformParams(
         apiKey: credentials?.vkAccessToken || '',
       };
 
-    case SocialMedia.site:
+    case SocialMedia.SITE:
       return {
         channelId: channelIdentifier,
         apiKey: credentials?.apiKey || '',
