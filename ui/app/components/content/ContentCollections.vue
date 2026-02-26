@@ -20,8 +20,8 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const toast = useToast()
 const api = useApi()
-const { user, refreshUser } = useAuth()
-const { listCollections, createCollection, deleteCollection } = useContentCollections()
+const { user } = useAuth()
+const { listCollections, createCollection, deleteCollection, reorderCollections } = useContentCollections()
 
 type TabColor = 'neutral' | 'warning' | 'success' | 'error' | 'info' | 'primary' | 'secondary'
 
@@ -112,40 +112,6 @@ const resolveTopLevelCollectionId = (collectionId: string | null | undefined): s
 
 const highlightedCollectionId = computed(() => resolveTopLevelCollectionId(activeCollectionId.value))
 
-const getOrderPreferenceKey = () => {
-  const projectKey = props.scope === 'project' ? (props.projectId || 'global') : 'global'
-  return `content-library-collections:${props.scope}:${projectKey}`
-}
-
-const getSavedOrderIds = () => {
-  const raw = (user.value as any)?.contentLibraryCollectionOrder
-  if (!raw || typeof raw !== 'object') {
-    return null
-  }
-  const key = getOrderPreferenceKey()
-  const ids = (raw as any)[key]
-  return Array.isArray(ids) ? (ids.filter((id: any) => typeof id === 'string') as string[]) : null
-}
-
-const applySavedOrder = () => {
-  const savedIds = getSavedOrderIds()
-  if (!savedIds || savedIds.length === 0) {
-    return
-  }
-
-  const orderIndex = new Map(savedIds.map((id, idx) => [id, idx] as const))
-  const nextTop = [...topLevelCollections.value].sort((a, b) => {
-    const ai = orderIndex.get(a.id)
-    const bi = orderIndex.get(b.id)
-    if (ai === undefined && bi === undefined) return 0
-    if (ai === undefined) return 1
-    if (bi === undefined) return -1
-    return ai - bi
-  })
-
-  topLevelCollections.value = nextTop
-}
-
 const getStorageKey = () => {
   return `content-library-collection-${props.scope}-${props.projectId || 'global'}`
 }
@@ -159,7 +125,6 @@ const fetchCollections = async () => {
     collections.value = await listCollections(props.scope, props.scope === 'project' ? props.projectId : undefined)
     if (requestId !== fetchCollectionsRequestId) return
 
-    applySavedOrder()
     emit('update:collections', collections.value)
 
     if (activeCollectionId.value) {
@@ -251,19 +216,16 @@ const handleDeleteCollection = async (collectionId: string) => {
 const handleReorder = async () => {
   isReordering.value = true
   try {
-    const key = getOrderPreferenceKey()
-    const nextIds = topLevelCollections.value.map(t => t.id)
-    const current = (user.value as any)?.contentLibraryCollectionOrder
-    const next = {
-      ...(current && typeof current === 'object' ? current : {}),
-      [key]: nextIds,
-    }
+    const { reorderCollections } = useContentCollections()
+    const nextIds = topLevelCollections.value
+      .filter(t => t.id !== 'system-trash')
+      .map(t => t.id)
 
-    await api.patch('/users/me', {
-      contentLibraryCollectionOrder: next,
+    await reorderCollections({
+      scope: props.scope,
+      projectId: props.projectId,
+      ids: nextIds,
     })
-
-    await refreshUser()
   } catch (e: any) {
     toast.add({
       title: t('common.error'),

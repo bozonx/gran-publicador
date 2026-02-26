@@ -16,8 +16,6 @@ export interface User {
   isUiLanguageAuto?: boolean;
   projectOrder?: string[];
   newsQueryOrder?: string[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  contentLibraryCollectionOrder?: any;
   videoAutoplay?: boolean;
   createdAt?: string;
   updatedAt?: string;

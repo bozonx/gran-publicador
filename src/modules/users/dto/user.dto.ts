@@ -65,12 +65,7 @@ export class UserDto {
   })
   public newsQueryOrder!: string[];
 
-  @Expose()
-  @Transform(({ obj }) => {
-    return obj.preferences?.contentLibraryCollectionOrder || null;
-  })
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public contentLibraryCollectionOrder!: any;
+
 
   @Expose()
   @Transform(({ obj }) => {
@@ -119,10 +114,7 @@ export class UpdateUserProfileDto {
   @IsOptional()
   public newsQueryOrder?: string[];
 
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  public contentLibraryCollectionOrder?: string[];
+
 
   @IsBoolean()
   @IsOptional()
