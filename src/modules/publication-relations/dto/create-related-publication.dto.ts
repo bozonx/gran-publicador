@@ -15,8 +15,6 @@ export class CreateRelatedPublicationDto {
   public title?: string;
 
   @IsString()
-  @IsNotEmpty()
-  @IsUUID()
   @IsOptional()
   public language?: string;
 }

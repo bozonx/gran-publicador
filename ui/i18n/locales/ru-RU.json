@@ -1199,7 +1199,7 @@
     "relations": {
       "title": "Связи",
       "typeSeries": "Серия",
-      "typeLocalization": "Локализация",
+      "typeTranslation": "Перевод",
       "currentRelations": "Текущие связи",
       "addRelation": "Добавить связь",
       "searchPlaceholder": "Поиск публикаций для связывания...",

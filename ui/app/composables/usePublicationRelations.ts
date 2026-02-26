@@ -10,7 +10,7 @@ export interface RelationGroup {
 
 export interface RelationGroupItem {
   id: string;
-  position: number;
+  order: number;
   publication: {
     id: string;
     title: string | null;
@@ -131,7 +131,7 @@ export function usePublicationRelations() {
   async function reorderGroup(
     publicationId: string,
     groupId: string,
-    items: Array<{ publicationId: string; position: number }>,
+    items: Array<{ publicationId: string; order: number }>,
   ) {
     isLoading.value = true;
     error.value = null;

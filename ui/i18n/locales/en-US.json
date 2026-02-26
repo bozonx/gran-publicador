@@ -1191,7 +1191,7 @@
     "relations": {
       "title": "Relations",
       "typeSeries": "Series",
-      "typeLocalization": "Localization",
+      "typeTranslation": "Translation",
       "currentRelations": "Current relations",
       "addRelation": "Add relation",
       "searchPlaceholder": "Search publications to link...",

@@ -33,9 +33,13 @@ const { publications, fetchPublicationsByProject } = usePublications()
 
 const searchQuery = ref('')
 const selectedType = ref<'SERIES' | 'LOCALIZATION'>('LOCALIZATION')
+const selectedLanguage = ref(props.publication.language)
+
+const { languageOptions } = useLanguages()
+const router = useRouter()
 
 const typeOptions = [
-  { value: 'LOCALIZATION', label: t('publication.relations.typeLocalization') },
+  { value: 'LOCALIZATION', label: t('publication.relations.typeTranslation') },
   { value: 'SERIES', label: t('publication.relations.typeSeries') },
 ]
 
@@ -99,12 +103,27 @@ async function handleUnlink(groupId: string) {
   }
 }
 
-async function handleCreateRelated() {
+async function handleMove(group: RelationGroup, item: any, direction: 'up' | 'down') {
+  const currentIndex = group.items.findIndex(i => i.id === item.id)
+  const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1
+  
+  if (newIndex < 0 || newIndex >= group.items.length) return
+
+  const itemsCopy = [...group.items]
+  const [removed] = itemsCopy.splice(currentIndex, 1)
+  if (removed) {
+    itemsCopy.splice(newIndex, 0, removed)
+  }
+
+  const payload = itemsCopy.map((it, idx) => ({
+    publicationId: it.publication.id,
+    order: idx + 1
+  }))
+
   try {
-    const result = await createRelated(props.publication.id, selectedType.value)
-    toast.add({ title: t('publication.relations.createdRelated'), color: 'success' })
+    await reorderGroup(props.publication.id, group.id, payload)
+    toast.add({ title: t('common.updated'), color: 'success' })
     emit('updated')
-    return result
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
@@ -112,6 +131,40 @@ async function handleCreateRelated() {
       color: 'error',
     })
   }
+}
+
+async function handleCreateRelated() {
+  try {
+    let title = props.publication.title || ''
+    
+    if (selectedType.value === 'SERIES') {
+      const group = relations.value.find(g => g.type === 'SERIES')
+      const nextNum = (group?.items.length || 1) + 1
+      title = `${title} — ${t('publication.relations.typeSeries')} ${nextNum}`
+    }
+
+    const result = await createRelated(props.publication.id, selectedType.value, {
+      title,
+      language: selectedType.value === 'LOCALIZATION' ? selectedLanguage.value : undefined
+    })
+    toast.add({ title: t('publication.relations.createdRelated'), color: 'success' })
+    emit('updated')
+    
+    if (result?.publicationId) {
+      navigateToPublication(result.publicationId)
+    }
+  } catch (e: any) {
+    toast.add({
+      title: t('common.error'),
+      description: e.message || error.value || '',
+      color: 'error',
+    })
+  }
+}
+
+function navigateToPublication(id: string) {
+  isOpen.value = false
+  router.push(`/publications/${id}/edit`)
 }
 
 function getPublicationStatusColor(status: string): 'success' | 'info' | 'primary' | 'error' | 'neutral' {
@@ -148,7 +201,7 @@ function isInactiveChannel(pub: RelationGroup['items'][0]['publication']): boole
           <div v-for="group in relations" :key="group.id" class="mb-4 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
             <div class="flex items-center justify-between mb-2">
               <UBadge :color="group.type === 'SERIES' ? 'primary' : 'info'" variant="soft" size="sm">
-                {{ group.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeLocalization') }}
+                {{ group.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeTranslation') }}
               </UBadge>
               <UButton
                 icon="i-heroicons-link-slash"
@@ -170,29 +223,57 @@ function isInactiveChannel(pub: RelationGroup['items'][0]['publication']): boole
                   'opacity-60': item.publication.archivedAt,
                 }"
               >
-                <span class="font-mono text-xs text-gray-400 w-5 text-right">{{ item.position + 1 }}.</span>
+                <span class="font-mono text-xs text-gray-400 w-5 text-right">{{ item.order + 1 }}.</span>
                 <UBadge :color="getPublicationStatusColor(item.publication.status)" variant="soft" size="xs">
                   {{ item.publication.status }}
                 </UBadge>
-                <span class="font-mono text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded">
-                  {{ item.publication.language }}
-                </span>
-                <span class="truncate flex-1" :class="{ 'italic text-gray-400': !item.publication.title }">
-                  {{ item.publication.title || t('publication.noContent') }}
-                </span>
-                <UIcon
-                  v-if="item.publication.archivedAt"
-                  name="i-heroicons-archive-box"
-                  class="text-amber-500 shrink-0"
-                />
-                <UIcon
-                  v-if="isInactiveChannel(item.publication)"
-                  name="i-heroicons-exclamation-triangle"
-                  class="text-amber-500 shrink-0"
-                />
-                <span v-if="item.publication.id === publication.id" class="text-xs text-primary-500 font-medium shrink-0">
-                  {{ t('common.current') }}
-                </span>
+                <div class="flex-1 min-w-0 flex items-center gap-2">
+                  <span class="font-mono text-xs px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded shrink-0">
+                    {{ item.publication.language }}
+                  </span>
+                  <ULink
+                    class="truncate hover:text-primary-500 transition-colors"
+                    :class="{ 'italic text-gray-400': !item.publication.title }"
+                    @click="navigateToPublication(item.publication.id)"
+                  >
+                    {{ item.publication.title || t('publication.noContent') }}
+                  </ULink>
+                </div>
+                
+                <div class="flex items-center gap-1 shrink-0">
+                  <template v-if="group.type === 'SERIES'">
+                    <UButton
+                      icon="i-heroicons-chevron-up"
+                      variant="ghost"
+                      color="neutral"
+                      size="xs"
+                      :disabled="group.items.indexOf(item) === 0"
+                      @click="handleMove(group, item, 'up')"
+                    />
+                    <UButton
+                      icon="i-heroicons-chevron-down"
+                      variant="ghost"
+                      color="neutral"
+                      size="xs"
+                      :disabled="group.items.indexOf(item) === group.items.length - 1"
+                      @click="handleMove(group, item, 'down')"
+                    />
+                  </template>
+
+                  <UIcon
+                    v-if="item.publication.archivedAt"
+                    name="i-heroicons-archive-box"
+                    class="text-amber-500"
+                  />
+                  <UIcon
+                    v-if="isInactiveChannel(item.publication)"
+                    name="i-heroicons-exclamation-triangle"
+                    class="text-amber-500"
+                  />
+                  <span v-if="item.publication.id === publication.id" class="text-xs text-primary-500 font-medium">
+                    {{ t('common.current') }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -252,15 +333,28 @@ function isInactiveChannel(pub: RelationGroup['items'][0]['publication']): boole
             <USeparator />
 
             <!-- Create related -->
-            <UButton
-              icon="i-heroicons-plus"
-              color="primary"
-              variant="soft"
-              block
-              :label="t('publication.relations.createRelated')"
-              :loading="isLoading"
-              @click="handleCreateRelated"
-            />
+            <div class="space-y-2 pt-2">
+              <div v-if="selectedType === 'LOCALIZATION'" class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 shrink-0">{{ t('news.language') }}:</span>
+                <USelectMenu
+                  v-model="selectedLanguage"
+                  :items="languageOptions"
+                  value-key="value"
+                  label-key="label"
+                  class="flex-1"
+                />
+              </div>
+
+              <UButton
+                icon="i-heroicons-plus"
+                color="primary"
+                variant="soft"
+                block
+                :label="t('publication.relations.createRelated')"
+                :loading="isLoading"
+                @click="handleCreateRelated"
+              />
+            </div>
           </div>
         </div>
       </div>

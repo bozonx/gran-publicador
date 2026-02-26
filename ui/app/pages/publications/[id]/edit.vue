@@ -780,7 +780,7 @@ async function executePublish(force: boolean, now: boolean = false) {
                                         variant="soft"
                                         size="sm"
                                     >
-                                        {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeLocalization') }}
+                                        {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeTranslation') }}
                                         ({{ rel.items.length }})
                                     </UBadge>
                                     <UButton
