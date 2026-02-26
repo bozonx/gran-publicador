@@ -36,6 +36,39 @@ function isSharedPostType(value: unknown): value is SharedPostType {
   return typeof value === 'string' && (Object.values(SharedPostType) as string[]).includes(value);
 }
 
+function toSharedSocialMedia(platform: SocialMedia): SharedSocialMedia | undefined {
+  switch (platform) {
+    case 'TELEGRAM':
+      return SharedSocialMedia.TELEGRAM;
+    case 'VK':
+      return SharedSocialMedia.VK;
+    case 'SITE':
+      return SharedSocialMedia.SITE;
+    default:
+      return undefined;
+  }
+}
+
+function toSharedPostType(postType: PostType | null | undefined): SharedPostType | undefined {
+  if (postType == null) {
+    return SharedPostType.POST;
+  }
+  switch (postType) {
+    case 'POST':
+      return SharedPostType.POST;
+    case 'ARTICLE':
+      return SharedPostType.ARTICLE;
+    case 'NEWS':
+      return SharedPostType.NEWS;
+    case 'STORY':
+      return SharedPostType.STORY;
+    case 'VIDEO':
+      return SharedPostType.VIDEO;
+    default:
+      return undefined;
+  }
+}
+
 function mapSharedMediaTypesToPrisma(types: SharedMediaType[]): MediaType[] {
   const allowed = new Set(Object.values(MediaType) as string[]);
   const result: MediaType[] = [];
@@ -52,17 +85,13 @@ export function getValidationRules(
   socialMedia: SocialMedia,
   postType?: PostType,
 ): SocialMediaValidationRules | undefined {
-  if (!isSharedSocialMedia(socialMedia)) return undefined;
+  const sharedPlatform = toSharedSocialMedia(socialMedia);
+  if (!sharedPlatform) return undefined;
 
-  let sharedPostType: SharedPostType;
-  if (postType === undefined || postType === null) {
-    sharedPostType = SharedPostType.POST;
-  } else if (isSharedPostType(postType)) {
-    sharedPostType = postType;
-  } else {
-    return undefined;
-  }
-  const postTypeConfig = getPostTypeConfig(socialMedia, sharedPostType);
+  const sharedPostType = toSharedPostType(postType);
+  if (!sharedPostType) return undefined;
+
+  const postTypeConfig = getPostTypeConfig(sharedPlatform, sharedPostType);
   if (!postTypeConfig) return undefined;
 
   const maxTextLength = postTypeConfig.content.maxTextLength;

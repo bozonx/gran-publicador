@@ -4,7 +4,7 @@ import { resolvePlatformParams } from '../../src/modules/social-posting/utils/pl
 
 describe('platform-params-resolver.util (unit)', () => {
   it('resolves Telegram params strictly from credentials (no channelIdentifier fallback)', () => {
-    const res = resolvePlatformParams(SocialMedia.telegram, '@fromChannelIdentifier', {
+    const res = resolvePlatformParams(SocialMedia.TELEGRAM, '@fromChannelIdentifier', {
       telegramChannelId: '@fromCredentials',
       telegramBotToken: '123:token',
     });
@@ -16,7 +16,7 @@ describe('platform-params-resolver.util (unit)', () => {
   });
 
   it('resolves VK params using channelIdentifier and vkAccessToken', () => {
-    const res = resolvePlatformParams(SocialMedia.vk, 'club123', {
+    const res = resolvePlatformParams(SocialMedia.VK, 'club123', {
       vkAccessToken: 'vk-token',
     });
 
@@ -27,7 +27,7 @@ describe('platform-params-resolver.util (unit)', () => {
   });
 
   it('resolves default params using channelIdentifier and apiKey', () => {
-    const res = resolvePlatformParams(SocialMedia.site, 'site-1', {
+    const res = resolvePlatformParams(SocialMedia.SITE, 'site-1', {
       apiKey: 'site-key',
     });
 
