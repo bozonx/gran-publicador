@@ -663,13 +663,13 @@ model Media {
 model PublicationMedia {
   id            String   @id @default(uuid())
   publicationId String   @map("publication_id")
-  mediaId       String?  @map("media_id")
+  mediaId       String   @map("media_id")
   order         Int      @default(0)
   hasSpoiler    Boolean  @default(false) @map("has_spoiler")
   createdAt     DateTime @default(now()) @map("created_at")
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  media       Media?      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  media       Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
   @@index([publicationId])
   @@index([mediaId])
