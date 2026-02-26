@@ -74,29 +74,6 @@ model UserSession {
   @@map("user_sessions")
 }
 
-model ApiToken {
-  id             String    @id @default(uuid())
-  userId         String    @map("user_id")
-  // User-friendly name for the token
-  name           String
-  // Hashed token for authentication (bcrypt/argon2)
-  hashedToken    String    @unique @map("hashed_token")
-  // Encrypted token for one-time display to user
-  encryptedToken String    @map("encrypted_token")
-  // If true, token has access to all user's projects (including future ones)
-  allProjects    Boolean   @default(false) @map("all_projects")
-  // Last time this token was used for authentication
-  lastUsedAt     DateTime? @map("last_used_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
-
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  projects ApiTokenProject[]
-
-  @@index([userId])
-  @@map("api_tokens")
-}
-
 model Project {
   id          String    @id @default(uuid())
   name        String
@@ -144,6 +121,29 @@ model ApiTokenProject {
   @@index([apiTokenId])
   @@index([projectId])
   @@map("api_token_projects")
+}
+
+model ApiToken {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  // User-friendly name for the token
+  name           String
+  // Hashed token for authentication (bcrypt/argon2)
+  hashedToken    String    @unique @map("hashed_token")
+  // Encrypted token for one-time display to user
+  encryptedToken String    @map("encrypted_token")
+  // If true, token has access to all user's projects (including future ones)
+  allProjects    Boolean   @default(false) @map("all_projects")
+  // Last time this token was used for authentication
+  lastUsedAt     DateTime? @map("last_used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects ApiTokenProject[]
+
+  @@index([userId])
+  @@map("api_tokens")
 }
 
 model ProjectMember {
