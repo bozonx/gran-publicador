@@ -63,8 +63,6 @@ const isTimeoutError = (error: any): boolean => {
 
 export const useApi = () => {
   const config = useRuntimeConfig();
-  const accessToken = useState<string | null>('auth_access_token', () => null);
-  const refreshToken = useState<string | null>('auth_refresh_token', () => null);
   let refreshPromise: Promise<void> | null = null;
 
   // Base path for API, matching NestJS global prefix
@@ -79,23 +77,12 @@ export const useApi = () => {
     if (!refreshPromise) {
       refreshPromise = (async () => {
         try {
-          const response = await $fetch<{ accessToken: string; refreshToken?: string }>(
-            `${apiBase}/auth/refresh`,
-            {
-              method: 'POST',
-              credentials: 'include',
-              body: refreshToken.value ? { refreshToken: refreshToken.value } : undefined,
-            },
-          );
-
-          accessToken.value = response.accessToken;
-          if (response.refreshToken) {
-            refreshToken.value = response.refreshToken;
-          }
+          await $fetch(`${apiBase}/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+          });
         } catch (e) {
           logger.warn('Auth refresh failed', e);
-          accessToken.value = null;
-          refreshToken.value = null;
           throw normalizeFetchError(e);
         } finally {
           refreshPromise = null;
@@ -153,8 +140,6 @@ export const useApi = () => {
           }
         } else if (xhr.status === 401) {
           if (attempt >= 1) {
-            accessToken.value = null;
-            refreshToken.value = null;
             reject(createApiError('Unauthorized', { status: 401 }));
             return;
           }
@@ -195,11 +180,6 @@ export const useApi = () => {
       // Open request
       xhr.open(String(options.method || 'POST'), `${apiBase}${url}`);
 
-      // Set authorization header
-      if (accessToken.value) {
-        xhr.setRequestHeader('Authorization', `Bearer ${accessToken.value}`);
-      }
-
       if (options.headers) {
         for (const [key, value] of Object.entries(options.headers)) {
           xhr.setRequestHeader(key, value);
@@ -222,10 +202,6 @@ export const useApi = () => {
       ...options.headers,
     };
 
-    if (accessToken.value) {
-      headers.Authorization = `Bearer ${accessToken.value}`;
-    }
-
     try {
       return await $fetch<T>(`${apiBase}${url}`, {
         ...options,
@@ -243,8 +219,6 @@ export const useApi = () => {
 
       if (isUnauthorizedError(error)) {
         if (attempt >= 1) {
-          accessToken.value = null;
-          refreshToken.value = null;
           notifySessionExpired();
           throw normalizeFetchError(error);
         }

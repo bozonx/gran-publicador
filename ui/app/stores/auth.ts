@@ -22,15 +22,11 @@ export interface User {
 }
 
 interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   user: User;
 }
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null);
-  const accessToken = useState<string | null>('auth_access_token', () => null);
-  const refreshToken = useState<string | null>('auth_refresh_token', () => null);
   const api = useApi();
 
   const isLoading = ref(false);
@@ -54,8 +50,6 @@ export const useAuthStore = defineStore('auth', () => {
         initData,
       });
 
-      accessToken.value = response.accessToken;
-      refreshToken.value = response.refreshToken;
       user.value = response.user;
       isInitialized.value = true;
 
@@ -75,8 +69,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.post<AuthResponse>('/auth/telegram-widget', widgetData);
 
-      accessToken.value = response.accessToken;
-      refreshToken.value = response.refreshToken;
       user.value = response.user;
       isInitialized.value = true;
 
@@ -105,8 +97,6 @@ export const useAuthStore = defineStore('auth', () => {
         telegramId: Number(devTelegramId),
       });
 
-      accessToken.value = response.accessToken;
-      refreshToken.value = response.refreshToken;
       user.value = response.user;
       isInitialized.value = true;
 
@@ -122,8 +112,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     user.value = null;
-    accessToken.value = null;
-    refreshToken.value = null;
     try {
       await api.post('/auth/logout', undefined);
     } catch {
@@ -150,8 +138,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   return {
     user,
-    accessToken,
-    refreshToken,
     isLoading,
     isInitialized,
     error,

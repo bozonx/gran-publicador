@@ -191,9 +191,6 @@ export function useMedia() {
       const cleanApiBase = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
       const apiBase = cleanApiBase ? `${cleanApiBase}/api/v1` : '/api/v1';
 
-      const authStore = useAuthStore();
-      const token = authStore.accessToken;
-
       // Collect chunks from the ReadableStream into a single ArrayBuffer.
       // This avoids creating a Blob/File wrapper while staying compatible with HTTP/1.1.
       const chunks: Uint8Array[] = [];
@@ -215,6 +212,8 @@ export function useMedia() {
 
       return new Promise<MediaItem>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
+
+        xhr.withCredentials = true;
 
         if (onProgress) {
           xhr.upload.addEventListener('progress', event => {
@@ -254,7 +253,6 @@ export function useMedia() {
         xhr.setRequestHeader('x-mime-type', mimeType);
         xhr.setRequestHeader('x-file-size', String(buffer.byteLength));
         if (projectId) xhr.setRequestHeader('x-project-id', projectId);
-        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
 
         xhr.send(buffer.buffer);
       });
@@ -410,21 +408,10 @@ export function getMediaFileUrl(
   const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
   let url = `${apiBase}/media/${mediaId}/file`;
 
-  // If token not provided, try to get it from auth store
-  let authToken = token;
-  if (!authToken) {
-    try {
-      const authStore = useAuthStore();
-      authToken = authStore.accessToken || undefined;
-    } catch {
-      // Auth store not available (e.g., SSR context)
-    }
-  }
-
   const params: string[] = [];
 
-  if (authToken) {
-    params.push(`token=${authToken}`);
+  if (token) {
+    params.push(`token=${token}`);
   }
 
   if (version !== undefined && version !== null && String(version).length > 0) {
@@ -554,21 +541,10 @@ export function getThumbnailUrl(
   const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
   let url = `${apiBase}/media/${mediaId}/thumbnail`;
 
-  // If token not provided, try to get it from auth store
-  let authToken = token;
-  if (!authToken) {
-    try {
-      const authStore = useAuthStore();
-      authToken = authStore.accessToken || undefined;
-    } catch {
-      // Auth store not available (e.g., SSR context)
-    }
-  }
-
   const params: string[] = [];
   if (width) params.push(`w=${width}`);
   if (height) params.push(`h=${height}`);
-  if (authToken) params.push(`token=${authToken}`);
+  if (token) params.push(`token=${token}`);
   if (version !== undefined && version !== null && String(version).length > 0)
     params.push(`v=${encodeURIComponent(String(version))}`);
 

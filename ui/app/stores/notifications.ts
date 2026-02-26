@@ -25,7 +25,6 @@ export interface Notification {
 }
 
 export const useNotificationsStore = defineStore('notifications', () => {
-  const authStore = useAuthStore();
   const api = useApi();
   const config = useRuntimeConfig();
   const toast = useToast();
@@ -136,14 +135,8 @@ export const useNotificationsStore = defineStore('notifications', () => {
       wsUrl = window.location.origin;
     }
 
-    const token =
-      ((authStore as any).accessToken?.value as string | null | undefined) ??
-      ((authStore as any).accessToken as string | null | undefined) ??
-      null;
-
     socket.value = io(`${wsUrl}/notifications`, {
       withCredentials: true,
-      auth: token ? { token } : undefined,
       transports: ['websocket'],
     });
 

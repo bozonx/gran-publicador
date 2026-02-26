@@ -13,7 +13,6 @@ export interface SttSocket {
 }
 
 export const useSttStore = defineStore('stt', () => {
-  const authStore = useAuthStore();
   const config = useRuntimeConfig();
 
   const socket = ref<SttSocket | null>(null);
@@ -34,14 +33,8 @@ export const useSttStore = defineStore('stt', () => {
       wsUrl = window.location.origin;
     }
 
-    const token =
-      ((authStore as any).accessToken?.value as string | null | undefined) ??
-      ((authStore as any).accessToken as string | null | undefined) ??
-      null;
-
     socket.value = io(`${wsUrl}/stt`, {
       withCredentials: true,
-      auth: token ? { token } : undefined,
       transports: ['websocket'],
     }) as unknown as SttSocket;
 
