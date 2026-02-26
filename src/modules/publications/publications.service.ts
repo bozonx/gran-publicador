@@ -662,6 +662,10 @@ export class PublicationsService {
             )) || undefined;
         }
 
+        if (authorSignature) {
+          authorSignature = this.mapper.normalizeAuthorSignature(authorSignature);
+        }
+
         return this.prisma.post.create({
           data: {
             publicationId,
@@ -736,7 +740,7 @@ export class PublicationsService {
       {
         ...data,
         projectId: targetProjectId,
-        tags: original.tagObjects.map((t: any) => t.name),
+        tags: (original.tagObjects ?? []).map((t: any) => t.name),
       },
       userId,
     );
