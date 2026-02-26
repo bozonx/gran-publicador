@@ -45,9 +45,7 @@ const isCreating = ref(false)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
-const extraProjectOptions = computed(() => [
-  { value: null, label: t('publication.personal_draft') }
-])
+const extraProjectOptions = computed(() => [])
 
 const selectedProject = computed(() => {
   if (!selectedProjectId.value) return null
@@ -471,11 +469,11 @@ function handleUseNewsData(clearError = true) {
             </div>
             <div v-else class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 opacity-60">
               <div class="w-12 h-12 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
-                <UIcon name="i-heroicons-user" class="w-6 h-6" />
+                <UIcon name="i-heroicons-briefcase" class="w-6 h-6" />
               </div>
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ t('publication.personal_draft') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('publication.personal_draft_description') || 'No specific project linked' }}</p>
+                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ t('publication.select_project') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('publication.select_project_description') || 'Выберите проект, в котором будет создана публикация' }}</p>
               </div>
             </div>
           </div>
