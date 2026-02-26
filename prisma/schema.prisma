@@ -543,6 +543,22 @@ model ContentCollection {
   @@map("content_collections")
 }
 
+model PublicationContentItem {
+  id            String   @id @default(uuid())
+  publicationId String   @map("publication_id")
+  contentItemId String   @map("content_item_id")
+  order         Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, contentItemId])
+  @@index([publicationId])
+  @@index([contentItemId])
+  @@map("publication_content_items")
+}
+
 model ContentItem {
   id        String  @id @default(uuid())
   userId    String? @map("user_id")
@@ -604,22 +620,6 @@ model ContentItemMedia {
   @@index([contentItemId])
   @@index([mediaId])
   @@map("content_item_media")
-}
-
-model PublicationContentItem {
-  id            String   @id @default(uuid())
-  publicationId String   @map("publication_id")
-  contentItemId String   @map("content_item_id")
-  order         Int      @default(0)
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-
-  @@unique([publicationId, contentItemId])
-  @@index([publicationId])
-  @@index([contentItemId])
-  @@map("publication_content_items")
 }
 
 model Media {
