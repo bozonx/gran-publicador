@@ -13,6 +13,7 @@ import { TagsService } from '../tags/tags.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { BulkOperationDto, BulkOperationType } from './dto/index.js';
 import { ContentCollectionType, Prisma } from '../../generated/prisma/index.js';
+import { MediaService } from '../media/media.service.js';
 
 const TEXT_MERGE_SEPARATOR = '\n\n---\n\n';
 
@@ -25,6 +26,7 @@ export class ContentBulkService {
     private readonly permissions: PermissionsService,
     private readonly tagsService: TagsService,
     private readonly collectionsService: ContentCollectionsService,
+    private readonly mediaService: MediaService,
   ) {}
 
   public async bulkOperation(userId: string, dto: BulkOperationDto) {
@@ -61,7 +63,11 @@ export class ContentBulkService {
     const projectIdToPermissionError = new Map<string, any>();
     for (const projectId of uniqueProjectIds) {
       try {
-        await this.permissions.checkPermission(projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
+        await this.permissions.checkPermission(
+          projectId,
+          userId,
+          PermissionKey.CONTENT_LIBRARY_UPDATE,
+        );
       } catch (e) {
         projectIdToPermissionError.set(projectId, e);
       }
@@ -111,10 +117,23 @@ export class ContentBulkService {
     }
 
     switch (operation) {
-      case BulkOperationType.DELETE:
-        return this.prisma.contentItem.deleteMany({
+      case BulkOperationType.DELETE: {
+        const mediaToCleanup = await this.prisma.contentItemMedia.findMany({
+          where: { contentItemId: { in: authorizedIds } },
+          select: { mediaId: true },
+        });
+        const mediaIds = Array.from(new Set(mediaToCleanup.map(m => m.mediaId)));
+
+        const result = await this.prisma.contentItem.deleteMany({
           where: { id: { in: authorizedIds } },
         });
+
+        if (mediaIds.length > 0) {
+          await Promise.all(mediaIds.map(id => this.mediaService.removeIfOrphaned(id)));
+        }
+
+        return result;
+      }
 
       case BulkOperationType.ARCHIVE:
         return this.prisma.contentItem.updateMany({
@@ -136,7 +155,11 @@ export class ContentBulkService {
 
       case BulkOperationType.SET_PROJECT:
         if (dto.projectId) {
-          await this.permissions.checkPermission(dto.projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
+          await this.permissions.checkPermission(
+            dto.projectId,
+            userId,
+            PermissionKey.CONTENT_LIBRARY_UPDATE,
+          );
         }
 
         await this.prisma.$transaction(
@@ -218,7 +241,11 @@ export class ContentBulkService {
 
       case BulkOperationType.COPY_TO_PROJECT: {
         if (dto.projectId) {
-          await this.permissions.checkPermission(dto.projectId, userId, PermissionKey.CONTENT_LIBRARY_CREATE);
+          await this.permissions.checkPermission(
+            dto.projectId,
+            userId,
+            PermissionKey.CONTENT_LIBRARY_CREATE,
+          );
         }
 
         const fullItems = await this.prisma.contentItem.findMany({
@@ -490,7 +517,7 @@ export class ContentBulkService {
         const existingLinks = await this.prisma.contentCollectionItem.findMany({
           where: {
             contentItemId: { in: authorizedIds },
-            collectionId: dto.groupId!,
+            collectionId: dto.groupId,
           },
           select: { contentItemId: true },
         });
@@ -573,7 +600,7 @@ export class ContentBulkService {
           ? await this.prisma.contentCollectionItem.findMany({
               where: {
                 contentItemId: { in: authorizedIds },
-                collectionId: dto.groupId!,
+                collectionId: dto.groupId,
               },
               select: { contentItemId: true },
             })
@@ -597,12 +624,12 @@ export class ContentBulkService {
                 where: {
                   contentItemId_collectionId: {
                     contentItemId: id,
-                    collectionId: dto.groupId!,
+                    collectionId: dto.groupId,
                   },
                 },
                 create: {
                   contentItemId: id,
-                  collectionId: dto.groupId!,
+                  collectionId: dto.groupId,
                 },
                 update: {},
               });

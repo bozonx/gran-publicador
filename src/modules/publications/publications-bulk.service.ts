@@ -35,7 +35,11 @@ export class PublicationsBulkService {
     for (const pub of publications) {
       try {
         if (pub.createdBy !== userId) {
-          await this.permissions.checkPermission(pub.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+          await this.permissions.checkPermission(
+            pub.projectId,
+            userId,
+            PermissionKey.PUBLICATIONS_UPDATE_ALL,
+          );
         }
         authorizedIds.push(pub.id);
       } catch (e) {

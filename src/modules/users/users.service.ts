@@ -432,9 +432,9 @@ export class UsersService {
   public async getNotificationPreferences(userId: string): Promise<NotificationPreferencesDto> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { 
+      select: {
         notificationPreferences: true,
-        preferences: true, // For migration shim if needed 
+        preferences: true, // For migration shim if needed
       },
     });
 

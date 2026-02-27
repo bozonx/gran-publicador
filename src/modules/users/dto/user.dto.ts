@@ -65,8 +65,6 @@ export class UserDto {
   })
   public newsQueryOrder!: string[];
 
-
-
   @Expose()
   @Transform(({ obj }) => {
     const prefs = obj.preferences || {};
@@ -113,8 +111,6 @@ export class UpdateUserProfileDto {
   @IsString({ each: true })
   @IsOptional()
   public newsQueryOrder?: string[];
-
-
 
   @IsBoolean()
   @IsOptional()

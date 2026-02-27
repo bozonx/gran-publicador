@@ -83,9 +83,7 @@ export class LlmPromptTemplatesService {
     });
   }
 
-  private async getHiddenSystemTemplatesFromPreferences(
-    userId: string,
-  ): Promise<string[]> {
+  private async getHiddenSystemTemplatesFromPreferences(userId: string): Promise<string[]> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { preferences: true },

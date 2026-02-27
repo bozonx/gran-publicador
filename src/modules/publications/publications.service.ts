@@ -175,7 +175,6 @@ export class PublicationsService {
     const sanitizedContent = sanitizePublicationMarkdownForStorage(data.content ?? '');
     const meta = data.meta ?? {};
 
-
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
@@ -209,7 +208,6 @@ export class PublicationsService {
       where: { id: publication.id },
       data: { effectiveAt: publication.scheduledAt ?? publication.createdAt },
     });
-
 
     this.logPublicationCreation(publication, data.projectId, userId);
 

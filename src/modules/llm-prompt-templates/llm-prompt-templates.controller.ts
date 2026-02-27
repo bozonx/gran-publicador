@@ -85,7 +85,11 @@ export class LlmPromptTemplatesController {
     @Query('includeHidden') includeHidden: string,
     @Request() req: any,
   ) {
-    return this.llmPromptTemplatesService.findAllByProject(projectId, req.user.id, includeHidden === 'true');
+    return this.llmPromptTemplatesService.findAllByProject(
+      projectId,
+      req.user.id,
+      includeHidden === 'true',
+    );
   }
 
   @Get(':id')

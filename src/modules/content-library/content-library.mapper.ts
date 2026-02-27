@@ -48,7 +48,6 @@ export class ContentLibraryMapper {
     }
   }
 
-
   /**
    * Map incoming media IDs from various DTO shapes to a consistent internal format.
    */

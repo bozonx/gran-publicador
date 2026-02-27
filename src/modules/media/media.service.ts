@@ -483,6 +483,24 @@ export class MediaService {
     return this.prisma.media.delete({ where: { id } });
   }
 
+  async removeIfOrphaned(mediaId: string): Promise<boolean> {
+    const [pubRefs, contentRefs] = await Promise.all([
+      this.prisma.publicationMedia.count({ where: { mediaId } }),
+      this.prisma.contentItemMedia.count({ where: { mediaId } }),
+    ]);
+
+    if (pubRefs === 0 && contentRefs === 0) {
+      try {
+        await this.remove(mediaId);
+        return true;
+      } catch (error) {
+        // Log is already in remove, but we can add more context if needed
+        this.logger.warn(`Failed to cleanup orphaned media ${mediaId}: ${(error as Error).message}`);
+      }
+    }
+    return false;
+  }
+
   async uploadFileToStorage(
     fileStream: Readable,
     filename: string,

@@ -197,10 +197,10 @@ const mediaTypeOptions = [
   { value: 'DOCUMENT', label: t('media.type.document', 'Document') },
 ]
 
-const sourceTypeOptions = [
-  { value: 'URL', label: 'URL' },
-  { value: 'TELEGRAM', label: 'Telegram File ID' },
-]
+const sourceTypeOptions = computed(() => [
+  { value: 'URL', label: t('media.url') },
+  { value: 'TELEGRAM', label: t('media.telegramFileId') },
+])
 
 
 
@@ -866,6 +866,18 @@ const mediaValidation = computed(() => {
             @drop="handleDrop"
           />
 
+          <!-- URL / Telegram button card -->
+          <div
+            v-if="editable"
+            class="shrink-0 w-48 h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center gap-3 transition-all cursor-pointer hover:border-primary-500 dark:hover:border-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 group"
+            @click="isAddingMedia = true"
+          >
+            <UIcon name="i-heroicons-link" class="w-8 h-8 text-gray-400 group-hover:text-primary-500 transition-colors" />
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-primary-500 transition-colors text-center px-2">
+              {{ t('media.addFromUrlShort') }}
+            </span>
+          </div>
+
           <!-- Draggable Media items -->
           <VueDraggable
             v-if="localMedia.length > 0"
@@ -967,7 +979,7 @@ const mediaValidation = computed(() => {
               {{ showExtendedOptions ? t('media.extendedOptions') : t('media.addFromUrl', 'Add from URL or Telegram') }}
             </h4>
             <p v-if="!showExtendedOptions" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {{ sourceType === 'URL' ? 'The file will be downloaded, analyzed and saved to storage' : 'You can only specify the file_id of a media file that was seen by the Gran Publicador bot' }}
+              {{ sourceType === 'URL' ? t('media.urlHint') : t('media.telegramHint') }}
             </p>
           </div>
           <UButton
@@ -1032,7 +1044,7 @@ const mediaValidation = computed(() => {
             <UFormField :label="t('media.filename', 'Filename')" class="flex-1">
               <UInput
                 v-model="filenameInput"
-                placeholder="image.jpg"
+                :placeholder="t('media.filenamePlaceholder', 'image.jpg')"
                 size="lg"
                 class="w-full"
                 @keydown.enter.prevent="showExtendedOptions ? confirmAndUploadExtended() : addMedia()"
@@ -1042,13 +1054,13 @@ const mediaValidation = computed(() => {
 
           <div class="w-full">
             <UFormField 
-              :label="sourceType === 'URL' ? 'URL' : 'Telegram File ID'"
+              :label="sourceType === 'URL' ? t('media.url') : t('media.telegramFileId')"
               :required="!showExtendedOptions || stagedFiles.length === 0"
               class="w-full"
             >
               <UInput
                 v-model="sourceInput"
-                :placeholder="sourceType === 'URL' ? 'https://example.com/image.jpg' : 'AgACAgIAAxkBAAI...'"
+                :placeholder="sourceType === 'URL' ? t('media.urlPlaceholder') : t('media.telegramFileIdPlaceholder')"
                 size="lg"
                 class="w-full"
                 @keydown.enter.prevent="showExtendedOptions ? confirmAndUploadExtended() : addMedia()"

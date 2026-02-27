@@ -138,7 +138,11 @@ export class PostsService {
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
-    await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_CREATE);
+    await this.permissions.checkPermission(
+      channel.projectId,
+      userId,
+      PermissionKey.PUBLICATIONS_CREATE,
+    );
 
     // Verify publication exists and belongs to same project
     const publication = await this.prisma.publication.findFirst({
@@ -568,7 +572,11 @@ export class PostsService {
     if (post.publication?.createdBy !== userId) {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       } else {
         throw new ForbiddenException('Insufficient permissions');
       }
@@ -736,7 +744,9 @@ export class PostsService {
       (publicationStatus === PublicationStatus.READY ||
         publicationStatus === PublicationStatus.SCHEDULED)
     ) {
-      this.logger.log(`Post ${id} content updated in ${publicationStatus} status, rebuilding snapshot`);
+      this.logger.log(
+        `Post ${id} content updated in ${publicationStatus} status, rebuilding snapshot`,
+      );
       await this.snapshotBuilder.buildForPublication(updatedPost.publicationId);
     }
 
@@ -770,7 +780,11 @@ export class PostsService {
     if (post.publication?.createdBy !== userId) {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.PUBLICATIONS_UPDATE_ALL,
+        );
       } else {
         throw new ForbiddenException('Insufficient permissions');
       }

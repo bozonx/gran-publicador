@@ -37,7 +37,11 @@ export class ArchiveService {
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_UPDATE);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.CHANNELS_UPDATE,
+        );
         return this.prisma.channel.update({ where: { id }, data });
       }
       case ArchiveEntityType.PUBLICATION: {
@@ -45,7 +49,11 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         // Author or Admin/Owner
         if (publication.createdBy !== userId) {
-          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+          await this.permissions.checkPermission(
+            publication.projectId,
+            userId,
+            PermissionKey.PUBLICATIONS_UPDATE_ALL,
+          );
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -73,14 +81,22 @@ export class ArchiveService {
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_UPDATE);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.CHANNELS_UPDATE,
+        );
         return this.prisma.channel.update({ where: { id }, data });
       }
       case ArchiveEntityType.PUBLICATION: {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
+          await this.permissions.checkPermission(
+            publication.projectId,
+            userId,
+            PermissionKey.PUBLICATIONS_UPDATE_ALL,
+          );
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -104,14 +120,22 @@ export class ArchiveService {
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_DELETE);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.CHANNELS_DELETE,
+        );
         return this.prisma.channel.delete({ where: { id } });
       }
       case ArchiveEntityType.PUBLICATION: {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
+          await this.permissions.checkPermission(
+            publication.projectId,
+            userId,
+            PermissionKey.PUBLICATIONS_DELETE_ALL,
+          );
         }
         return this.prisma.publication.delete({ where: { id } });
       }
@@ -132,9 +156,17 @@ export class ArchiveService {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
         // Check source project permissions
-        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_DELETE);
+        await this.permissions.checkPermission(
+          channel.projectId,
+          userId,
+          PermissionKey.CHANNELS_DELETE,
+        );
         // Check target project permissions
-        await this.permissions.checkPermission(targetParentId, userId, PermissionKey.CHANNELS_CREATE);
+        await this.permissions.checkPermission(
+          targetParentId,
+          userId,
+          PermissionKey.CHANNELS_CREATE,
+        );
 
         return this.prisma.channel.update({
           where: { id },
@@ -148,11 +180,19 @@ export class ArchiveService {
 
         // Check source project permissions (or author)
         if (publication.createdBy !== userId) {
-          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
+          await this.permissions.checkPermission(
+            publication.projectId,
+            userId,
+            PermissionKey.PUBLICATIONS_DELETE_ALL,
+          );
         }
 
         // Check target project permissions
-        await this.permissions.checkPermission(targetParentId, userId, PermissionKey.PUBLICATIONS_CREATE);
+        await this.permissions.checkPermission(
+          targetParentId,
+          userId,
+          PermissionKey.PUBLICATIONS_CREATE,
+        );
 
         return this.prisma.publication.update({
           where: { id },

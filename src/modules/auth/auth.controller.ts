@@ -36,7 +36,7 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: isProd,
-      sameSite: (isProd ? 'none' : 'lax') as 'lax' | 'none',
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
     };
   }

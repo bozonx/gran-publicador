@@ -58,10 +58,14 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
 
     // Set bot commands menu
-    this.bot.api.setMyCommands([
-      { command: 'start', description: 'Start the bot' },
-      { command: 'help', description: 'Show help and instructions' },
-    ]).catch(err => this.logger.error(`Error setting commands: ${err}`));
+    this.bot.api
+      .setMyCommands([
+        { command: 'start', description: 'Start the bot' },
+        { command: 'help', description: 'Show help and instructions' },
+      ])
+      .catch(err => {
+        this.logger.error(`Error setting commands: ${err}`);
+      });
 
     // Global error handler
     this.bot.catch(err => {

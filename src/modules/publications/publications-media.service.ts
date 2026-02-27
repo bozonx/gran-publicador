@@ -129,6 +129,9 @@ export class PublicationsMediaService {
       where: { id: pubMedia.id },
     });
 
+    // Check if media is orphaned and cleanup if so
+    await this.mediaService.removeIfOrphaned(mediaId);
+
     if (
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
@@ -270,7 +273,7 @@ export class PublicationsMediaService {
 
     if (data.existingMediaIds?.length) {
       mediaToCreate.push(
-        ...data.existingMediaIds.map((item) => {
+        ...data.existingMediaIds.map(item => {
           const input = this.getMediaInput(item);
           return {
             order: currentOrder++,

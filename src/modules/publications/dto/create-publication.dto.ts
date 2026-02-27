@@ -150,7 +150,6 @@ export class CreatePublicationDto {
   @MaxLength(255)
   public unsplashId?: string;
 
-
   @IsArray()
   @IsString({ each: true })
   @IsUUID('all', { each: true })
@@ -171,5 +170,4 @@ export class CreatePublicationDto {
   @IsUUID()
   @IsOptional()
   public projectTemplateId?: string;
-
 }

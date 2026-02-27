@@ -97,7 +97,11 @@ export class ContentItemsService {
     const item = await this.assertContentItemAccess(contentItemId, userId, true);
 
     if (item.projectId) {
-      await this.permissions.checkPermission(item.projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
+      await this.permissions.checkPermission(
+        item.projectId,
+        userId,
+        PermissionKey.CONTENT_LIBRARY_UPDATE,
+      );
     }
 
     return item;
@@ -350,9 +354,32 @@ export class ContentItemsService {
   public async remove(id: string, userId: string) {
     await this.assertContentItemMutationAllowed(id, userId);
 
-    return this.prisma.contentItem.delete({
+    const item = await this.prisma.contentItem.findUnique({
+      where: { id },
+      include: { media: true },
+    });
+    if (!item) return;
+
+    const mediaIds = item.media.map(m => m.mediaId);
+
+    const result = await this.prisma.contentItem.delete({
       where: { id },
     });
+
+    // Cleanup orphans after deletion
+    if (mediaIds.length > 0) {
+      // Use Promise.resolve().then to run after current execution context if needed,
+      // but here it's fine to just await if not in transaction.
+      await this.cleanupOrphanedMedia(mediaIds);
+    }
+
+    return result;
+  }
+
+  private async cleanupOrphanedMedia(mediaIds: string[]) {
+    for (const mediaId of mediaIds) {
+      await this.mediaService.removeIfOrphaned(mediaId);
+    }
   }
 
   public async create(dto: CreateContentItemDto, userId: string) {
@@ -645,6 +672,17 @@ export class ContentItemsService {
   public async purgeArchivedByProject(projectId: string, userId: string) {
     await this.collectionsService.assertProjectOwner(projectId, userId);
 
+    const items = await this.prisma.contentItem.findMany({
+      where: {
+        projectId,
+        archivedAt: { not: null },
+      },
+      select: {
+        media: { select: { mediaId: true } },
+      },
+    });
+    const mediaIds = Array.from(new Set(items.flatMap(item => item.media.map(m => m.mediaId))));
+
     const result = await this.prisma.contentItem.deleteMany({
       where: {
         projectId,
@@ -652,10 +690,26 @@ export class ContentItemsService {
       },
     });
 
+    if (mediaIds.length > 0) {
+      await this.cleanupOrphanedMedia(mediaIds);
+    }
+
     return { deletedCount: result.count };
   }
 
   public async purgeArchivedPersonal(userId: string) {
+    const items = await this.prisma.contentItem.findMany({
+      where: {
+        userId,
+        projectId: null,
+        archivedAt: { not: null },
+      },
+      select: {
+        media: { select: { mediaId: true } },
+      },
+    });
+    const mediaIds = Array.from(new Set(items.flatMap(item => item.media.map(m => m.mediaId))));
+
     const result = await this.prisma.contentItem.deleteMany({
       where: {
         userId,
@@ -663,6 +717,10 @@ export class ContentItemsService {
         archivedAt: { not: null },
       },
     });
+
+    if (mediaIds.length > 0) {
+      await this.cleanupOrphanedMedia(mediaIds);
+    }
 
     return { deletedCount: result.count };
   }
@@ -810,7 +868,9 @@ export class ContentItemsService {
     const item = await this.assertContentItemAccess(contentItemId, userId, false);
     await this.assertContentItemMutationAllowed(contentItemId, userId);
 
-    return this.prisma.$transaction(async tx => {
+    let removedMediaIds: string[] = [];
+
+    const result = await this.prisma.$transaction(async tx => {
       const tagData =
         dto.tags !== undefined
           ? await this.tagsService.prepareTagsConnectOrCreate(
@@ -823,6 +883,12 @@ export class ContentItemsService {
               true,
             )
           : undefined;
+
+      const oldMedia = await tx.contentItemMedia.findMany({
+        where: { contentItemId },
+        select: { mediaId: true },
+      });
+      const oldMediaIds = oldMedia.map(m => m.mediaId);
 
       await tx.contentItem.update({
         where: { id: contentItemId },
@@ -865,14 +931,22 @@ export class ContentItemsService {
             })),
           });
         }
+
+        removedMediaIds = oldMediaIds.filter(id => !incomingMediaIds.includes(id));
       }
 
       return this.findOne(contentItemId, userId);
     });
+
+    if (removedMediaIds.length > 0) {
+      await this.cleanupOrphanedMedia(removedMediaIds);
+    }
+
+    return result;
   }
 
   public async unlinkItemFromGroup(contentItemId: string, collectionId: string, userId: string) {
-    const item = await this.assertContentItemMutationAllowed(contentItemId, userId);
+    await this.assertContentItemMutationAllowed(contentItemId, userId);
 
     const groupsCount = await this.prisma.contentCollectionItem.count({
       where: { contentItemId },
