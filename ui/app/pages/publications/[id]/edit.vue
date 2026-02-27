@@ -57,7 +57,8 @@ const hasMediaValidationErrors = computed(() => {
     return publicationProblems.value.some(p => p.key === 'mediaValidation')
 })
 
-const isLocked = computed(() => currentPublication.value?.status === 'READY')
+const isLocked = computed(() => currentPublication.value?.status === 'PROCESSING')
+const isDesynced = computed(() => currentPublication.value?.meta?.isDesynced === true)
 
 
 const isDuplicateModalOpen = ref(false)
@@ -70,6 +71,8 @@ const isRepublishModalOpen = ref(false)
 const isArchiveWarningModalOpen = ref(false)
 const isScheduleModalOpen = ref(false)
 const isContentActionModalOpen = ref(false)
+const isPublishedWarningModalOpen = ref(false)
+const hasShownPublishedWarning = ref(false)
 
 const newProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
@@ -154,6 +157,18 @@ watch(
                     showLlmModal.value = true
                 }, 100)
             }
+        }
+    },
+    { immediate: true }
+)
+
+// Show published warning when landing on a published post
+watch(
+    () => currentPublication.value?.status,
+    (status) => {
+        if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(status as any) && !hasShownPublishedWarning.value) {
+            isPublishedWarningModalOpen.value = true
+            hasShownPublishedWarning.value = true
         }
     },
     { immediate: true }
@@ -555,6 +570,7 @@ async function executePublish(force: boolean, now: boolean = false) {
       v-model:llm-modal="showLlmModal"
       v-model:relations-modal="isRelationsModalOpen"
       v-model:content-action-modal="isContentActionModalOpen"
+      v-model:published-warning-modal="isPublishedWarningModalOpen"
       :publication="currentPublication"
       :project-id="projectId"
       :template-options="templateOptions"
@@ -597,6 +613,17 @@ async function executePublish(force: boolean, now: boolean = false) {
           variant="soft"
           icon="i-heroicons-information-circle"
           :title="t('publication.validation.contentOrMediaRequired')"
+          class="mb-6"
+        />
+
+        <!-- Desync Warning Banner -->
+        <UAlert
+          v-if="isDesynced"
+          color="warning"
+          variant="soft"
+          icon="i-heroicons-exclamation-triangle"
+          :title="t('publication.desynced_notice')"
+          :description="t('publication.desynced_description')"
           class="mb-6"
         />
 

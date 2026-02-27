@@ -347,6 +347,10 @@ export class PublicationsService {
       );
     }
 
+    if (publication.status === PublicationStatus.PROCESSING) {
+      throw new ConflictException('Publication is currently being processed and cannot be edited');
+    }
+
     if (data.status) {
       // Prevent user from setting system statuses directly via update
       const allowedUserStatuses: PublicationStatus[] = [
@@ -362,18 +366,35 @@ export class PublicationsService {
 
     // Snapshot invalidation: if publication is already in READY/SCHEDULED and content changes,
     // we must rebuild the snapshot so the worker gets the fresh content
-    const isContentUpdated =
-      data.title !== undefined ||
-      data.content !== undefined ||
-      data.tags !== undefined ||
-      data.authorComment !== undefined ||
-      data.language !== undefined ||
-      data.postType !== undefined ||
-      data.projectTemplateId !== undefined;
+    const contentFields: Array<keyof UpdatePublicationDto> = [
+      'title',
+      'description',
+      'content',
+      'authorComment',
+      'language',
+      'postType',
+      'projectTemplateId',
+      'tags',
+    ];
+    const isContentUpdated = contentFields. some(field => data[field] !== undefined);
+
     const needsSnapshotRebuild =
       isContentUpdated &&
-      (publication.status === PublicationStatus.READY ||
-        publication.status === PublicationStatus.SCHEDULED);
+      (data.status === PublicationStatus.READY ||
+        data.status === PublicationStatus.SCHEDULED ||
+        (!data.status &&
+          (publication.status === PublicationStatus.READY ||
+            publication.status === PublicationStatus.SCHEDULED)));
+
+    // Handle desync flag for published/failed publications
+    let meta = publication.meta || {};
+    if (
+      isContentUpdated &&
+      ['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status) &&
+      !(meta as any).isDesynced
+    ) {
+      meta = { ...(meta as any), isDesynced: true };
+    }
 
     const sanitizedContent =
       data.content !== undefined
@@ -389,6 +410,7 @@ export class PublicationsService {
       scheduledAt: data.scheduledAt,
       note: data.note,
       language: data.language,
+      meta,
       projectTemplate:
         data.projectTemplateId !== undefined
           ? data.projectTemplateId === null

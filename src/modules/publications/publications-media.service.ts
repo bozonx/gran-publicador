@@ -85,11 +85,23 @@ export class PublicationsMediaService {
 
     this.logger.log(`Added ${media.length} media items to publication ${publicationId}`);
 
+    // Build snapshot for ready/scheduled publications
     if (
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
     ) {
       await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
+    // Set desync flag for published/failed publications
+    if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status)) {
+      const currentMeta = (publication as any).meta || {};
+      if (!currentMeta.isDesynced) {
+        await this.prisma.publication.update({
+          where: { id: publicationId },
+          data: { meta: { ...currentMeta, isDesynced: true } },
+        });
+      }
     }
   }
 
@@ -132,11 +144,23 @@ export class PublicationsMediaService {
     // Check if media is orphaned and cleanup if so
     await this.mediaService.removeIfOrphaned(mediaId);
 
+    // Build snapshot for ready/scheduled publications
     if (
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
     ) {
       await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
+    // Set desync flag for published/failed publications
+    if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status)) {
+      const currentMeta = (publication as any).meta || {};
+      if (!currentMeta.isDesynced) {
+        await this.prisma.publication.update({
+          where: { id: publicationId },
+          data: { meta: { ...currentMeta, isDesynced: true } },
+        });
+      }
     }
 
     return { success: true };
@@ -181,11 +205,23 @@ export class PublicationsMediaService {
 
     this.logger.log(`Reordered ${mediaOrder.length} media items in publication ${publicationId}`);
 
+    // Build snapshot for ready/scheduled publications
     if (
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
     ) {
       await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
+    // Set desync flag for published/failed publications
+    if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status)) {
+      const currentMeta = (publication as any).meta || {};
+      if (!currentMeta.isDesynced) {
+        await this.prisma.publication.update({
+          where: { id: publicationId },
+          data: { meta: { ...currentMeta, isDesynced: true } },
+        });
+      }
     }
 
     return { success: true };
@@ -228,11 +264,23 @@ export class PublicationsMediaService {
       },
     });
 
+    // Build snapshot for ready/scheduled publications
     if (
       publication.status === PublicationStatus.READY ||
       publication.status === PublicationStatus.SCHEDULED
     ) {
       await this.snapshotBuilder.buildForPublication(publicationId);
+    }
+
+    // Set desync flag for published/failed publications
+    if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status)) {
+      const currentMeta = (publication as any).meta || {};
+      if (!currentMeta.isDesynced) {
+        await this.prisma.publication.update({
+          where: { id: publicationId },
+          data: { meta: { ...currentMeta, isDesynced: true } },
+        });
+      }
     }
 
     return updated;

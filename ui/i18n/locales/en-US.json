@@ -1168,7 +1168,11 @@
     "deleteCascadeWarning": "This action is cascade and will delete all associated posts.",
     "deleteConfirm": "Are you sure you want to delete this publication?",
     "deleted": "Publication deleted successfully",
+    "desynced_description": "This publication has been edited after the last publishing attempt. The current version in the system differs from what is live on social media.",
+    "desynced_notice": "Content modified",
     "edit": "Edit Publication",
+    "editPublishedConfirmDescription": "Editing this publication will not update its content on social media. After saving, a notice will indicate that the system data differs from the published version.",
+    "editPublishedConfirmTitle": "Publication already sent",
     "filter": {
       "all": "All Publications",
       "allChannels": "All Channels",

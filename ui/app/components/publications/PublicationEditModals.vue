@@ -39,6 +39,7 @@ const isTemplateModalOpen = defineModel<boolean>('templateModal', { default: fal
 const isLlmModalOpen = defineModel<boolean>('llmModal', { default: false })
 const isRelationsModalOpen = defineModel<boolean>('relationsModal', { default: false })
 const isContentActionModalOpen = defineModel<boolean>('contentActionModal', { default: false })
+const isPublishedWarningModalOpen = defineModel<boolean>('publishedWarningModal', { default: false })
 
 const archiveWarningMessage = ref('')
 const newScheduledDate = ref('')
@@ -149,6 +150,18 @@ defineExpose({
       color="warning"
       icon="i-heroicons-exclamation-triangle"
       @confirm="$emit('confirmArchivePublish')"
+    />
+
+    <!-- Published Warning Modal -->
+    <UiConfirmModal
+      v-if="isPublishedWarningModalOpen"
+      v-model:open="isPublishedWarningModalOpen"
+      :title="t('publication.editPublishedConfirmTitle')"
+      :description="t('publication.editPublishedConfirmDescription')"
+      :confirm-text="t('common.understand')"
+      color="info"
+      icon="i-heroicons-information-circle"
+      @confirm="isPublishedWarningModalOpen = false"
     />
 
     <!-- Schedule Modal -->

@@ -595,6 +595,7 @@ export class SocialPostingService {
           processingStartedAt: null,
           meta: this.sanitizeJson({
             ...((publication.meta as any) || {}),
+            isDesynced: false, // Reset desync flag on completion
             attempts: [
               ...((publication.meta as any)?.attempts || []),
               { timestamp: new Date().toISOString(), successCount, totalCount: allPosts.length },

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue';
 import { ArchiveEntityType } from '~/types/archive.types';
-import type { PostStatus, PostType, PublicationStatus } from '~/types/posts';
+import type { PostStatus, PostType, PublicationStatus, Post, PostWithRelations } from '~/types/posts';
+export type { Post, PostWithRelations };
 import {
   getPostStatusOptions,
   getPostStatusDisplayName,
@@ -11,52 +12,7 @@ import {
 import { logger } from '~/utils/logger';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-export interface Post {
-  id: string;
-  channelId: string;
-  publicationId: string;
-  socialMedia: string;
-  tags: string[] | null; // Can override publication tags
-  status: PostStatus; // Post-specific status
-  scheduledAt: string | null;
-  publishedAt: string | null;
-  errorMessage: string | null;
-  meta: any;
-  content: string | null;
-  authorSignature: string | null;
-  platformOptions: any;
-  postingSnapshot: any; // Frozen snapshot of the post content
-  postingSnapshotCreatedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
-export interface PostWithRelations extends Post {
-  channel?: {
-    id: string;
-    name: string;
-    projectId: string;
-    socialMedia: string;
-    language: string;
-  } | null;
-  publication?: {
-    id: string;
-    title: string | null;
-    description: string | null;
-    content: string;
-    authorComment: string | null;
-    tags: string[]; // Fallback if post.tags is null
-    mediaFiles: string;
-    meta: string;
-    postType: string;
-    postDate: string | null;
-    status: string; // Publication status
-    language: string;
-    createdBy: string | null;
-    scheduledAt: string | null;
-    archivedAt: string | null;
-  } | null;
-}
 
 export interface PostCreateInput {
   channelId: string;

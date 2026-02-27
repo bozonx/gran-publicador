@@ -1,4 +1,4 @@
-import type { PublicationStatus } from './posts'
+import type { PostWithRelations, PublicationStatus } from './posts'
 
 export interface Publication {
   id: string;
@@ -9,7 +9,7 @@ export interface Publication {
   content: string | null;
   tags: string[];
   status: PublicationStatus;
-  meta: string;
+  meta: any;
   language: string;
   postType: string;
   newsItemId?: string | null;
@@ -39,7 +39,7 @@ export interface PublicationWithRelations extends Publication {
     id: string;
     name: string;
   } | null;
-  posts?: PublicationPost[];
+  posts?: PostWithRelations[];
   relations?: PublicationRelationGroup[];
   media?: Array<{
     id: string;
@@ -69,24 +69,6 @@ export interface PublicationWithRelations extends Publication {
   };
 }
 
-export interface PublicationPost {
-  id: string;
-  status: string;
-  publicationId: string;
-  channelId: string;
-  socialMedia: string;
-  postingSnapshot?: any;
-  postingSnapshotCreatedAt?: string | null;
-  channel: {
-    id: string;
-    name: string;
-    socialMedia: string;
-    isActive: boolean;
-    archivedAt: string | null;
-    project: { id: string; archivedAt: string | null };
-  };
-}
-
 export interface PublicationRelation {
   id: string;
   position: number;
@@ -97,20 +79,7 @@ export interface PublicationRelation {
     postType: string;
     status: string;
     archivedAt: string | null;
-    posts?: Array<{
-      id: string;
-      status: string;
-      postingSnapshot?: any;
-      postingSnapshotCreatedAt?: string | null;
-      channel: {
-        id: string;
-        name: string;
-        socialMedia: string;
-        isActive: boolean;
-        archivedAt: string | null;
-        project: { id: string; archivedAt: string | null };
-      };
-    }>;
+    posts?: PostWithRelations[];
   };
 }
 
