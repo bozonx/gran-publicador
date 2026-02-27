@@ -16,6 +16,5 @@ export class ArchiveStatsDto {
   public projects!: number;
   public channels!: number;
   public publications!: number;
-  public posts!: number;
   public total!: number;
 }

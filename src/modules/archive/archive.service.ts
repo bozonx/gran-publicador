@@ -245,7 +245,6 @@ export class ArchiveService {
       projects,
       channels,
       publications,
-      posts: 0,
       total: projects + channels + publications,
     };
   }
