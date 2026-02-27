@@ -362,6 +362,18 @@ export class PublicationRelationsService {
         },
       });
 
+      // Copy media content
+      if (source.media?.length) {
+        await tx.publicationMedia.createMany({
+          data: source.media.map(m => ({
+            publicationId: newPublication.id,
+            mediaId: m.mediaId,
+            order: m.order,
+            hasSpoiler: m.hasSpoiler,
+          })),
+        });
+      }
+
       // If the source already belongs to a group of this type, append to that group.
       if (sourceExistingItem) {
         const nextOrder =
@@ -439,6 +451,13 @@ export class PublicationRelationsService {
         meta: true,
         note: true,
         postDate: true,
+        media: {
+          select: {
+            mediaId: true,
+            order: true,
+            hasSpoiler: true,
+          },
+        },
       },
     });
 
