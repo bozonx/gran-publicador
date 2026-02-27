@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- **Refined Publication Creation Flow (News)**:
+  - Creating a publication from news items now uses the full `PublicationCreateForm`, allowing to configure all publication settings (template, channels, language, tags) in one step.
+  - If created within a project context, the project is pre-selected and hidden.
+  - News data (title, content, image, tags, source link) is automatically pre-filled into the creation form.
+- **Publication Metadata Resilience**:
+  - `newsItemId` field removed from `Publication` database model. News-specific identifiers are now stored within the `meta.newsData` JSON field for better decouple from external microservices.
+- **Standardized Error Handling**: Added localized error messages for publication limits (content, title, media) and image upload failures.
+
+### Fixed
+- **Media Ordering**: Fixed a bug where multiple media items (Unsplash, URL, existing) added during publication creation were incorrectly assigned the same order index.
+
+### Added
 - **Video Editor: streaming export upload**: exported video is now streamed directly to the server without buffering the result as a `Blob`/`File` in browser memory.
   - New endpoint `POST /media/upload-stream` accepts raw body stream with metadata headers (`x-filename`, `x-mime-type`, `x-file-size`, `x-project-id`, `x-optimize`).
   - `useMedia.uploadMediaStream()` composable function for streaming uploads via `fetch`.

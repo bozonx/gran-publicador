@@ -241,22 +241,28 @@ export class PublicationsMediaService {
     userId?: string,
   ) {
     const mediaToCreate: any[] = [];
-    const offset = data.imageUrl ? 1 : 0;
+    let currentOrder = 0;
 
     if (unsplashPhoto) {
       const unsplashMedia = await this.uploadUnsplashMedia(unsplashPhoto, data.projectId, userId);
-      if (unsplashMedia) mediaToCreate.push(unsplashMedia);
+      if (unsplashMedia) {
+        unsplashMedia.order = currentOrder++;
+        mediaToCreate.push(unsplashMedia);
+      }
     }
 
     if (data.imageUrl) {
       const urlMedia = await this.uploadMediaFromUrl(data.imageUrl, data.projectId, userId);
-      if (urlMedia) mediaToCreate.push(urlMedia);
+      if (urlMedia) {
+        urlMedia.order = currentOrder++;
+        mediaToCreate.push(urlMedia);
+      }
     }
 
     if (data.media?.length) {
       mediaToCreate.push(
         ...data.media.map((m, i) => ({
-          order: offset + i,
+          order: currentOrder++,
           media: { create: { ...m, meta: m.meta } },
         })),
       );
@@ -264,10 +270,10 @@ export class PublicationsMediaService {
 
     if (data.existingMediaIds?.length) {
       mediaToCreate.push(
-        ...data.existingMediaIds.map((item, i) => {
+        ...data.existingMediaIds.map((item) => {
           const input = this.getMediaInput(item);
           return {
-            order: offset + (data.media?.length || 0) + i,
+            order: currentOrder++,
             mediaId: input.id,
             hasSpoiler: input.hasSpoiler,
           };

@@ -162,8 +162,6 @@ async function fetchData(targetUrl: string) {
     try {
         if (!scrapeProjectId) {
            // If no project context, try finding first or use what? 
-           // Fetching content requires project context for permissions mostly.
-           // Maybe we can use any project user has access to, or just force project selection?
            const firstProject = projects.value[0]?.id
            if (firstProject) {
               const localeCode = props.sourceNewsItem?.locale || user.value?.language || locale.value
@@ -195,89 +193,15 @@ async function fetchData(targetUrl: string) {
     }
 }
 
-async function handleNext() {
+function handleNext() {
   if (!scrapedData.value) return
-  
-  if (step.value === 1 && isGeneralNewsPage.value) {
-    step.value = 2
-    return
-  }
+  step.value = 2
+}
 
-  if (!selectedProjectId.value) {
-    toast.add({ title: t('common.error'), description: t('publication.validation.projectRequired', 'Please select a project'), color: 'error' })
-    return
-  }
-
-  isCreating.value = true
-  
-  try {
-    const sd = scrapedData.value
-    
-    // Just use the body text for content to avoid title duplication when templates are used
-    const body = sd.body || ''
-    
-    // Get language from scraped data or user preferences or fallback to 'en-US'
-    const lang = sd.meta?.lang || user.value?.language || locale.value
-    
-    // Use sourceNewsItem if available for richer metadata
-    const sourceData = props.sourceNewsItem || sd
-    
-    // Create publication with all available news info
-    const publication = await createPublication({
-      projectId: selectedProjectId.value,
-      postType: 'NEWS' as any,
-      newsItemId: props.sourceNewsItem?.id || sd.id,
-      title: sd.title || undefined,
-      description: sd.description || undefined,
-      postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
-      language: lang,
-      imageUrl: sd.image || undefined,
-      content: body,
-      tags: sourceData.tags || sd.tags || undefined,
-      meta: {
-        newsData: {
-          url: sd.url || sourceData.url,
-          source: sd.source || sourceData.source,
-          taskId: (sourceData as any).taskId,
-          batchId: (sourceData as any).batchId
-        }
-      }
-    })
-    
-    if (publication) {
-      // Check if image was requested but missing in created publication (failed upload)
-
-      if (sd.image && (!publication.media || !publication.media.some((m: any) => m.media?.type === 'IMAGE'))) {
-         console.warn('[CreatePublicationModal] Image upload failed detected:', { 
-           requested: sd.image, 
-           actualMedia: publication.media,
-           publicationId: publication.id
-         })
-         toast.add({
-            title: t('common.error'),
-            description: t('publication.imageUploadFailed') || 'Image could not be uploaded, publication created without it.',
-            color: 'error',
-            duration: 10000,
-         })
-      }
-
-
-      // Close modal
-      isOpen.value = false
-      
-      // Navigate to edit page with openLlm query parameter
-      await router.push(`/publications/${publication.id}/edit?openLlm=true`)
-    }
-  } catch (err: any) {
-    console.error('Failed to create publication from news:', err)
-    toast.add({
-      title: t('common.error'),
-      description: t('publication.createError'),
-      color: 'error'
-    })
-  } finally {
-    isCreating.value = false
-  }
+async function handleSuccess(publicationId: string) {
+  isOpen.value = false
+  // Navigate to edit page with openLlm query parameter
+  await router.push(`/publications/${publicationId}/edit?openLlm=true`)
 }
 
 function handleUseNewsData(clearError = true) {
@@ -310,6 +234,35 @@ function handleUseNewsData(clearError = true) {
     isUsingFallback.value = false
   }
 }
+
+const publicationPrefilledData = computed(() => {
+  if (!scrapedData.value) return {}
+
+  const sd = scrapedData.value
+  const body = sd.body || ''
+  const lang = sd.meta?.lang || user.value?.language || locale.value
+  const sourceData = props.sourceNewsItem || sd
+
+  return {
+    title: sd.title || undefined,
+    description: sd.description || undefined,
+    authorComment: undefined,
+    content: body,
+    language: lang,
+    imageUrl: sd.image || undefined,
+    tags: sourceData.tags || sd.tags || undefined,
+    postDate: sd.date ? new Date(sd.date).toISOString() : undefined,
+    meta: {
+      newsData: {
+        url: sd.url || sourceData.url,
+        source: sd.source || sourceData.source,
+        taskId: (sourceData as any).taskId,
+        batchId: (sourceData as any).batchId,
+        id: props.sourceNewsItem?.id || sd.id,
+      },
+    },
+  }
+})
 
 </script>
 
@@ -437,57 +390,32 @@ function handleUseNewsData(clearError = true) {
            </div>
         </div>
 
-        <!-- Step 2: Project Selection -->
-        <div v-if="step === 2" class="space-y-8 py-4">
-          <div class="space-y-2">
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-              {{ t('publication.select_project') }}
-            </h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ t('publication.select_project_description') || 'Выберите проект, в котором будет создана публикация' }}
-            </p>
-          </div>
-
-          <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
-            <UFormField :label="t('publication.project')">
-              <CommonProjectSelect
-                v-model="selectedProjectId"
-                :extra-options="extraProjectOptions"
-                class="w-full"
-                :placeholder="t('publication.select_project')"
-              />
-            </UFormField>
-
-            <div v-if="selectedProject" class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
-              <div class="w-12 h-12 rounded-lg bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                <UIcon name="i-heroicons-briefcase" class="w-6 h-6" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ selectedProject.name }}</p>
-                <p v-if="selectedProject.note" class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ selectedProject.note }}</p>
-              </div>
-            </div>
-            <div v-else class="mt-6 flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 opacity-60">
-              <div class="w-12 h-12 rounded-lg bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400">
-                <UIcon name="i-heroicons-briefcase" class="w-6 h-6" />
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-bold text-gray-900 dark:text-white">{{ t('publication.select_project') }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('publication.select_project_description') || 'Выберите проект, в котором будет создана публикация' }}</p>
-              </div>
-            </div>
-          </div>
+        <!-- Step 2: Publication Creation Form -->
+        <div v-if="step === 2" class="py-4">
+          <PublicationsPublicationCreateForm
+            :project-id="selectedProjectId || undefined"
+            :allow-project-selection="isGeneralNewsPage"
+            :is-project-locked="!isGeneralNewsPage"
+            :prefilled-title="publicationPrefilledData.title"
+            :prefilled-content="publicationPrefilledData.content"
+            :prefilled-description="publicationPrefilledData.description"
+            :prefilled-tags="publicationPrefilledData.tags"
+            :prefilled-meta="publicationPrefilledData.meta"
+            :preselected-language="publicationPrefilledData.language"
+            @success="handleSuccess"
+            @cancel="isOpen = false"
+          />
         </div>
 
         <!-- No data found anywhere state -->
-        <div v-else-if="!isLoading && !error" class="flex flex-col items-center justify-center py-12 text-gray-500">
+        <div v-else-if="!isLoading && !error && !scrapedData" class="flex flex-col items-center justify-center py-12 text-gray-500">
            <UIcon name="i-heroicons-document-search" class="w-12 h-12 mb-2 opacity-20" />
            <p>No content available to preview.</p>
         </div>
       </div>
     </div>
     
-    <template #footer>
+    <template #footer v-if="step === 1">
       <UButton color="neutral" variant="ghost" @click="isOpen = false">
         {{ t('common.cancel') }}
       </UButton>
@@ -495,22 +423,11 @@ function handleUseNewsData(clearError = true) {
       <div class="flex-1"></div>
 
       <UButton 
-        v-if="step === 2" 
-        color="neutral" 
-        variant="soft" 
-        @click="step = 1"
-        :disabled="isCreating"
-      >
-        {{ t('common.back') }}
-      </UButton>
-
-      <UButton 
         color="primary" 
         :disabled="!scrapedData" 
-        :loading="isCreating" 
         @click="handleNext"
       >
-        {{ step === 1 && isGeneralNewsPage ? t('common.next') : (isCreating ? t('common.creating') : t('common.create')) }}
+        {{ t('common.next') }}
       </UButton>
     </template>
   </AppModal>

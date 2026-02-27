@@ -173,17 +173,25 @@ export class PublicationsService {
       : null;
 
     const sanitizedContent = sanitizePublicationMarkdownForStorage(data.content ?? '');
+    const meta = data.meta ?? {};
+
+    // Move newsItemId to meta for debug/reference as the explicit field is removed
+    if (data.newsItemId) {
+      meta.newsData = {
+        ...(meta.newsData || {}),
+        id: data.newsItemId,
+      };
+    }
 
     const publication = await this.prisma.publication.create({
       data: {
         projectId: data.projectId,
-        newsItemId: data.newsItemId ?? null,
         createdBy: userId ?? null,
         title: data.title,
         description: data.description,
         authorComment: data.authorComment,
         content: sanitizedContent,
-        meta: data.meta ?? {},
+        meta,
         media: {
           create: await this.mediaSubService.prepareCreationMedia(data, unsplashPhoto, userId),
         },

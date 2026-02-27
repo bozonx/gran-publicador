@@ -1206,7 +1206,7 @@
     "moveToContentLibrary": "Move to content library",
     "newScheduleTime": "New time",
     "noChannels": "No available channels. Create a channel for publication first.",
-    "noContent": "No content",
+    "noContent": "No content available for preview",
     "noLanguagesInProject": "Project has no channels with configured languages",
     "noPosts": "No associated posts",
     "noPublicationsDescription": "You don't have any publications yet.",
@@ -1252,6 +1252,17 @@
     "select_project": "Select project",
     "select_project_description": "Select the project to create the publication in",
     "select_project_first": "Select project first",
+    "templateRequired": "You must select a publication template before creating a publication",
+    "validation": {
+      "projectRequired": "Please select a project",
+      "LIMIT_CONTENT": "Content is too long for publication",
+      "LIMIT_TITLE": "Title is too long",
+      "LIMIT_MEDIA": "Too many media files",
+      "EMPTY_SELECTION": "Nothing selected to create publication",
+      "contentOrMediaRequired": "Content or media required",
+      "draftBlocked": "Drafts cannot be published. Please schedule the publication or change status to 'Ready'.",
+      "fixMediaErrors": "Fix media file errors"
+    },
     "sort": {
       "byPublished": "By Published",
       "byScheduled": "By Scheduled",
@@ -1266,12 +1277,7 @@
       "willBePublishedAt": "Will be published at"
     },
     "title": "Publication",
-    "titlePlural": "Publications",
-    "validation": {
-      "contentOrMediaRequired": "Content or media required",
-      "draftBlocked": "Drafts cannot be published. Please schedule the publication or change status to 'Ready'.",
-      "fixMediaErrors": "Fix media file errors"
-    }
+    "titlePlural": "Publications"
   },
   "publicationStatus": {
     "draft": "Draft",
