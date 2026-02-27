@@ -19,7 +19,7 @@ import { ReorderGroupDto } from './dto/reorder-group.dto.js';
 import { CreateRelatedPublicationDto } from './dto/create-related-publication.dto.js';
 
 /**
- * Controller for managing publication relation groups (SERIES, LOCALIZATION).
+ * Controller for managing publication relation groups (SERIES, TRANSLATION).
  */
 @Controller('publications')
 @UseGuards(JwtOrApiTokenGuard)

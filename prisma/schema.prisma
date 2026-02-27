@@ -755,7 +755,7 @@ enum PostStatus {
 
 enum PublicationRelationGroupType {
   SERIES
-  LOCALIZATION
+  TRANSLATION
 }
 
 enum NotificationType {

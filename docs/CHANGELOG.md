@@ -257,14 +257,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Publication Relations: new generic linking system replacing old "Link as Translation" feature.
-  - Two relation types: `SERIES` (sequential parts) and `LOCALIZATION` (multi-language versions).
+  - Two relation types: `SERIES` (sequential parts) and `TRANSLATION` (multi-language versions).
   - New DB tables: `publication_relation_groups`, `publication_relation_items`.
   - Backend module: `publication-relations` with service, controller, DTOs.
   - API endpoints: `GET/POST /publications/:id/relations/*`, `PATCH /publications/relation-groups/:groupId/reorder`.
   - UI: Relations indicator in publication edit page metadata grid, `PublicationRelationsModal` for managing links.
   - Composable: `usePublicationRelations` for frontend API integration.
   - Moving a publication to another project now breaks all relation links.
-  - Constraints: same `projectId`, same `postType`, unique language per `LOCALIZATION` group, one `SERIES` group per publication.
+  - Constraints: same `projectId`, same `postType`, unique language per `TRANSLATION` group, one `SERIES` group per publication.
 
 ### Removed
 - Old "Link as Translation" functionality (`translationGroupId`, `linkToPublicationId`) from schema, DTOs, service logic, and UI.

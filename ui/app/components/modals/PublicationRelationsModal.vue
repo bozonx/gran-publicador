@@ -32,14 +32,14 @@ const {
 const { publications, fetchPublicationsByProject } = usePublications()
 
 const searchQuery = ref('')
-const selectedType = ref<'SERIES' | 'LOCALIZATION'>('LOCALIZATION')
+const selectedType = ref<'SERIES' | 'TRANSLATION'>('TRANSLATION')
 const selectedLanguage = ref(props.publication.language)
 
 const { languageOptions } = useLanguages()
 const router = useRouter()
 
 const typeOptions = [
-  { value: 'LOCALIZATION', label: t('publication.relations.typeTranslation') },
+  { value: 'TRANSLATION', label: t('publication.relations.typeTranslation') },
   { value: 'SERIES', label: t('publication.relations.typeSeries') },
 ]
 
@@ -145,7 +145,7 @@ async function handleCreateRelated() {
 
     const result = await createRelated(props.publication.id, selectedType.value, {
       title,
-      language: selectedType.value === 'LOCALIZATION' ? selectedLanguage.value : undefined
+      language: selectedType.value === 'TRANSLATION' ? selectedLanguage.value : undefined
     })
     toast.add({ title: t('publication.relations.createdRelated'), color: 'success' })
     emit('updated')
@@ -334,7 +334,7 @@ function isInactiveChannel(pub: RelationGroup['items'][0]['publication']): boole
 
             <!-- Create related -->
             <div class="space-y-2 pt-2">
-              <div v-if="selectedType === 'LOCALIZATION'" class="flex items-center gap-2">
+              <div v-if="selectedType === 'TRANSLATION'" class="flex items-center gap-2">
                 <span class="text-xs text-gray-500 shrink-0">{{ t('news.language') }}:</span>
                 <USelectMenu
                   v-model="selectedLanguage"

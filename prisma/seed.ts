@@ -765,14 +765,14 @@ async function main() {
     });
   }
 
-  // 6.1 PUBLICATION LOCALIZATION GROUP
+  // 6.1 PUBLICATION TRANSLATION GROUP
   await prisma.publicationRelationGroup.upsert({
     where: { id: '55555555-5555-4555-8555-555555555551' },
     update: {},
     create: {
       id: '55555555-5555-4555-8555-555555555551',
       projectId: projectData[0].id,
-      type: PublicationRelationGroupType.LOCALIZATION,
+      type: PublicationRelationGroupType.TRANSLATION,
       createdBy: devUser.id,
     },
   });

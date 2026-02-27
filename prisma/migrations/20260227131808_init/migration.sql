@@ -11,7 +11,7 @@ CREATE TYPE "PublicationStatus" AS ENUM ('DRAFT', 'READY', 'SCHEDULED', 'PROCESS
 CREATE TYPE "PostStatus" AS ENUM ('PENDING', 'FAILED', 'PUBLISHED');
 
 -- CreateEnum
-CREATE TYPE "PublicationRelationGroupType" AS ENUM ('SERIES', 'LOCALIZATION');
+CREATE TYPE "PublicationRelationGroupType" AS ENUM ('SERIES', 'TRANSLATION');
 
 -- CreateEnum
 CREATE TYPE "NotificationType" AS ENUM ('PUBLICATION_FAILED', 'PROJECT_INVITE', 'SYSTEM', 'NEW_NEWS');
@@ -274,7 +274,6 @@ CREATE TABLE "channels" (
 CREATE TABLE "publications" (
     "id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
-    "news_item_id" TEXT,
     "created_by" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -590,9 +589,6 @@ CREATE INDEX "publications_effective_at_idx" ON "publications"("effective_at");
 
 -- CreateIndex
 CREATE INDEX "publications_created_by_project_id_archived_at_idx" ON "publications"("created_by", "project_id", "archived_at");
-
--- CreateIndex
-CREATE INDEX "publications_news_item_id_idx" ON "publications"("news_item_id");
 
 -- CreateIndex
 CREATE INDEX "publications_project_template_id_idx" ON "publications"("project_template_id");

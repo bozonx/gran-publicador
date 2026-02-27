@@ -116,7 +116,7 @@ src/
 │   ├── prisma/                  # Prisma сервис
 │   ├── project-templates/       # Шаблоны публикаций уровня проекта
 │   ├── projects/                # Управление проектами и участниками
-│   ├── publication-relations/   # Связи публикаций (SERIES, LOCALIZATION)
+│   ├── publication-relations/   # Связи публикаций (SERIES, TRANSLATION)
 │   ├── publications/            # Публикации (контент, планирование, LLM-чат)
 │   ├── roles/                   # Управление ролями участников проекта
 │   ├── social-posting/          # Планировщик публикаций в соцсети
@@ -262,7 +262,7 @@ module-name/
 - CRUD + reorder
 
 #### PublicationRelationsModule
-- Группы связей публикаций: `SERIES` (серия), `LOCALIZATION` (локализация)
+- Группы связей публикаций: `SERIES` (серия), `TRANSLATION` (локализация)
 - Link / unlink / create-related / reorder
 
 #### TranslateModule

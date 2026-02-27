@@ -3,7 +3,7 @@ import { logger } from '~/utils/logger';
 
 export interface RelationGroup {
   id: string;
-  type: 'SERIES' | 'LOCALIZATION';
+  type: 'SERIES' | 'TRANSLATION';
   projectId: string;
   items: RelationGroupItem[];
 }
@@ -61,7 +61,7 @@ export function usePublicationRelations() {
   async function linkPublication(
     publicationId: string,
     targetPublicationId: string,
-    type: 'SERIES' | 'LOCALIZATION',
+    type: 'SERIES' | 'TRANSLATION',
   ) {
     isLoading.value = true;
     error.value = null;
@@ -104,7 +104,7 @@ export function usePublicationRelations() {
    */
   async function createRelated(
     publicationId: string,
-    type: 'SERIES' | 'LOCALIZATION',
+    type: 'SERIES' | 'TRANSLATION',
     options?: { title?: string; language?: string },
   ) {
     isLoading.value = true;

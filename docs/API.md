@@ -758,7 +758,7 @@ GET /api/v1/users?limit=50&offset=0
 | Поле | Тип | Обязательно | Описание |
 | :--- | :--- | :---: | :--- |
 | `targetPublicationId` | UUID | Да | ID целевой публикации |
-| `relationType` | Enum | Да | `SERIES` или `LOCALIZATION` |
+| `relationType` | Enum | Да | `SERIES` или `TRANSLATION` |
 | `groupId` | UUID | Нет | ID существующей группы (если не указан — создаётся новая) |
 
 ### POST `/publications/:id/relations/unlink`

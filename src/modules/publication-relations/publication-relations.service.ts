@@ -111,8 +111,8 @@ export class PublicationRelationsService {
       throw new BadRequestException('Publication already belongs to a SERIES group');
     }
 
-    if (dto.type === PublicationRelationGroupType.LOCALIZATION && sourceExistingItem) {
-      throw new BadRequestException('Publication already belongs to a LOCALIZATION group');
+    if (dto.type === PublicationRelationGroupType.TRANSLATION && sourceExistingItem) {
+      throw new BadRequestException('Publication already belongs to a TRANSLATION group');
     }
 
     // Check if target already belongs to a group of this type
@@ -124,12 +124,12 @@ export class PublicationRelationsService {
       include: { group: { include: { items: true } } },
     });
 
-    // For LOCALIZATION: validate language uniqueness
-    if (dto.type === PublicationRelationGroupType.LOCALIZATION && targetExistingItem) {
+    // For TRANSLATION: validate language uniqueness
+    if (dto.type === PublicationRelationGroupType.TRANSLATION && targetExistingItem) {
       const existingLanguages = await this.getGroupLanguages(targetExistingItem.groupId);
       if (existingLanguages.includes(source.language)) {
         throw new BadRequestException(
-          `A publication with language "${source.language}" already exists in this localization group`,
+          `A publication with language "${source.language}" already exists in this translation group`,
         );
       }
     }
@@ -328,12 +328,12 @@ export class PublicationRelationsService {
 
     const language = dto.language || source.language;
 
-    // For LOCALIZATION: validate language uniqueness
-    if (dto.type === PublicationRelationGroupType.LOCALIZATION && sourceExistingItem) {
+    // For TRANSLATION: validate language uniqueness
+    if (dto.type === PublicationRelationGroupType.TRANSLATION && sourceExistingItem) {
       const existingLanguages = await this.getGroupLanguages(sourceExistingItem.groupId);
       if (existingLanguages.includes(language)) {
         throw new BadRequestException(
-          `A publication with language "${language}" already exists in this localization group`,
+          `A publication with language "${language}" already exists in this translation group`,
         );
       }
     }
