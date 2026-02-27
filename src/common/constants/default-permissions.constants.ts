@@ -12,6 +12,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleType, RolePermissions> =
       deleteOwn: false,
       deleteAll: false,
     },
+    contentLibrary: { read: true, create: false, update: false, delete: false },
   },
   [SystemRoleType.EDITOR]: {
     project: { read: true, update: false },
@@ -24,6 +25,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleType, RolePermissions> =
       deleteOwn: true,
       deleteAll: true,
     },
+    contentLibrary: { read: true, create: true, update: true, delete: true },
   },
   [SystemRoleType.ADMIN]: {
     project: { read: true, update: true },
@@ -36,6 +38,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleType, RolePermissions> =
       deleteOwn: true,
       deleteAll: true,
     },
+    contentLibrary: { read: true, create: true, update: true, delete: true },
   },
 };
 

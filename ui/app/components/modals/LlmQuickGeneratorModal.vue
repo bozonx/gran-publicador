@@ -12,13 +12,7 @@ import {
   type PostType,
 } from '~/utils/socialMediaPlatforms'
 
-interface LlmContextTag {
-  id: string
-  label: string
-  promptText: string
-  kind: 'content' | 'media' | 'selection'
-  enabled: boolean
-}
+import type { LlmContextTag } from '~/types/llm'
 
 interface Emits {
   (e: 'apply', text: string): void

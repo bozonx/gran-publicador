@@ -12,6 +12,12 @@ All notable changes to this project will be documented in this file.
 - **Publication Metadata Resilience**:
   - `newsItemId` field removed from `Publication` database model. News-specific identifiers are now stored within the `meta.newsData` JSON field for better decouple from external microservices.
 - **Standardized Error Handling**: Added localized error messages for publication limits (content, title, media) and image upload failures.
+- **LLM Reliability & Performance**:
+  - Increased context limit to 100,000 characters for both backend processing and frontend UI.
+  - Implemented standard HTTP retry logic in `LlmService` with exponential backoff and jitter for better resilience against transient provider errors.
+- **LLM UI Refactor**:
+  - Decomposed monolithic `LlmGeneratorModal.vue` into smaller, reusable components (`LlmChatArea`, `LlmContextPicker`, `LlmChatInput`, `LlmFieldsForm`).
+  - Centralized LLM-related types in a shared `ui/app/types/llm.ts` file for better maintainability.
 
 ### Fixed
 - **Media Ordering**: Fixed a bug where multiple media items (Unsplash, URL, existing) added during publication creation were incorrectly assigned the same order index.

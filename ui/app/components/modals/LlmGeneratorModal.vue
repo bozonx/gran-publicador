@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import { FORM_SPACING } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
+import type { ApplyData, ChatMessage, LlmContextTag, PostChannelInfo } from '~/types/llm'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
 import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import LlmContextPicker from '~/components/llm/LlmContextPicker.vue'
+import LlmChatMessages from '~/components/llm/LlmChatMessages.vue'
+import LlmChatInput from '~/components/llm/LlmChatInput.vue'
+import LlmFieldsForm from '~/components/llm/LlmFieldsForm.vue'
 import type { MediaItem } from '~/composables/useMedia'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
 import { LlmErrorType } from '~/composables/useLlm'
@@ -15,29 +19,6 @@ import {
   type PostType,
   type SocialMedia,
 } from '~/utils/socialMediaPlatforms'
-
-interface PostChannelInfo {
-  channelId: string
-  channelName: string
-  language: string
-  tags?: string[]
-  socialMedia?: string
-}
-
-interface ApplyData {
-  publication?: {
-    title?: string
-    description?: string
-    tags?: string
-    content?: string
-  }
-  posts?: Array<{
-    channelId: string
-    content?: string
-    tags?: string
-  }>
-  meta?: Record<string, any>
-}
 
 interface Emits {
   (e: 'apply', data: ApplyData): void
@@ -65,7 +46,6 @@ const { publicationLlmChat } = usePublications()
 const { updatePublication } = usePublications()
 const {
   isRecording,
-  recordingDuration,
   isTranscribing,
   error: sttError,
   recorderError: voiceError,
@@ -210,19 +190,6 @@ function handleCancelStt() {
 // Steps
 const step = ref(1) // 1: AI Chat, 2: Parameter Generation
 
-// Step 1: Chat state
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  contextTagIds?: string[]
-  contextSnapshot?: Array<{
-    id: string
-    label: string
-    promptText: string
-    kind: 'content' | 'media'
-    enabled?: boolean
-  }>
-}
 const chatMessages = ref<ChatMessage[]>([])
 const prompt = ref('')
 
@@ -244,10 +211,6 @@ function getChatErrorDescription(err: any): string {
   }
   return t('llm.errorMessage')
 }
-
-const modalDescription = computed(() => {
-  return step.value === 1 ? t('llm.step1Description') : t('llm.step2Description')
-})
 
 // Step 2: Fields generation state
 const fieldsResult = ref<LlmPublicationFieldsResult | null>(null)
@@ -286,17 +249,7 @@ useModalAutoFocus({
   candidates: [{ target: step2TitleInputRef }],
 })
 
-// Form common state
-// Template selection
 const isTemplatePickerOpen = ref(false)
-
-interface LlmContextTag {
-  id: string
-  label: string
-  promptText: string
-  kind: 'content' | 'media'
-  enabled: boolean
-}
 
 const contextTags = ref<LlmContextTag[]>([])
 
@@ -333,13 +286,6 @@ function truncateText(text: string, maxChars: number): string {
   if (maxChars <= 0) return ''
   if (text.length <= maxChars) return text
   return text.slice(0, maxChars)
-}
-
-function getCleanedContextText(ctx: LlmContextTag): string {
-  if (!ctx.promptText) return ctx.label
-  return ctx.promptText
-    .replace(/<[^>]*>/g, '')
-    .trim()
 }
 
 function makeContextPromptBlock(tags: LlmContextTag[]): string {
@@ -429,25 +375,10 @@ const estimatedTokens = computed(() => {
 
 const estimatedTokensValue = computed(() => Number(estimatedTokens.value) || 0)
 
-// Track if there are unsaved changes
-const hasUnsavedChanges = computed(() => {
-  if (step.value === 1 && chatMessages.value.length > 0) return true
-  if (step.value === 2 && fieldsResult.value) return true
-  return false
-})
-
-// Helper: get channel info for a post result
-function getChannelInfo(channelId: string): PostChannelInfo | undefined {
-  return postChannels?.find(ch => ch.channelId === channelId)
-}
-
-// Channels that have posts (for Step 2 display)
-const channelsWithPosts = computed(() => postChannels || [])
-
 // Initialize post selected fields when fieldsResult changes
 function initPostSelectedFields() {
   const fields: Record<string, PostSelectedFields> = {}
-  for (const ch of channelsWithPosts.value) {
+  for (const ch of postChannels || []) {
     const hasChannelTags = Array.isArray(ch.tags) && ch.tags.length > 0
     fields[ch.channelId] = {
       tags: hasChannelTags,
@@ -591,7 +522,7 @@ async function handleGenerate() {
   activeChatController.value?.abort()
   activeChatController.value = api.createAbortController()
 
-  let response: any = null
+  let response: any
   try {
     response = await publicationLlmChat(
       publicationId,
@@ -696,7 +627,7 @@ async function handleFieldsGeneration(sourceText: string) {
     const resolvedPostType = (postType || 'POST') as PostType
     const hasMedia = (media || []).length > 0
 
-    const channelsForApi: ChannelInfoForLlm[] = channelsWithPosts.value.map((ch) => {
+    const channelsForApi: ChannelInfoForLlm[] = (postChannels || []).map((ch) => {
       const platform = ch.socialMedia as SocialMedia | undefined
       const maxContentLength = platform
         ? (getPostTypeConfig(platform, resolvedPostType)?.content
@@ -733,7 +664,7 @@ async function handleFieldsGeneration(sourceText: string) {
       }
       
       const normalizedPosts: LlmPublicationFieldsPostResult[] = [...(response.posts || [])]
-      for (const ch of channelsWithPosts.value) {
+      for (const ch of postChannels || []) {
         if (!normalizedPosts.some(p => p.channelId === ch.channelId)) {
           normalizedPosts.push({ channelId: ch.channelId, content: '', tags: [] })
         }
@@ -767,12 +698,6 @@ async function handleFieldsGeneration(sourceText: string) {
   }
 }
 
-const formattedDuration = computed(() => {
-  const minutes = Math.floor(recordingDuration.value / 60)
-  const seconds = recordingDuration.value % 60
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-})
-
 const chatContainer = useTemplateRef<HTMLElement>('chatContainer')
 
 watch(() => chatMessages.value.length, async () => {
@@ -805,12 +730,6 @@ function getPostResult(channelId: string): LlmPublicationFieldsPostResult | unde
   return fieldsResult.value?.posts.find(p => p.channelId === channelId)
 }
 
-function getPostContentForChannel(channelId: string): string {
-  const post = getPostResult(channelId)
-  const base = fieldsResult.value?.publication.content || ''
-  return (post?.content || base).trim()
-}
-
 function setPostContentForChannel(channelId: string, content: string) {
   if (!fieldsResult.value) return
 
@@ -839,82 +758,46 @@ async function handleInsert() {
     })
     return
   }
-  
-  const data: ApplyData = {}
-
-  // Publication fields
-  if (hasPubSelection) {
-    const pub: ApplyData['publication'] = {}
-    if (pubSelectedFields.title && fieldsResult.value.publication.title) {
-      pub.title = fieldsResult.value.publication.title
-    }
-    if (pubSelectedFields.description && fieldsResult.value.publication.description) {
-      pub.description = fieldsResult.value.publication.description
-    }
-    if (pubSelectedFields.tags && fieldsResult.value.publication.tags.length > 0) {
-      pub.tags = fieldsResult.value.publication.tags.join(', ')
-    }
-    if (pubSelectedFields.content && fieldsResult.value.publication.content) {
-      pub.content = fieldsResult.value.publication.content
-    }
-    data.publication = pub
-  }
-
-  // Post fields
-  if (hasPostSelection) {
-    const posts: ApplyData['posts'] = []
-    for (const [channelId, fields] of Object.entries(postSelectedFields.value)) {
-      const postResult = getPostResult(channelId)
-      if (!postResult) continue
-
-      const postData: { channelId: string; tags?: string; content?: string } = { channelId }
-      if (fields.tags && postResult.tags.length > 0) {
-        postData.tags = postResult.tags.join(', ')
-      }
-      if (fields.content) {
-        const contentToApply = (postResult.content || fieldsResult.value.publication.content || '').trim()
-        if (contentToApply) {
-          postData.content = contentToApply
-        }
-      }
-
-      if (!postData.tags && !postData.content) continue
-      posts.push(postData)
-    }
-    if (posts.length > 0) {
-      data.posts = posts
-    }
-  }
 
   isApplying.value = true
-  emit('apply', data)
-}
+  try {
+    const postsToApply: ApplyData['posts'] = []
+    
+    for (const channelId in postSelectedFields.value) {
+      const selection = postSelectedFields.value[channelId]
+      if (selection.content || selection.tags) {
+        const postRes = getPostResult(channelId)
+        if (postRes) {
+          postsToApply.push({
+            channelId,
+            content: selection.content ? postRes.content : undefined,
+            tags: selection.tags ? postRes.tags : undefined,
+          })
+        }
+      }
+    }
 
-function handleClose() {
-  if (hasUnsavedChanges.value) {
-    const confirmed = confirm(t('llm.unsavedChangesMessage'))
-    if (!confirmed) return
+    emit('apply', {
+      publication: {
+        title: pubSelectedFields.title ? fieldsResult.value.publication.title : undefined,
+        description: pubSelectedFields.description ? fieldsResult.value.publication.description : undefined,
+        tags: pubSelectedFields.tags ? fieldsResult.value.publication.tags : undefined,
+        content: pubSelectedFields.content ? fieldsResult.value.publication.content : undefined,
+      },
+      posts: postsToApply,
+      metadata: metadata.value,
+      chat: {
+        messages: chatMessages.value,
+        model: metadata.value,
+      },
+    })
+    
+    isOpen.value = false
+    emit('close')
+  } finally {
+    isApplying.value = false
   }
-  
-  isOpen.value = false
-  emit('close')
 }
-
-// Called by parent after successful save
-function onApplySuccess() {
-  isApplying.value = false
-  isOpen.value = false
-}
-
-// Called by parent after failed save
-function onApplyError() {
-  isApplying.value = false
-}
-
-defineExpose({
-  onApplySuccess,
-  onApplyError
-})
 
 const isResetChatConfirmOpen = ref(false)
 
@@ -923,21 +806,18 @@ function handleResetChat() {
 }
 
 async function confirmResetChat() {
-  handleStop()
-
-  // Clear chat messages
   chatMessages.value = []
   prompt.value = ''
   metadata.value = null
-
-  // Re-initialize context tags
+  
   const nextTags: LlmContextTag[] = []
 
-  if (content?.trim()) {
+  if (content?.trim() || title?.trim()) {
+    const header = title?.trim() ? `# ${title.trim()}\n\n` : ''
     nextTags.push({
       id: 'content:1',
       label: t('llm.publicationBlock'),
-      promptText: `<source_content>\n${content.trim()}\n</source_content>`,
+      promptText: `<source_content>\n${header}${content?.trim() || ''}\n</source_content>`,
       kind: 'content',
       enabled: true,
     })
@@ -980,21 +860,23 @@ async function confirmResetChat() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('llm.generate')" :description="modalDescription" size="2xl">
-    <template #header>
-      <div class="flex items-center gap-2">
-        <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-          {{ t('llm.generate') }}
-        </h2>
-        <div class="sr-only">
-          {{ modalDescription }}
-        </div>
-      </div>
-    </template>
-    <div ref="modalRootRef" :class="FORM_SPACING.section">
-      <!-- STEP 1: CHAT -->
+  <UiAppModal
+    v-model:open="isOpen"
+    :title="step === 1 ? t('llm.title') : t('llm.reviewTitle')"
+    :description="step === 1 ? t('llm.description') : t('llm.reviewDescription')"
+    size="xl"
+    :prevent-close="isGenerating || isChatGenerating || isRecording || isTranscribing"
+  >
+    <div ref="modalRootRef" class="flex flex-col h-full overflow-hidden">
+      <!-- STEP 1: CHAT / CONTEXT -->
       <template v-if="step === 1">
+        <!-- Context Tags Display -->
+        <LlmContextPicker
+          v-model="contextTags"
+          :disabled="isGenerating || isChatGenerating"
+          :is-chat-empty="chatMessages.length === 0"
+          @toggle="toggleContextTag"
+        />
 
         <UAlert
           v-if="contextStats.isTruncated"
@@ -1006,35 +888,21 @@ async function confirmResetChat() {
           class="mb-4"
         />
 
-        <div v-if="contextTags.length > 0" class="mb-4">
-          <div class="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700/50">
-            <div class="flex flex-wrap gap-2">
-              <UPopover
-                v-for="ctx in contextTags"
-                :key="ctx.id"
-                mode="hover"
-                :popper="{ placement: 'top' }"
-              >
-                <div class="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
-                  <UCheckbox
-                    :model-value="ctx.enabled"
-                    :disabled="chatMessages.length > 0 || isSkippingChat"
-                    @update:model-value="toggleContextTag(ctx.id)"
-                  />
-                  <span class="text-xs truncate max-w-105" :class="{ 'opacity-50': chatMessages.length > 0 && !isSkippingChat }">{{ ctx.label }}</span>
-                </div>
-                <template #content>
-                  <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
-                    {{ getCleanedContextText(ctx) }}
-                  </div>
-                </template>
-              </UPopover>
-            </div>
-          </div>
+        <!-- Chat Area (HIDDEN IF SKIPPING) -->
+        <div 
+          v-if="!isSkippingChat"
+          ref="chatContainer"
+          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/50 dark:bg-gray-950 p-4"
+        >
+          <LlmChatMessages
+            :messages="chatMessages"
+            :is-generating="isChatGenerating"
+            :get-context-tags-for-message="getContextTagsForMessage"
+          />
         </div>
 
         <!-- SKIP CHAT VIEW -->
-        <div v-else-if="isSkippingChat" class="flex flex-col flex-1 min-h-[300px] space-y-4">
+        <div v-else class="flex flex-col flex-1 min-h-[300px] space-y-4">
            <div class="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 flex-1">
               <h3 class="text-sm font-medium mb-4 text-gray-700 dark:text-gray-300">{{ t('llm.context') }}</h3>
               <div class="flex flex-wrap gap-3">
@@ -1054,73 +922,6 @@ async function confirmResetChat() {
                  </div>
               </div>
            </div>
-        </div>
-
-        <!-- Chat Area (HIDDEN IF SKIPPING) -->
-        <div 
-          v-if="!isSkippingChat"
-          ref="chatContainer"
-          class="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700/50 rounded-lg bg-gray-50/50 dark:bg-gray-950 p-4 space-y-4"
-        >
-          <div v-if="chatMessages.length === 0" class="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 opacity-60">
-             <UIcon name="i-heroicons-chat-bubble-left-right" class="w-12 h-12 mb-2" />
-             <p class="text-sm">{{ t('llm.chatEmpty') }}</p>
-          </div>
-          
-          <div 
-            v-for="(msg, idx) in chatMessages" 
-            :key="idx"
-            class="flex flex-col"
-            :class="msg.role === 'user' ? 'items-end' : 'items-start'"
-          >
-            <div 
-              class="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
-              :class="msg.role === 'user' 
-                ? 'bg-primary text-white dark:bg-primary-600 rounded-tr-none' 
-                : 'bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 rounded-tl-none shadow-sm'"
-            >
-              <div class="whitespace-pre-wrap">{{ msg.content }}</div>
-
-              <div v-if="msg.role === 'user' && idx === 0 && getContextTagsForMessage(msg).length > 0" class="mt-2">
-                <div class="flex flex-wrap gap-1.5">
-                  <UPopover
-                    v-for="ctx in getContextTagsForMessage(msg)"
-                    :key="ctx.id"
-                    mode="hover"
-                    :popper="{ placement: 'top' }"
-                  >
-                    <UButton
-                      size="xs"
-                      color="neutral"
-                      variant="soft"
-                      class="rounded-full! px-2 py-0.5 h-auto max-w-full"
-                    >
-                      <span class="truncate max-w-105">{{ ctx.label }}</span>
-                    </UButton>
-                    <template #content>
-                      <div class="p-3 max-w-sm text-xs whitespace-pre-wrap max-h-60 overflow-y-auto">
-                        {{ getCleanedContextText(ctx) }}
-                      </div>
-                    </template>
-                  </UPopover>
-                </div>
-              </div>
-            </div>
-            <span class="text-[10px] text-gray-400 mt-1 uppercase font-medium tracking-tight">
-              {{ msg.role === 'user' ? t('common.user') : t('common.assistant') }}
-            </span>
-          </div>
-          
-          <!-- Generating indicator -->
-          <div v-if="isChatGenerating" class="flex items-start gap-2">
-            <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700/50 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
-               <div class="flex gap-1.5">
-                  <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></span>
-                  <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                  <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
-               </div>
-            </div>
-          </div>
         </div>
 
         <!-- Template Picker (HIDDEN IF SKIPPING) -->
@@ -1144,64 +945,19 @@ async function confirmResetChat() {
         </div>
 
         <!-- Chat Input (HIDDEN IF SKIPPING) -->
-        <div v-if="!isSkippingChat" class="relative mb-4">
-          <UTextarea
-            ref="promptInputRef"
-            v-model="prompt"
-            :placeholder="t('llm.promptPlaceholder')"
-            :rows="3"
-            autoresize
-            :disabled="isChatGenerating || isGenerating || isRecording || isTranscribing"
-            class="w-full pr-12"
-            @keydown.ctrl.enter="handleGenerate"
-          />
-          
-          <div class="absolute bottom-2 right-2 flex flex-col items-center gap-1.5">
-            <!-- STT Button -->
-            <UTooltip :text="isRecording ? t('common.stop') : (isTranscribing ? t('common.cancel') : t('llm.voiceInputAppend'))">
-              <UButton
-                v-if="isTranscribing"
-                :icon="isSttHovered ? 'i-heroicons-x-mark' : 'i-heroicons-arrow-path'"
-                :color="isSttHovered ? 'error' : 'primary'"
-                variant="ghost"
-                size="sm"
-                :class="{ 'animate-spin': !isSttHovered }"
-                @click="handleCancelStt"
-                @mouseenter="isSttHovered = true"
-                @mouseleave="isSttHovered = false"
-              />
-              <UButton
-                v-else
-                :icon="isRecording ? 'i-heroicons-stop' : 'i-heroicons-microphone'"
-                :color="isRecording ? 'error' : 'neutral'"
-                :variant="isRecording ? 'solid' : 'ghost'"
-                size="sm"
-                :disabled="isGenerating || isChatGenerating"
-                @click="handleVoiceRecording"
-              />
-            </UTooltip>
-
-            <!-- Send/Stop Generation Button -->
-            <UButton
-              v-if="isChatGenerating"
-              icon="i-heroicons-x-mark"
-              color="neutral"
-              variant="solid"
-              size="sm"
-              @click="handleStop"
-            />
-            <UButton
-              v-else
-              icon="i-heroicons-paper-airplane"
-              color="primary"
-              variant="solid"
-              size="sm"
-              :loading="isChatGenerating"
-              :disabled="!prompt.trim() || isRecording || isTranscribing"
-              @click="handleGenerate"
-            />
-          </div>
-        </div>
+        <LlmChatInput
+          v-if="!isSkippingChat"
+          v-model="prompt"
+          :is-generating="isChatGenerating"
+          :is-recording="isRecording"
+          :is-transcribing="isTranscribing"
+          :disabled="isGenerating"
+          :estimated-tokens="estimatedTokensValue"
+          @send="handleGenerate"
+          @stop="handleStop"
+          @voice="handleVoiceRecording"
+          @cancel-voice="handleCancelStt"
+        />
 
         <!-- Metadata & Stats (Chat) (HIDDEN IF SKIPPING) -->
         <div v-if="!isSkippingChat" class="mt-2 flex items-center justify-between text-[10px] text-gray-400 px-1">
@@ -1217,7 +973,6 @@ async function confirmResetChat() {
 
       <!-- STEP 2: FIELDS GENERATION -->
       <template v-else-if="step === 2">
-
         <div v-if="isExtracting" class="flex flex-col items-center justify-center py-12 space-y-4">
            <UiLoadingSpinner size="lg" color="primary" :label="t('llm.processingParameters')" centered />
            <UButton
@@ -1230,112 +985,17 @@ async function confirmResetChat() {
            </UButton>
         </div>
         
-        <div v-else-if="fieldsResult" class="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
-
-           <!-- PUBLICATION BLOCK -->
-           <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden">
-             <div class="px-4 py-3 bg-primary-50 dark:bg-primary-900/20 border-b border-gray-200 dark:border-gray-700/50">
-               <div class="flex items-center gap-2">
-                 <UIcon name="i-heroicons-document-text" class="w-4 h-4 text-primary" />
-                 <span class="font-semibold text-sm text-gray-900 dark:text-white">{{ t('llm.publicationBlock') }}</span>
-                 <UBadge v-if="publicationLanguage" variant="subtle" color="neutral" size="xs" class="font-mono ml-auto">
-                   {{ publicationLanguage }}
-                 </UBadge>
-               </div>
-             </div>
-             <div class="p-4 space-y-4">
-               <!-- Title -->
-               <div class="space-y-1.5">
-                 <UCheckbox v-model="pubSelectedFields.title" :label="t('post.title')" />
-                 <UInput v-if="pubSelectedFields.title" ref="step2TitleInputRef" v-model="fieldsResult.publication.title" class="bg-white dark:bg-gray-800 w-full" />
-               </div>
-
-               <!-- Tags -->
-               <div class="space-y-1.5">
-                 <UCheckbox v-model="pubSelectedFields.tags" :label="t('post.tags')" />
-                 <div v-if="pubSelectedFields.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
-                   <template v-if="fieldsResult.publication.tags.length > 0">
-                     <UButton
-                       v-for="tag in fieldsResult.publication.tags"
-                       :key="tag"
-                       size="xs"
-                       color="neutral"
-                       variant="soft"
-                       class="rounded-full! px-2 py-0.5 h-auto"
-                       @click="removePubTag(tag)"
-                     >
-                       #{{ tag }}
-                       <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
-                     </UButton>
-                   </template>
-                   <span v-else class="text-xs text-gray-400 italic">{{ t('common.none') }}</span>
-                 </div>
-               </div>
-
-               <!-- Description -->
-               <div class="space-y-1.5">
-                 <UCheckbox v-model="pubSelectedFields.description" :label="t('post.description')" />
-                 <UTextarea v-if="pubSelectedFields.description" v-model="fieldsResult.publication.description" autoresize :rows="2" class="w-full" />
-               </div>
-
-               <!-- Content -->
-               <div class="space-y-1.5">
-                 <UCheckbox v-model="pubSelectedFields.content" :label="t('post.contentLabel')" />
-                 <UTextarea v-if="pubSelectedFields.content" v-model="fieldsResult.publication.content" autoresize :rows="4" class="font-mono text-xs w-full" />
-               </div>
-             </div>
-           </div>
-
-           <!-- POST BLOCKS (per channel) -->
-           <template v-for="ch in channelsWithPosts" :key="ch.channelId">
-             <div
-              v-if="postSelectedFields[ch.channelId]"
-              class="border border-gray-200 dark:border-gray-700/50 rounded-lg overflow-hidden"
-             >
-               <div class="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700/50">
-                 <div class="flex items-center gap-2">
-                   <CommonSocialIcon v-if="ch.socialMedia" :platform="ch.socialMedia" size="xs" />
-                   <UIcon v-else name="i-heroicons-megaphone" class="w-4 h-4 text-gray-400" />
-                   <span class="font-semibold text-sm text-gray-900 dark:text-white truncate">{{ ch.channelName }}</span>
-                 </div>
-               </div>
-               <div class="p-4 space-y-4">
-                 <!-- Post Content -->
-                 <div class="space-y-1.5">
-                   <UCheckbox v-model="postSelectedFields[ch.channelId]!.content" :label="t('post.contentLabel')" />
-                   <UTextarea
-                     v-if="postSelectedFields[ch.channelId]!.content"
-                     :model-value="getPostContentForChannel(ch.channelId)"
-                     autoresize
-                     :rows="4"
-                     class="font-mono text-xs w-full"
-                     @update:model-value="(v) => setPostContentForChannel(ch.channelId, String(v ?? ''))"
-                   />
-                 </div>
-
-                 <!-- Post Tags -->
-                 <div v-if="(getPostResult(ch.channelId)?.tags?.length ?? 0) > 0" class="space-y-1.5">
-                   <UCheckbox v-model="postSelectedFields[ch.channelId]!.tags" :label="t('post.tags')" />
-                   <div v-if="postSelectedFields[ch.channelId]!.tags" class="p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 flex flex-wrap gap-1.5 min-h-9">
-                     <UButton
-                       v-for="tag in getPostResult(ch.channelId)!.tags"
-                       :key="tag"
-                       size="xs"
-                       :color="(ch.tags || []).includes(tag) ? 'primary' : 'neutral'"
-                       variant="soft"
-                       class="rounded-full! px-2 py-0.5 h-auto"
-                       @click="removePostTag(ch.channelId, tag)"
-                     >
-                       #{{ tag }}
-                       <UIcon name="i-heroicons-x-mark" class="w-3 h-3 ml-1 opacity-50 hover:opacity-100" />
-                     </UButton>
-                   </div>
-                 </div>
-               </div>
-             </div>
-           </template>
-
-        </div>
+        <LlmFieldsForm
+          v-else-if="fieldsResult"
+          :fields-result="fieldsResult"
+          :pub-selected-fields="pubSelectedFields"
+          :post-selected-fields="postSelectedFields"
+          :post-channels="postChannels || []"
+          :publication-language="publicationLanguage || 'en-US'"
+          @remove-pub-tag="removePubTag"
+          @remove-post-tag="removePostTag"
+          @update-post-content="setPostContentForChannel"
+        />
       </template>
     </div>
 

@@ -33,7 +33,7 @@ export const TELEGRAM_MEDIA_PROXY_RETRY_JITTER_RATIO = 0.2;
 /**
  * Default LLM context limit in characters for non-article content.
  */
-export const DEFAULT_LLM_CONTEXT_LIMIT_CHARS = 10000;
+export const DEFAULT_LLM_CONTEXT_LIMIT_CHARS = 100000;
 
 /**
  * Default timeout for LLM requests in seconds (fallback if not configured).

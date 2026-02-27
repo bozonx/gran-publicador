@@ -58,7 +58,7 @@ export default defineNuxtConfig({
       telegramBotName: process.env.NUXT_PUBLIC_TELEGRAM_BOT_NAME || 'gran_publicador_bot',
       newsServiceUrl:
         process.env.NUXT_PUBLIC_NEWS_SERVICE_URL || process.env.NEWS_SERVICE_URL || '',
-      llmContextLimitDefault: process.env.NUXT_PUBLIC_LLM_CONTEXT_LIMIT_DEFAULT || '10000',
+      llmContextLimitDefault: process.env.NUXT_PUBLIC_LLM_CONTEXT_LIMIT_DEFAULT || '100000',
       llmContextLimitArticle: process.env.NUXT_PUBLIC_LLM_CONTEXT_LIMIT_ARTICLE || '100000',
       mediaEditorQuality: Number(process.env.NUXT_PUBLIC_MEDIA_EDITOR_QUALITY || 95),
     },

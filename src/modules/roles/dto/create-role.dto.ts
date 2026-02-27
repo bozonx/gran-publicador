@@ -53,6 +53,20 @@ class PublicationsPermissionsDto {
   deleteAll!: boolean;
 }
 
+class ContentLibraryPermissionsDto {
+  @IsBoolean()
+  read!: boolean;
+
+  @IsBoolean()
+  create!: boolean;
+
+  @IsBoolean()
+  update!: boolean;
+
+  @IsBoolean()
+  delete!: boolean;
+}
+
 export class RolePermissionsDto implements RolePermissions {
   @ValidateNested()
   @Type(() => PermissionsSectionDto)
@@ -65,6 +79,10 @@ export class RolePermissionsDto implements RolePermissions {
   @ValidateNested()
   @Type(() => PublicationsPermissionsDto)
   publications!: PublicationsPermissionsDto;
+
+  @ValidateNested()
+  @Type(() => ContentLibraryPermissionsDto)
+  contentLibrary!: ContentLibraryPermissionsDto;
 }
 
 export class CreateRoleDto {

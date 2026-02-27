@@ -10,7 +10,13 @@ import { ConfigService } from '@nestjs/config';
 import { request } from 'undici';
 import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
+import { HttpConfig } from '../../config/http.config.js';
 import { filterUndefined } from '../../common/utils/object.utils.js';
+import {
+  isConnectionError,
+  isTimeoutError,
+  requestJsonWithRetry,
+} from '../../common/utils/http-request-with-retry.util.js';
 import {
   DEFAULT_LLM_CONTEXT_LIMIT_CHARS,
   DEFAULT_LLM_TIMEOUT_SECS,
@@ -62,6 +68,7 @@ export interface LlmResponse {
 export class LlmService {
   private readonly logger = new Logger(LlmService.name);
   private readonly config: LlmConfig;
+  private readonly httpConfig: HttpConfig;
 
   private readonly defaultContextLimitChars = DEFAULT_LLM_CONTEXT_LIMIT_CHARS;
 
@@ -84,37 +91,21 @@ export class LlmService {
     this.logger.debug(`Sending request to LLM Router: ${url}`);
 
     try {
-      const response = await request(url, {
+      const { data } = await requestJsonWithRetry<LlmResponse>({
+        url,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(this.config.apiToken ? { Authorization: `Bearer ${this.config.apiToken}` } : {}),
         },
         body: JSON.stringify(requestBody),
-        signal: options.signal,
-        headersTimeout: timeout,
-        bodyTimeout: timeout,
+        timeoutMs: timeout,
+        retry: {
+          maxAttempts: this.httpConfig.retryMaxAttempts,
+          initialDelayMs: this.httpConfig.retryInitialDelayMs,
+          maxDelayMs: this.httpConfig.retryMaxDelayMs,
+        },
       });
-
-      if (response.statusCode >= 400) {
-        const errorText = await response.body.text();
-        const errorPreview = String(errorText || '').slice(0, 500);
-
-        this.logger.error(
-          `LLM Router error ${response.statusCode}. Context=${JSON.stringify({
-            ...logContext,
-            errorPreview,
-          })}`,
-        );
-
-        if (response.statusCode === 429) {
-          throw new HttpException('LLM rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS);
-        }
-
-        throw new BadGatewayException('LLM provider request failed');
-      }
-
-      const data = (await response.body.json()) as LlmResponse;
 
       // Validate response structure
       if (!data || typeof data !== 'object') {
@@ -167,24 +158,23 @@ export class LlmService {
         throw new HttpException('Request aborted', 499);
       }
 
-      if (error instanceof HttpException && error.getStatus() === HttpStatus.TOO_MANY_REQUESTS)
-        throw error;
-      if (error instanceof BadGatewayException) throw error;
-
-      const message = String(error?.message || 'Unknown error');
-      const isTimeout = message.toLowerCase().includes('timeout');
-
       this.logger.error(
         `LLM Router request failed. Context=${JSON.stringify({
           ...logContext,
           errorName: error?.name,
-          errorMessage: message,
+          errorMessage: error?.message,
         })}`,
       );
 
-      if (isTimeout) {
+      if (isTimeoutError(error)) {
         throw new RequestTimeoutException('LLM provider request timed out');
       }
+
+      if (isConnectionError(error)) {
+        throw new BadGatewayException('LLM provider connection failed');
+      }
+
+      if (error instanceof HttpException) throw error;
 
       throw new BadGatewayException('LLM provider request failed');
     }
@@ -306,6 +296,7 @@ export class LlmService {
    */
   constructor(private readonly configService: ConfigService) {
     this.config = this.configService.get<LlmConfig>('llm')!;
+    this.httpConfig = this.configService.get<HttpConfig>('http')!;
   }
 
   /**
