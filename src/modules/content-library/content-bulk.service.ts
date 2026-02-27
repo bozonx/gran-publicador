@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { PermissionsService } from '../../common/services/permissions.service.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { ContentCollectionsService } from './content-collections.service.js';
@@ -60,7 +61,7 @@ export class ContentBulkService {
     const projectIdToPermissionError = new Map<string, any>();
     for (const projectId of uniqueProjectIds) {
       try {
-        await this.permissions.checkProjectPermission(projectId, userId, ['ADMIN', 'EDITOR']);
+        await this.permissions.checkPermission(projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
       } catch (e) {
         projectIdToPermissionError.set(projectId, e);
       }
@@ -135,7 +136,7 @@ export class ContentBulkService {
 
       case BulkOperationType.SET_PROJECT:
         if (dto.projectId) {
-          await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+          await this.permissions.checkPermission(dto.projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
         }
 
         await this.prisma.$transaction(
@@ -217,7 +218,7 @@ export class ContentBulkService {
 
       case BulkOperationType.COPY_TO_PROJECT: {
         if (dto.projectId) {
-          await this.permissions.checkProjectPermission(dto.projectId, userId, ['ADMIN', 'EDITOR']);
+          await this.permissions.checkPermission(dto.projectId, userId, PermissionKey.CONTENT_LIBRARY_CREATE);
         }
 
         const fullItems = await this.prisma.contentItem.findMany({

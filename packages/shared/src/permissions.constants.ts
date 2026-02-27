@@ -17,6 +17,12 @@ export interface RolePermissions {
     deleteOwn: boolean;
     deleteAll: boolean;
   };
+  contentLibrary: {
+    read: boolean;
+    create: boolean;
+    update: boolean;
+    delete: boolean;
+  };
 }
 
 export const SystemRoleType = {
@@ -40,6 +46,10 @@ export const PermissionKey = {
   PUBLICATIONS_UPDATE_ALL: 'publications.updateAll',
   PUBLICATIONS_DELETE_OWN: 'publications.deleteOwn',
   PUBLICATIONS_DELETE_ALL: 'publications.deleteAll',
+  CONTENT_LIBRARY_READ: 'contentLibrary.read',
+  CONTENT_LIBRARY_CREATE: 'contentLibrary.create',
+  CONTENT_LIBRARY_UPDATE: 'contentLibrary.update',
+  CONTENT_LIBRARY_DELETE: 'contentLibrary.delete',
 } as const;
 
 export type PermissionKey = (typeof PermissionKey)[keyof typeof PermissionKey];

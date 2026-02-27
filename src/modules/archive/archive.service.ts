@@ -7,6 +7,7 @@ import {
 import type { Project, Channel, Publication, Post } from '../../generated/prisma/index.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import { ArchiveEntityType, ArchiveStatsDto } from './dto/archive.dto.js';
 
 type ArchivableEntity = Project | Channel | Publication;
@@ -30,16 +31,13 @@ export class ArchiveService {
 
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        await this.permissions.checkProjectPermission(id, userId, ['ADMIN']);
+        await this.permissions.checkPermission(id, userId, PermissionKey.PROJECT_UPDATE);
         return this.prisma.project.update({ where: { id }, data });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'ADMIN',
-          'EDITOR',
-        ]);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_UPDATE);
         return this.prisma.channel.update({ where: { id }, data });
       }
       case ArchiveEntityType.PUBLICATION: {
@@ -47,7 +45,7 @@ export class ArchiveService {
         if (!publication) throw new NotFoundException('Publication not found');
         // Author or Admin/Owner
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
+          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -69,23 +67,20 @@ export class ArchiveService {
 
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        await this.permissions.checkProjectPermission(id, userId, ['ADMIN']);
+        await this.permissions.checkPermission(id, userId, PermissionKey.PROJECT_UPDATE);
         return this.prisma.project.update({ where: { id }, data });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkProjectPermission(channel.projectId, userId, [
-          'ADMIN',
-          'EDITOR',
-        ]);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_UPDATE);
         return this.prisma.channel.update({ where: { id }, data });
       }
       case ArchiveEntityType.PUBLICATION: {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
+          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
         }
         return this.prisma.publication.update({ where: { id }, data });
       }
@@ -102,21 +97,21 @@ export class ArchiveService {
   ): Promise<ArchivableEntity> {
     switch (type) {
       case ArchiveEntityType.PROJECT: {
-        // OWNER is checked implicitly by permissions check before roles
-        await this.permissions.checkProjectPermission(id, userId, []);
+        // Only owner can delete project (implicitly checked by checkProjectAccess in PermissionsService)
+        await this.permissions.checkProjectAccess(id, userId, false);
         return this.prisma.project.delete({ where: { id } });
       }
       case ArchiveEntityType.CHANNEL: {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
-        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_DELETE);
         return this.prisma.channel.delete({ where: { id } });
       }
       case ArchiveEntityType.PUBLICATION: {
         const publication = await this.prisma.publication.findUnique({ where: { id } });
         if (!publication) throw new NotFoundException('Publication not found');
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
+          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
         }
         return this.prisma.publication.delete({ where: { id } });
       }
@@ -137,9 +132,9 @@ export class ArchiveService {
         const channel = await this.prisma.channel.findUnique({ where: { id } });
         if (!channel) throw new NotFoundException('Channel not found');
         // Check source project permissions
-        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.CHANNELS_DELETE);
         // Check target project permissions
-        await this.permissions.checkProjectPermission(targetParentId, userId, ['ADMIN']);
+        await this.permissions.checkPermission(targetParentId, userId, PermissionKey.CHANNELS_CREATE);
 
         return this.prisma.channel.update({
           where: { id },
@@ -153,11 +148,11 @@ export class ArchiveService {
 
         // Check source project permissions (or author)
         if (publication.createdBy !== userId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, ['ADMIN']);
+          await this.permissions.checkPermission(publication.projectId, userId, PermissionKey.PUBLICATIONS_DELETE_ALL);
         }
 
         // Check target project permissions
-        await this.permissions.checkProjectPermission(targetParentId, userId, ['ADMIN', 'EDITOR']);
+        await this.permissions.checkPermission(targetParentId, userId, PermissionKey.PUBLICATIONS_CREATE);
 
         return this.prisma.publication.update({
           where: { id },
@@ -185,7 +180,7 @@ export class ArchiveService {
         if (!channel) {
           return false;
         }
-        await this.permissions.checkProjectPermission(channel.projectId, userId, []);
+        await this.permissions.checkProjectAccess(channel.projectId, userId, true);
         return !!(channel.archivedAt ?? channel.project.archivedAt);
       }
 
@@ -199,7 +194,7 @@ export class ArchiveService {
         }
 
         if (publication.projectId) {
-          await this.permissions.checkProjectPermission(publication.projectId, userId, []);
+          await this.permissions.checkProjectAccess(publication.projectId, userId, true);
         }
 
         return !!(publication.archivedAt ?? publication.project?.archivedAt);
@@ -210,7 +205,7 @@ export class ArchiveService {
         if (!project) {
           return false;
         }
-        await this.permissions.checkProjectPermission(id, userId, []);
+        await this.permissions.checkProjectAccess(id, userId, true);
         return !!project.archivedAt;
       }
 

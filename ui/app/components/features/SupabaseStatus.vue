@@ -1,5 +1,8 @@
 <template>
-  <UiCard :title="$t('settings.supabaseStatus')" variant="elevated">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-semibold">{{ $t('settings.supabaseStatus') }}</h3>
+    </template>
     <div class="space-y-4">
       <div class="flex items-center space-x-2">
         <div :class="['w-3 h-3 rounded-full', isConfigured ? 'bg-green-500' : 'bg-yellow-500']" />
@@ -21,7 +24,7 @@
         </p>
       </div>
     </div>
-  </UiCard>
+  </UCard>
 </template>
 
 <script setup lang="ts">

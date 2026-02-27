@@ -163,7 +163,10 @@ function formatDate(date: string | null | undefined): string {
 </script>
 
 <template>
-  <UiAppCard :title="t('settings.apiTokens')" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('settings.apiTokens') }}</h3>
+    </template>
     <template #actions>
       <UButton
         color="primary"
@@ -343,5 +346,5 @@ function formatDate(date: string | null | undefined): string {
       :loading="tokensLoading"
       @confirm="confirmDeleteToken"
     />
-  </UiAppCard>
+  </UCard>
 </template>

@@ -38,7 +38,10 @@ async function updatePreference(key: string, value: any) {
 </script>
 
 <template>
-  <UiAppCard :title="t('settings.appSettings', 'App Settings')" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('settings.appSettings', 'App Settings') }}</h3>
+    </template>
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <div class="flex flex-col">
@@ -55,5 +58,5 @@ async function updatePreference(key: string, value: any) {
         />
       </div>
     </div>
-  </UiAppCard>
+  </UCard>
 </template>

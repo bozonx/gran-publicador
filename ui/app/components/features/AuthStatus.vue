@@ -12,7 +12,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <UiCard :title="t('auth.status')" variant="bordered">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-semibold">{{ t('auth.status') }}</h3>
+    </template>
     <div class="space-y-3">
       <!-- Loading state -->
       <div v-if="isLoading" class="flex items-center gap-2 text-gray-500">
@@ -69,10 +72,10 @@ onMounted(async () => {
       <!-- Not authenticated -->
       <div v-else class="text-gray-500">
         <p>{{ t('auth.notAuthenticated') }}</p>
-        <UiButton variant="primary" size="sm" class="mt-2" @click="initialize">
+        <UButton color="primary" size="sm" class="mt-2" @click="() => { initialize() }">
           {{ t('auth.login') }}
-        </UiButton>
+        </UButton>
       </div>
     </div>
-  </UiCard>
+  </UCard>
 </template>

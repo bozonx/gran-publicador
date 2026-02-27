@@ -107,10 +107,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <UiAppCard
-    :title="t('notifications.settings', 'Notification Settings')"
-    title-class="text-lg font-medium text-gray-900 dark:text-white"
-  >
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('notifications.settings', 'Notification Settings') }}</h3>
+    </template>
     <div v-if="isLoading" class="flex justify-center py-8">
       <UiLoadingSpinner />
     </div>
@@ -179,5 +179,5 @@ onMounted(() => {
     <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400">
       {{ t('notifications.noPreferences', 'No notification preferences found') }}
     </div>
-  </UiAppCard>
+  </UCard>
 </template>

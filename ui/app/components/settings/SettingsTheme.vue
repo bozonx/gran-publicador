@@ -4,7 +4,10 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <UiAppCard :title="t('settings.theme')" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('settings.theme') }}</h3>
+    </template>
 
     <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
       {{ t('settings.themeDescription', 'Choose your preferred theme interface aesthetics.') }}
@@ -41,5 +44,5 @@ const { t } = useI18n()
         )
       }}
     </p>
-  </UiAppCard>
+  </UCard>
 </template>

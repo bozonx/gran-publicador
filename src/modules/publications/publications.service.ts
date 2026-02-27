@@ -175,13 +175,6 @@ export class PublicationsService {
     const sanitizedContent = sanitizePublicationMarkdownForStorage(data.content ?? '');
     const meta = data.meta ?? {};
 
-    // Move newsItemId to meta for debug/reference as the explicit field is removed
-    if (data.newsItemId) {
-      meta.newsData = {
-        ...(meta.newsData || {}),
-        id: data.newsItemId,
-      };
-    }
 
     const publication = await this.prisma.publication.create({
       data: {
@@ -217,9 +210,6 @@ export class PublicationsService {
       data: { effectiveAt: publication.scheduledAt ?? publication.createdAt },
     });
 
-    if (data.deleteOriginalContent && data.contentItemIds?.length) {
-      await this.deleteOriginalContentItems(data.contentItemIds, userId);
-    }
 
     this.logPublicationCreation(publication, data.projectId, userId);
 
@@ -606,16 +596,6 @@ export class PublicationsService {
   private prepareContentItemsRelation(data: CreatePublicationDto) {
     if (!data.contentItemIds?.length) return undefined;
     return { create: data.contentItemIds.map((id, i) => ({ contentItemId: id, order: i })) };
-  }
-
-  private async deleteOriginalContentItems(ids: string[], userId?: string) {
-    for (const id of ids) {
-      try {
-        await this.contentItemsService.remove(id, userId!);
-      } catch (err: any) {
-        this.logger.error(`Failed to delete original content item ${id}: ${err.message}`);
-      }
-    }
   }
 
   private logPublicationCreation(publication: any, projectId: string, userId?: string) {

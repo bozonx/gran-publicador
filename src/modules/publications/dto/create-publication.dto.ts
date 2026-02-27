@@ -150,10 +150,6 @@ export class CreatePublicationDto {
   @MaxLength(255)
   public unsplashId?: string;
 
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  public newsItemId?: string;
 
   @IsArray()
   @IsString({ each: true })
@@ -176,7 +172,4 @@ export class CreatePublicationDto {
   @IsOptional()
   public projectTemplateId?: string;
 
-  @IsBoolean()
-  @IsOptional()
-  public deleteOriginalContent?: boolean;
 }

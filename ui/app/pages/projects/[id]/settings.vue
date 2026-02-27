@@ -218,11 +218,11 @@ async function handleTransfer() {
 
       <div class="grid grid-cols-1 gap-8">
         <!-- General Settings -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="t('project.general_settings', 'General Settings')"
-          :description="t('project.general_settings_desc', 'Update your project name and description')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('project.general_settings', 'General Settings') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('project.general_settings_desc', 'Update your project name and description') }}</p>
+          </template>
           
           <FormsProjectForm
             :project="currentProject"
@@ -234,14 +234,14 @@ async function handleTransfer() {
             flat
             @submit="(data) => handleUpdate(data, 'general')"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Preferences -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="t('settings.preferences', 'Preferences')"
-          :description="t('project.preferences_desc', 'Configure project-wide settings and defaults')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('settings.preferences', 'Preferences') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('project.preferences_desc', 'Configure project-wide settings and defaults') }}</p>
+          </template>
           
           <FormsProjectForm
             :project="currentProject"
@@ -253,14 +253,14 @@ async function handleTransfer() {
             flat
             @submit="(data) => handleUpdate(data, 'preferences')"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Media Optimization -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="t('settings.mediaOptimization.title', 'Media Optimization')"
-          :description="t('settings.mediaOptimization.description', 'Configure default optimization values applied when uploading media')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('settings.mediaOptimization.title', 'Media Optimization') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('settings.mediaOptimization.description', 'Configure default optimization values applied when uploading media') }}</p>
+          </template>
           <FormsProjectForm
             :project="currentProject"
             :is-loading="isSavingOptimization"
@@ -271,33 +271,33 @@ async function handleTransfer() {
             flat
             @submit="(data) => handleUpdate(data, 'optimization')"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Author Signatures -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="t('authorSignature.title', 'Author Signatures')"
-          :description="t('authorSignature.projectDescription', 'Manage author signatures with language variants. Signatures are selected when creating publications and copied to posts.')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('authorSignature.title', 'Author Signatures') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('authorSignature.projectDescription', 'Manage author signatures with language variants. Signatures are selected when creating publications and copied to posts.') }}</p>
+          </template>
           <PostsAuthorSignatureManager
             :project-id="currentProject.id"
             :channel-languages="projectLanguages"
             :project-preferences="currentProject.preferences"
             @update:preferences="fetchProject(projectId)"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Publication Templates -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="t('projectTemplates.title', 'Publication Templates')"
-          :description="t('projectTemplates.description', 'Define templates that control how publications are formatted when posted to channels.')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('projectTemplates.title', 'Publication Templates') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('projectTemplates.description', 'Define templates that control how publications are formatted when posted to channels.') }}</p>
+          </template>
           <FormsProjectTemplatesEditor
             :project-id="currentProject.id"
             :readonly="!!currentProject.archivedAt"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- LLM Prompt Templates -->
         <SettingsLlmPromptTemplates
@@ -306,21 +306,23 @@ async function handleTransfer() {
         />
 
         <!-- Members Management -->
-        <UiAppCard
-          v-if="canManageMembers(currentProject)"
-          :title="t('project.members', 'Members')"
-          :description="t('project.members_desc', 'Manage who has access to this project')"
-        >
-          <template #actions>
-            <UButton
-              v-if="canManageMembers(currentProject)"
-              icon="i-heroicons-user-plus"
-              size="sm"
-              color="primary"
-              @click="isInviteModalOpen = true"
-            >
-              {{ t('projectMember.invite') }}
-            </UButton>
+        <UCard v-if="canManageMembers(currentProject)">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('project.members', 'Members') }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('project.members_desc', 'Manage who has access to this project') }}</p>
+              </div>
+              <UButton
+                v-if="canManageMembers(currentProject)"
+                icon="i-heroicons-user-plus"
+                size="sm"
+                color="primary"
+                @click="isInviteModalOpen = true"
+              >
+                {{ t('projectMember.invite') }}
+              </UButton>
+            </div>
           </template>
 
           <ProjectsProjectMembersList :project-id="currentProject.id" />
@@ -330,22 +332,22 @@ async function handleTransfer() {
             :project-id="currentProject.id"
             @success="fetchMembers(currentProject.id)"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Roles Management -->
-        <UiAppCard
-          v-if="canManageMembers(currentProject)"
-          :title="t('roles.rolesAndPermissions')"
-          :description="t('roles.rolesDescription')"
-        >
+        <UCard v-if="canManageMembers(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('roles.rolesAndPermissions') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('roles.rolesDescription') }}</p>
+          </template>
           <RolesList :project-id="currentProject.id" />
-        </UiAppCard>
+        </UCard>
 
         <!-- Archive Project -->
-        <UiAppCard
-          v-if="canEdit(currentProject)"
-          :title="currentProject.archivedAt ? t('project.unarchiveProject', 'Unarchive Project') : t('project.archiveProject', 'Archive Project')"
-        >
+        <UCard v-if="canEdit(currentProject)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ currentProject.archivedAt ? t('project.unarchiveProject', 'Unarchive Project') : t('project.archiveProject', 'Archive Project') }}</h3>
+          </template>
 
           <div class="flex items-center justify-between">
             <div>
@@ -364,15 +366,13 @@ async function handleTransfer() {
               @toggle="() => fetchProject(projectId)"
             />
           </div>
-        </UiAppCard>
+        </UCard>
 
         <!-- Danger Zone -->
-        <UiAppCard
-          v-if="canDelete(currentProject)"
-          :title="t('common.danger_zone', 'Danger Zone')"
-          title-class="text-lg font-semibold text-red-600 dark:text-red-400"
-          class="border border-red-200 dark:border-red-900"
-        >
+        <UCard v-if="canDelete(currentProject)" :ui="{ root: 'ring-1 ring-red-200 dark:ring-red-900' }">
+          <template #header>
+            <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">{{ t('common.danger_zone', 'Danger Zone') }}</h3>
+          </template>
           
           <div class="flex items-center justify-between">
             <div>
@@ -413,12 +413,12 @@ async function handleTransfer() {
               {{ t('project.transferProject', 'Transfer Project') }}
             </UButton>
           </div>
-        </UiAppCard>
+        </UCard>
       </div>
     </div>
 
     <!-- Delete confirmation modal -->
-    <UiAppModal v-model:open="showDeleteModal" :title="t('project.deleteProject')">
+    <UModal v-model:open="showDeleteModal" :title="t('project.deleteProject')">
       <div v-if="currentProject" class="mb-6">
         <p class="text-gray-600 dark:text-gray-400 mb-2">
           {{ t('project.deleteConfirmWithInput') }}
@@ -451,10 +451,10 @@ async function handleTransfer() {
           {{ t('common.delete') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </UModal>
 
     <!-- Transfer confirmation modal -->
-    <UiAppModal v-model:open="showTransferModal" :title="t('project.transferProject', 'Transfer Project')">
+    <UModal v-model:open="showTransferModal" :title="t('project.transferProject', 'Transfer Project')">
       <div v-if="currentProject" class="mb-6">
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
           {{ t('project.transfer_info', 'Enter the username or Telegram ID of the user you want to transfer this project to. You will lose all ownership rights and access, unless the new owner invites you back.') }}
@@ -531,7 +531,7 @@ async function handleTransfer() {
           {{ t('project.transferNow', 'Transfer Ownership') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </UModal>
   </div>
 </template>
 

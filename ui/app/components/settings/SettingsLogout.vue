@@ -9,15 +9,14 @@ async function handleLogout() {
 </script>
 
 <template>
-  <UiAppCard 
+  <UCard 
     v-if="authMode !== 'miniApp'"
-    :title="t('auth.logout')"
   >
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('auth.logout') }}</h3>
+    </template>
     <div class="flex items-center justify-between">
       <div>
-        <h3 class="font-medium text-gray-900 dark:text-white">
-          {{ t('auth.logout') }}
-        </h3>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
           {{ t('settings.logout_desc', 'Logout from your account on this device.') }}
         </p>
@@ -31,5 +30,5 @@ async function handleLogout() {
         {{ t('auth.logout') }}
       </UButton>
     </div>
-  </UiAppCard>
+  </UCard>
 </template>

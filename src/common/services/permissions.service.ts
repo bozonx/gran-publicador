@@ -125,52 +125,6 @@ export class PermissionsService {
   }
 
   /**
-   * Legacy method for backward compatibility - DEPRECATED.
-   * Prefer using checkPermission with granular keys.
-   */
-  public async checkProjectPermission(
-    projectId: string,
-    userId: string,
-    allowedRoles: string[],
-  ): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { isAdmin: true },
-    });
-
-    if (user?.isAdmin) return;
-
-    const project = await this.prisma.project.findUnique({
-      where: { id: projectId },
-      include: {
-        members: {
-          where: { userId },
-          include: { role: true },
-        },
-      },
-    });
-
-    if (!project) throw new NotFoundException('Project not found');
-    if (project.ownerId === userId) return;
-
-    if (project.members.length === 0) {
-      throw new ForbiddenException('No access to project');
-    }
-
-    const userRole = project.members[0].role;
-
-    const isAllowed = allowedRoles.some(
-      r =>
-        userRole.systemType === r ||
-        (r === 'ADMIN' && userRole.systemType === SystemRoleType.ADMIN),
-    );
-
-    if (!isAllowed) {
-      throw new ForbiddenException('Insufficient permissions');
-    }
-  }
-
-  /**
    * Retrieve the user's role name or 'OWNER'.
    */
   public async getUserProjectRole(projectId: string, userId: string): Promise<string | null> {
@@ -209,6 +163,12 @@ export class PermissionsService {
         updateAll: true,
         deleteOwn: true,
         deleteAll: true,
+      },
+      contentLibrary: {
+        read: true,
+        create: true,
+        update: true,
+        delete: true,
       },
     };
   }

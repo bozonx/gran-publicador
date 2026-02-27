@@ -33,11 +33,10 @@ async function handleDeleteAccount() {
 </script>
 
 <template>
-  <UiAppCard
-    :title="t('common.danger_zone', 'Danger Zone')"
-    title-class="text-lg font-semibold text-red-600 dark:text-red-400"
-    class="border border-red-200 dark:border-red-900"
-  >
+  <UCard :ui="{ root: 'ring-1 ring-red-200 dark:ring-red-900' }">
+    <template #header>
+      <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">{{ t('common.danger_zone', 'Danger Zone') }}</h3>
+    </template>
     <div class="flex items-center justify-between">
       <div>
         <h3 class="font-medium text-gray-900 dark:text-white">
@@ -59,7 +58,7 @@ async function handleDeleteAccount() {
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <UiAppModal
+    <UModal
       v-model:open="isConfirmDeleteOpen"
       :title="t('auth.deleteAccountConfirmTitle')"
       :description="t('auth.deleteAccountConfirmDescription')"
@@ -80,6 +79,6 @@ async function handleDeleteAccount() {
           {{ t('auth.confirmDelete') }}
         </UButton>
       </template>
-    </UiAppModal>
-  </UiAppCard>
+    </UModal>
+  </UCard>
 </template>

@@ -121,7 +121,10 @@ async function updateProfile(data: any) {
 </script>
 
 <template>
-  <UiAppCard :title="t('settings.language')" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('settings.language') }}</h3>
+    </template>
     <div class="space-y-8">
       <!-- Content Language (Main) -->
       <div>
@@ -196,5 +199,5 @@ async function updateProfile(data: any) {
         </div>
       </div>
     </div>
-  </UiAppCard>
+  </UCard>
 </template>

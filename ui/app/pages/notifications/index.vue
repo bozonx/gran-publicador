@@ -51,17 +51,19 @@ onMounted(() => {
     </div>
 
     <!-- Notification List -->
-    <UiAppCard :padded="false" class="overflow-hidden">
-      <template v-if="notificationsStore.unreadCount > 0" #actions>
-        <UButton
-          variant="soft"
-          color="primary"
-          icon="i-heroicons-check-badge"
-          size="sm"
-          @click="markAllAsRead"
-        >
-          {{ t('notifications.markAllRead') }}
-        </UButton>
+    <UCard :ui="{ body: 'p-0' }" class="overflow-hidden">
+      <template v-if="notificationsStore.unreadCount > 0" #header>
+        <div class="flex justify-end">
+          <UButton
+            variant="soft"
+            color="primary"
+            icon="i-heroicons-check-badge"
+            size="sm"
+            @click="markAllAsRead"
+          >
+            {{ t('notifications.markAllRead') }}
+          </UButton>
+        </div>
       </template>
 
       <div v-if="notificationsStore.items.length > 0 || notificationsStore.isLoading">
@@ -89,6 +91,6 @@ onMounted(() => {
           {{ t('notifications.empty_desc', "You don't have any notifications at the moment. We'll let you know when something important happens.") }}
         </p>
       </div>
-    </UiAppCard>
+    </UCard>
   </div>
 </template>

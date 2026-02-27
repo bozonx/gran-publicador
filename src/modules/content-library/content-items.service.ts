@@ -11,6 +11,7 @@ import { PermissionsService } from '../../common/services/permissions.service.js
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TagsService } from '../tags/tags.service.js';
 import { normalizeTags } from '../../common/utils/tags.util.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import { ContentCollectionsService } from './content-collections.service.js';
 import { UnsplashService } from './unsplash.service.js';
 import { MediaService } from '../media/media.service.js';
@@ -96,14 +97,14 @@ export class ContentItemsService {
     const item = await this.assertContentItemAccess(contentItemId, userId, true);
 
     if (item.projectId) {
-      await this.permissions.checkProjectPermission(item.projectId, userId, ['ADMIN', 'EDITOR']);
+      await this.permissions.checkPermission(item.projectId, userId, PermissionKey.CONTENT_LIBRARY_UPDATE);
     }
 
     return item;
   }
 
   private async assertProjectContentMutationAllowed(projectId: string, userId: string) {
-    await this.permissions.checkProjectPermission(projectId, userId, ['ADMIN', 'EDITOR']);
+    await this.permissions.checkPermission(projectId, userId, PermissionKey.CONTENT_LIBRARY_CREATE);
   }
 
   private assertItemScopeMatches(options: {

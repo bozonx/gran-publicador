@@ -106,7 +106,10 @@ function copyId() {
 </script>
 
 <template>
-  <UiAppCard :title="t('auth.profile')" title-class="text-lg font-medium text-gray-900 dark:text-white">
+  <UCard>
+    <template #header>
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('auth.profile') }}</h3>
+    </template>
     
     <!-- Avatar and basic info -->
     <div class="flex items-start gap-4 mb-6">
@@ -219,5 +222,5 @@ function copyId() {
         </dd>
       </div>
     </dl>
-  </UiAppCard>
+  </UCard>
 </template>

@@ -297,7 +297,11 @@ function toggleHiddenOnly() {
 </script>
 
 <template>
-  <UiAppCard :title="t('llm.manageTemplates')" :description="title">
+      <UCard>
+        <template #header>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('llm.manageTemplates') }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ title }}</p>
+        </template>
     <template #actions>
       <UButton
         v-if="sourceFilter !== 'system'"
@@ -476,5 +480,5 @@ function toggleHiddenOnly() {
       :loading="isLoading"
       @confirm="confirmDelete"
     />
-  </UiAppCard>
+      </UCard>
 </template>

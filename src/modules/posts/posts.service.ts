@@ -9,6 +9,7 @@ import {
 import { PostStatus, PostType, PublicationStatus } from '../../generated/prisma/index.js';
 import { PermissionsService } from '../../common/services/permissions.service.js';
 import { normalizeOverrideContent } from '../../common/validators/social-media-validation.validator.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 
 import { ChannelsService } from '../channels/channels.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -137,7 +138,7 @@ export class PostsService {
     },
   ) {
     const channel = await this.channelsService.findOne(channelId, userId);
-    await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN', 'EDITOR']);
+    await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_CREATE);
 
     // Verify publication exists and belongs to same project
     const publication = await this.prisma.publication.findFirst({
@@ -567,7 +568,7 @@ export class PostsService {
     if (post.publication?.createdBy !== userId) {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
-        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       } else {
         throw new ForbiddenException('Insufficient permissions');
       }
@@ -769,7 +770,7 @@ export class PostsService {
     if (post.publication?.createdBy !== userId) {
       const channel = await this.prisma.channel.findUnique({ where: { id: post.channelId } });
       if (channel) {
-        await this.permissions.checkProjectPermission(channel.projectId, userId, ['ADMIN']);
+        await this.permissions.checkPermission(channel.projectId, userId, PermissionKey.PUBLICATIONS_UPDATE_ALL);
       } else {
         throw new ForbiddenException('Insufficient permissions');
       }

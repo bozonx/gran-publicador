@@ -103,7 +103,7 @@ function triggerFileInput() {
 <template>
   <div class="space-y-4">
     <!-- Add Media Form -->
-    <UiAppCard>
+    <UCard>
       <div class="space-y-3">
         <div class="grid grid-cols-2 gap-3">
           <UFormField :label="t('media.sourceTypeLabel', 'Source Type')">
@@ -172,7 +172,7 @@ function triggerFileInput() {
           </UButton>
         </template>
       </div>
-    </UiAppCard>
+    </UCard>
 
     <!-- Media List -->
     <div v-if="modelValue.length > 0" class="space-y-2">

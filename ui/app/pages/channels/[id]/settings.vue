@@ -151,11 +151,11 @@ async function handleDelete() {
 
       <div class="grid grid-cols-1 gap-8">
         <!-- General Settings -->
-        <UiAppCard
-          v-if="canEdit(channel)"
-          :title="t('channel.general_settings', 'General Settings')"
-          :description="t('channel.general_settings_desc', 'Update your channel name and connection details')"
-        >
+        <UCard v-if="canEdit(channel)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('channel.general_settings', 'General Settings') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('channel.general_settings_desc', 'Update your channel name and connection details') }}</p>
+          </template>
           
           <FormsChannelUpdateGeneral
             :project-id="projectId"
@@ -164,29 +164,28 @@ async function handleDelete() {
             @success="handleUpdateSuccess"
             @cancel="goBack"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Credentials -->
-        <UiAppCard
-          v-if="canEdit(channel) && (getPlatformConfig(channel.socialMedia)?.credentials?.length ?? 0) > 0"
-          id="credentials"
-          :title="t(`channel.${channel.socialMedia}Credentials`, `${channel.socialMedia} Credentials`)"
-          :description="t('channel.credentials_desc', 'Manage connection credentials for this channel')"
-        >
+        <UCard v-if="canEdit(channel) && (getPlatformConfig(channel.socialMedia)?.credentials?.length ?? 0) > 0" id="credentials">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t(`channel.${channel.socialMedia}Credentials`, `${channel.socialMedia} Credentials`) }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('channel.credentials_desc', 'Manage connection credentials for this channel') }}</p>
+          </template>
           
           <FormsChannelUpdateCredentials
             :channel="channel"
             autosave
             @success="handleUpdateSuccess"
           />
-        </UiAppCard>
+        </UCard>
 
         <!-- Preferences -->
-        <UiAppCard
-          v-if="canEdit(channel)"
-          :title="t('settings.preferences', 'Preferences')"
-          :description="t('channel.preferences_desc', 'Configure channel-specific behavior and notifications')"
-        >
+        <UCard v-if="canEdit(channel)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('settings.preferences', 'Preferences') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('channel.preferences_desc', 'Configure channel-specific behavior and notifications') }}</p>
+          </template>
           
           <FormsChannelUpdatePreferences
             :channel="channel"
@@ -194,16 +193,16 @@ async function handleDelete() {
             autosave
             @success="handleUpdateSuccess"
           />
-        </UiAppCard>
+        </UCard>
 
 
 
         <!-- Channel Control -->
-        <UiAppCard
-          v-if="canEdit(channel)"
-          :title="t('channel.control', 'Channel Control')"
-          :description="t('channel.control_desc', 'Activate or deactivate this channel for posting')"
-        >
+        <UCard v-if="canEdit(channel)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ t('channel.control', 'Channel Control') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('channel.control_desc', 'Activate or deactivate this channel for posting') }}</p>
+          </template>
           
           <div class="flex items-center justify-between">
             <div>
@@ -227,13 +226,13 @@ async function handleDelete() {
               {{ channel.isActive ? t('channel.deactivate', 'Deactivate') : t('channel.activate', 'Activate') }}
             </UButton>
           </div>
-        </UiAppCard>
+        </UCard>
 
         <!-- Archive Channel -->
-        <UiAppCard
-          v-if="canEdit(channel)"
-          :title="channel.archivedAt ? t('channel.unarchiveChannel', 'Unarchive Channel') : t('channel.archiveChannel', 'Archive Channel')"
-        >
+        <UCard v-if="canEdit(channel)">
+          <template #header>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ channel.archivedAt ? t('channel.unarchiveChannel', 'Unarchive Channel') : t('channel.archiveChannel', 'Archive Channel') }}</h3>
+          </template>
 
           <div class="flex items-center justify-between">
             <div>
@@ -252,15 +251,13 @@ async function handleDelete() {
               @toggle="() => fetchChannel(channelId)"
             />
           </div>
-        </UiAppCard>
+        </UCard>
 
         <!-- Danger Zone -->
-        <UiAppCard
-          v-if="canDelete(channel)"
-          :title="t('common.danger_zone', 'Danger Zone')"
-          title-class="text-lg font-semibold text-red-600 dark:text-red-400"
-          class="border border-red-200 dark:border-red-900"
-        >
+        <UCard v-if="canDelete(channel)" :ui="{ root: 'ring-1 ring-red-200 dark:ring-red-900' }">
+          <template #header>
+            <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">{{ t('common.danger_zone', 'Danger Zone') }}</h3>
+          </template>
           
           <div class="flex items-center justify-between">
             <div>
@@ -281,7 +278,7 @@ async function handleDelete() {
               {{ t('channel.deleteChannel', 'Delete Channel') }}
             </UButton>
           </div>
-        </UiAppCard>
+        </UCard>
       </div>
     </div>
 

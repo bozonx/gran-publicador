@@ -48,17 +48,6 @@ export class ContentLibraryMapper {
     }
   }
 
-  /**
-   * Create Prisma include for content items listing.
-   */
-  public getItemsInclude(): any {
-    return {
-      tagObjects: true,
-      media: { include: { media: true } },
-      creator: { select: { id: true, fullName: true, avatarUrl: true } },
-      groups: { include: { group: true } },
-    };
-  }
 
   /**
    * Map incoming media IDs from various DTO shapes to a consistent internal format.
