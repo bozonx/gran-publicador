@@ -1014,6 +1014,7 @@
     "confirm_name_desc": "Type the project name to confirm:",
     "contentLibrary": "Content library",
     "createDescription": "Fill in details to create a new project",
+    "createFirst": "Create a project first to start working with publications.",
     "createProject": "Create project",
     "createSuccess": "Project created successfully",
     "createdAt": "Created At",

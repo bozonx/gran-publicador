@@ -191,6 +191,11 @@ export function usePublications() {
       const result = await api.post<PublicationWithRelations>('/publications', data);
       const normalized = normalizePublication(result);
       publications.value.unshift(normalized);
+      toast.add({
+        title: t('common.success'),
+        description: t('publication.createSuccess', 'Publication created successfully'),
+        color: 'success',
+      });
       return normalized;
     } catch (err: any) {
       logger.error('[usePublications] createPublication error', err);
