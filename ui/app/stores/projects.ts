@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import type { Role } from '~/types/roles.types';
+import type { Channel } from '~/types/channels';
 
 export interface Project {
   id: string;
@@ -55,7 +56,7 @@ export interface ProjectWithRole extends ProjectWithOwner {
   role?: string;
   memberCount?: number;
   channelCount?: number;
-  channels?: any[]; // For components that expect embedded channels
+  channels?: Channel[]; // For components that expect embedded channels
   publicationsCount?: number;
   failedPostsCount?: number;
   staleChannelsCount?: number;
@@ -118,12 +119,10 @@ export const useProjectsStore = defineStore('projects', () => {
   function updateProject(projectId: string, data: Partial<ProjectWithRole>) {
     const index = projects.value.findIndex(b => b.id === projectId);
     if (index !== -1) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      projects.value[index] = { ...projects.value[index], ...(data as any) };
+      projects.value[index] = { ...projects.value[index], ...data } as ProjectWithRole;
     }
     if (currentProject.value?.id === projectId) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      currentProject.value = { ...currentProject.value, ...(data as any) };
+      currentProject.value = { ...currentProject.value, ...data } as ProjectWithRole;
     }
   }
 

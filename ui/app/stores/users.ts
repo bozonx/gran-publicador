@@ -18,7 +18,7 @@ export interface UserWithStats extends User {
   avatarUrl?: string | null;
   language?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preferences?: any | null;
+  preferences?: Record<string, any> | null;
 }
 
 export interface UsersFilter {

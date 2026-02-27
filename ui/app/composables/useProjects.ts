@@ -30,7 +30,7 @@ export function useProjects() {
 
     try {
       const options = typeof arg === 'object' ? arg : { includeArchived: arg };
-      const params: any = { limit: PROJECTS_FETCH_LIMIT };
+      const params: Record<string, string | number | boolean | undefined> = { limit: PROJECTS_FETCH_LIMIT };
       applyArchiveQueryFlags(params, { includeArchived: options.includeArchived });
       if (options.hasContentCollections) {
         params.hasContentCollections = true;
@@ -359,33 +359,41 @@ export function useProjects() {
     store.setError(null);
   }
 
-  function getProjectProblems(project: Project | any) {
+  function getProjectProblems(project: ProjectWithRole) {
     const problems: Array<{ type: 'critical' | 'warning'; key: string; count?: number }> = [];
+    const counts = {
+      failedPosts: project.failedPostsCount || 0,
+      problemPublications: project.problemPublicationsCount || 0,
+      staleChannels: project.staleChannelsCount || 0,
+      noCredentials: project.noCredentialsChannelsCount || 0,
+      inactiveChannels: project.inactiveChannelsCount || 0,
+      channelCount: project.channelCount ?? -1, // -1 means unknown, but usually it's set
+    };
 
     // Check for critical failures (failed posts)
-    if (project.failedPostsCount > 0) {
+    if (counts.failedPosts > 0) {
       problems.push({
         type: 'critical',
         key: 'failedPosts',
-        count: project.failedPostsCount,
+        count: counts.failedPosts,
       });
     }
 
     // Check for problem publications (critical)
-    if (project.problemPublicationsCount > 0) {
+    if (counts.problemPublications > 0) {
       problems.push({
         type: 'critical',
         key: 'problemPublications',
-        count: project.problemPublicationsCount,
+        count: counts.problemPublications,
       });
     }
 
     // Check for stale channels (warnings)
-    if (project.staleChannelsCount > 0) {
+    if (counts.staleChannels > 0) {
       problems.push({
         type: 'warning',
         key: 'staleChannels',
-        count: project.staleChannelsCount,
+        count: counts.staleChannels,
       });
     }
 
@@ -401,25 +409,25 @@ export function useProjects() {
     }
 
     // Check for channels without credentials (critical)
-    if (project.noCredentialsChannelsCount > 0) {
+    if (counts.noCredentials > 0) {
       problems.push({
         type: 'critical',
         key: 'noCredentials',
-        count: project.noCredentialsChannelsCount,
+        count: counts.noCredentials,
       });
     }
 
     // Check for inactive channels (warning)
-    if (project.inactiveChannelsCount > 0) {
+    if (counts.inactiveChannels > 0) {
       problems.push({
         type: 'warning',
         key: 'inactiveChannels',
-        count: project.inactiveChannelsCount,
+        count: counts.inactiveChannels,
       });
     }
 
     // Check for no channels (critical)
-    if (project.channelCount === 0) {
+    if (counts.channelCount === 0) {
       problems.push({
         type: 'critical',
         key: 'noChannels',
@@ -429,7 +437,7 @@ export function useProjects() {
     return problems;
   }
 
-  function getProjectProblemLevel(project: Project | any): 'critical' | 'warning' | null {
+  function getProjectProblemLevel(project: ProjectWithRole | null): 'critical' | 'warning' | null {
     if (!project) return null;
     const problems = getProjectProblems(project);
     if (problems.some(p => p.type === 'critical')) return 'critical';
@@ -437,7 +445,7 @@ export function useProjects() {
     return null;
   }
 
-  function getProjectProblemsSummary(project: Project | any) {
+  function getProjectProblemsSummary(project: ProjectWithRole) {
     const problems = getProjectProblems(project);
     const critical = problems.filter(p => p.type === 'critical');
     const warnings = problems.filter(p => p.type === 'warning');

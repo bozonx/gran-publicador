@@ -16,7 +16,9 @@ import type {
   PublicationsFilter, 
   PaginatedPublications,
   PublicationLlmChatInput,
-  PublicationLlmChatResponse
+  PublicationLlmChatResponse,
+  PublicationCreateInput,
+  PublicationUpdateInput
 } from '~/types/publications';
 
 // Re-export for backward compatibility with existing imports
@@ -85,7 +87,7 @@ export function usePublications() {
     error.value = null;
 
     try {
-      const params: Record<string, any> = {};
+      const params: Record<string, string | number | boolean | undefined> = {};
       
       if (filters.projectId) params.projectId = filters.projectId;
       if (filters.status) {
@@ -185,7 +187,7 @@ export function usePublications() {
     }
   }
 
-  async function createPublication(data: any): Promise<PublicationWithRelations> {
+  async function createPublication(data: PublicationCreateInput): Promise<PublicationWithRelations> {
     isLoading.value = true;
     try {
       const result = await api.post<PublicationWithRelations>('/publications', data);
@@ -205,7 +207,7 @@ export function usePublications() {
     }
   }
 
-  async function updatePublication(id: string, data: any, options: { silent?: boolean } = {}): Promise<PublicationWithRelations> {
+  async function updatePublication(id: string, data: PublicationUpdateInput, options: { silent?: boolean } = {}): Promise<PublicationWithRelations> {
     if (!options.silent) isLoading.value = true;
     try {
       const result = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
@@ -242,7 +244,7 @@ export function usePublications() {
   async function bulkOperation(ids: string[], operation: string, status?: string, targetProjectId?: string): Promise<boolean> {
     isLoading.value = true;
     try {
-      const payload: any = { ids, operation, status, targetProjectId };
+      const payload: Record<string, string | string[] | undefined> = { ids, operation, status, targetProjectId };
       Object.keys(payload).forEach(key => (payload[key] === undefined || payload[key] === null) && delete payload[key]);
       await api.post('/publications/bulk', payload);
       toast.add({ title: t('common.success'), color: 'success' });
@@ -318,7 +320,7 @@ export function usePublications() {
     const problems = getPublicationProblems(pub);
     
     // Linked platforms
-    const platforms = [...new Set(pub.posts?.map((p: any) => p.channel?.socialMedia).filter(Boolean) || [])];
+    const platforms = [...new Set(pub.posts?.map(p => p.channel?.socialMedia).filter(Boolean) || [])];
     
     // Media validation for publication-level media
     if (pub.media && pub.media.length > 0) {
@@ -345,7 +347,7 @@ export function usePublications() {
 
   const currentPublicationPlatforms = computed(() => {
     if (!currentPublication.value?.posts) return [];
-    const platforms = currentPublication.value.posts.map((p: any) => p.channel?.socialMedia).filter(Boolean);
+    const platforms = currentPublication.value.posts.map(p => p.channel?.socialMedia).filter(Boolean);
     return [...new Set(platforms)];
   });
 

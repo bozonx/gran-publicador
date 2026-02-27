@@ -39,38 +39,8 @@ export interface PublicationWithRelations extends Publication {
     id: string;
     name: string;
   } | null;
-  posts?: any[];
-  relations?: Array<{
-    id: string;
-    type: string;
-    projectId: string;
-    items: Array<{
-      id: string;
-      position: number;
-      publication: {
-        id: string;
-        title: string | null;
-        language: string;
-        postType: string;
-        status: string;
-        archivedAt: string | null;
-        posts?: Array<{
-          id: string;
-          status: string;
-          postingSnapshot?: any;
-          postingSnapshotCreatedAt?: string | null;
-          channel: {
-            id: string;
-            name: string;
-            socialMedia: string;
-            isActive: boolean;
-            archivedAt: string | null;
-            project: { id: string; archivedAt: string | null };
-          };
-        }>;
-      };
-    }>;
-  }>;
+  posts?: PublicationPost[];
+  relations?: PublicationRelationGroup[];
   media?: Array<{
     id: string;
     order: number;
@@ -97,6 +67,80 @@ export interface PublicationWithRelations extends Publication {
   _count?: {
     posts: number;
   };
+}
+
+export interface PublicationPost {
+  id: string;
+  status: string;
+  publicationId: string;
+  channelId: string;
+  socialMedia: string;
+  postingSnapshot?: any;
+  postingSnapshotCreatedAt?: string | null;
+  channel: {
+    id: string;
+    name: string;
+    socialMedia: string;
+    isActive: boolean;
+    archivedAt: string | null;
+    project: { id: string; archivedAt: string | null };
+  };
+}
+
+export interface PublicationRelation {
+  id: string;
+  position: number;
+  publication: {
+    id: string;
+    title: string | null;
+    language: string;
+    postType: string;
+    status: string;
+    archivedAt: string | null;
+    posts?: Array<{
+      id: string;
+      status: string;
+      postingSnapshot?: any;
+      postingSnapshotCreatedAt?: string | null;
+      channel: {
+        id: string;
+        name: string;
+        socialMedia: string;
+        isActive: boolean;
+        archivedAt: string | null;
+        project: { id: string; archivedAt: string | null };
+      };
+    }>;
+  };
+}
+
+export interface PublicationRelationGroup {
+  id: string;
+  type: string;
+  projectId: string;
+  items: PublicationRelation[];
+}
+
+export interface PublicationCreateInput {
+  projectId: string;
+  title?: string | null;
+  description?: string | null;
+  content?: string | null;
+  tags?: string[];
+  status?: PublicationStatus;
+  language?: string;
+  postType?: string;
+  postDate?: string | null;
+  scheduledAt?: string | null;
+  note?: string | null;
+  authorComment?: string | null;
+  authorSignatureId?: string | null;
+  projectTemplateId?: string | null;
+  meta?: Record<string, any>;
+}
+
+export interface PublicationUpdateInput extends Partial<Omit<PublicationCreateInput, 'projectId'>> {
+  version?: number;
 }
 
 export interface PublicationsFilter {

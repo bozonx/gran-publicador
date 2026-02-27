@@ -79,7 +79,7 @@ export function useChannels() {
     error.value = null;
 
     try {
-      const params: any = { ...filters };
+      const params: Record<string, string | number | boolean | undefined> = { ...filters };
 
       applyArchiveQueryFlags(params, {
         includeArchived: filters?.includeArchived,

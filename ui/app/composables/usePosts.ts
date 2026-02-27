@@ -117,8 +117,8 @@ export function usePosts() {
     error.value = null;
 
     try {
-      const params: Record<string, any> = { ...options };
-      delete params.append;
+      const params: Record<string, string | number | boolean | string[] | undefined> = { ...options } as any;
+      delete (params as any).append;
 
       if (filter.value.channelId) {
         params.channelId = filter.value.channelId;
@@ -173,8 +173,8 @@ export function usePosts() {
     error.value = null;
 
     try {
-      const params: Record<string, any> = { ...options };
-      delete params.append;
+      const params: Record<string, string | number | boolean | string[] | undefined> = { ...options } as any;
+      delete (params as any).append;
 
       if (filter.value.status) params.status = filter.value.status;
       if (filter.value.postType) params.postType = filter.value.postType;
