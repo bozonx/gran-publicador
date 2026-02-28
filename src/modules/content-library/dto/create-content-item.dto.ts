@@ -60,10 +60,14 @@ export class CreateContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
-  @IsOptional()
   @IsString()
+  @IsOptional()
   @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
   public text?: string;
+
+  @IsString()
+  @IsOptional()
+  public language?: string;
 
   @IsObject()
   @IsOptional()

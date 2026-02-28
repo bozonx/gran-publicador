@@ -55,6 +55,7 @@ const editForm = ref({
   tags: normalizeTags(props.item.tags || []),
   note: props.item.note || '',
   text: props.item.text || '',
+  language: (props.item as any).language || '',
   meta: JSON.parse(JSON.stringify(props.item.meta || {})),
   media: JSON.parse(JSON.stringify(props.item.media || [])).sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)),
 })
@@ -64,6 +65,36 @@ const groups = ref(
     .filter(g => !!g && !!g.collection)
     .map(g => JSON.parse(JSON.stringify(g)))
 )
+
+import { useLanguages } from '~/composables/useLanguages'
+import { eld } from 'eld'
+
+const { languageOptions, getLanguageLabel } = useLanguages()
+
+const handleTextUpdate = (v: any) => {
+  editForm.value.text = v;
+  if (!editForm.value.language && v && v.length > 5 && !props.item.id.includes('virtual')) {
+    const detected = eld.detect(v);
+    if (detected?.language) {
+        const langMap: Record<string, string> = {
+          en: 'en-US', ru: 'ru-RU', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+          it: 'it-IT', pt: 'pt-BR', zh: 'zh-CN', ar: 'ar-SA', hi: 'hi-IN',
+          id: 'id-ID', ja: 'ja-JP', ko: 'ko-KR', pl: 'pl-PL', th: 'th-TH',
+          tr: 'tr-TR', uk: 'uk-UA', uz: 'uz-UZ', vi: 'vi-VN'
+        };
+        const resolved = langMap[detected.language] || detected.language;
+        if (languageOptions.some(o => o.value === resolved)) {
+           editForm.value.language = resolved;
+           toast.add({
+             title: t('common.info'),
+             description: `Language auto-detected: ${getLanguageLabel(resolved)}`,
+             color: 'info'
+           });
+           flushSave();
+        }
+    }
+  }
+}
 
 const autosaveForm = computed(() => {
   const { meta, ...rest } = editForm.value
@@ -87,6 +118,7 @@ const saveItem = async (formData: typeof editForm.value) => {
     tags: formData.tags,
     note: formData.note || null,
     text: formData.text?.trim() || '',
+    language: formData.language || undefined,
     meta: formData.meta || {},
     media: (formData.media || []).map((m: any) => ({
       mediaId: m.mediaId || m.media?.id,
@@ -178,6 +210,7 @@ async function onCopyMedia(_mediaLinkId: string) {
       groupId: props.groupId,
       title: '',
       text: '',
+      language: editForm.value.language || undefined,
       meta: {},
       media: [{ mediaId, order: 0, hasSpoiler: link?.hasSpoiler ? true : false }],
     })
@@ -263,7 +296,7 @@ defineExpose({
         :model-value="editForm.text"
         :placeholder="t('contentLibrary.fields.textPlaceholder')"
         :min-height="150"
-        @update:model-value="(v: any) => (editForm.text = v)"
+        @update:model-value="handleTextUpdate"
         @blur="flushSave()"
       />
     </UFormField>
@@ -279,6 +312,19 @@ defineExpose({
         :group-id="props.groupId"
         :user-id="props.scope === 'personal' ? user?.id : undefined"
         class="w-full"
+      />
+    </UFormField>
+
+    <!-- Language Field -->
+    <UFormField :label="t('common.language')" class="w-full">
+      <USelectMenu
+        v-model="editForm.language"
+        :items="languageOptions"
+        value-key="value"
+        label-key="label"
+        class="w-full"
+        icon="i-heroicons-language"
+        @change="flushSave()"
       />
     </UFormField>
 

@@ -35,6 +35,10 @@ export class UpdateContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_NOTE_LENGTH)
   public note?: string;
 
+  @IsString()
+  @IsOptional()
+  public language?: string;
+
   @IsInt()
   @IsOptional()
   public version?: number;

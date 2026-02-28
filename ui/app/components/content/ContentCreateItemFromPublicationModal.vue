@@ -172,6 +172,7 @@ async function executeAction(groupId?: string) {
       title: typeof p?.title === 'string' ? p.title : '',
       tags: Array.isArray(p?.tags) ? p.tags : [],
       text: buildPublicationText({ content: p?.content, authorComment: p?.authorComment }),
+      language: p?.language || undefined,
       meta: {},
       media: Array.isArray(p?.media)
         ? p.media

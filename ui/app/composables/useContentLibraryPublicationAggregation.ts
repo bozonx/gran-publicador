@@ -42,6 +42,7 @@ export function aggregateSelectedItemsToPublicationOrThrow(
   tags: string[];
   media: Array<{ id: string; hasSpoiler?: boolean }>;
   projectId?: string;
+  language?: string;
   allowProjectSelection: boolean;
   contentItemIds: string[];
 } {
@@ -125,6 +126,7 @@ export function aggregateSelectedItemsToPublicationOrThrow(
     tags,
     media,
     projectId: projectIds.size === 1 ? Array.from(projectIds)[0] : undefined,
+    language: itemsToUse[0]?.language,
     allowProjectSelection: projectIds.size !== 1,
     contentItemIds: itemsToUse.map(i => i.id),
   };

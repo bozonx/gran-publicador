@@ -718,6 +718,7 @@ const publicationData = ref({
   note: '',
   contentItemIds: [] as string[],
   unsplashId: undefined as string | undefined,
+  language: undefined as string | undefined,
 })
 
 const openCreatePublicationModalForItems = (selected: any[]) => {
@@ -735,7 +736,8 @@ const openCreatePublicationModalForItems = (selected: any[]) => {
     note: data.note,
     contentItemIds: data.contentItemIds,
     unsplashId: undefined,
-  }
+    language: data.language,
+  } as any
   isCreatePublicationModalOpen.value = true
 }
 
@@ -768,6 +770,7 @@ const handleCreatePublicationFromUnsplash = (item: any) => {
     note: '',
     contentItemIds: [],
     unsplashId,
+    language: undefined,
   }
 
   isUnsplashPreviewModalOpen.value = false
@@ -1206,6 +1209,7 @@ onMounted(() => { fetchItems() })
       :prefilled-note="publicationData.note"
       :prefilled-content-item-ids="publicationData.contentItemIds"
       :prefilled-unsplash-id="publicationData.unsplashId"
+      :preselected-language="publicationData.language"
     />
 
     <UnsplashPreviewModal

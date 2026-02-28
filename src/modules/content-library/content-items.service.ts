@@ -25,6 +25,7 @@ import {
   BulkOperationType,
   SyncContentItemDto,
 } from './dto/index.js';
+import { eld } from 'eld';
 
 @Injectable()
 export class ContentItemsService {
@@ -477,6 +478,20 @@ export class ContentItemsService {
       }
     }
 
+    let languageForSave = dto.language;
+    if (!languageForSave && dto.text && !dto.unsplashId) {
+      const detected = eld.detect(dto.text);
+      if (detected?.language) {
+        const langMap: Record<string, string> = {
+          en: 'en-US', ru: 'ru-RU', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+          it: 'it-IT', pt: 'pt-BR', zh: 'zh-CN', ar: 'ar-SA', hi: 'hi-IN',
+          id: 'id-ID', ja: 'ja-JP', ko: 'ko-KR', pl: 'pl-PL', th: 'th-TH',
+          tr: 'tr-TR', uk: 'uk-UA', uz: 'uz-UZ', vi: 'vi-VN'
+        };
+        languageForSave = langMap[detected.language] || detected.language;
+      }
+    }
+
     const created = await this.prisma.$transaction(async tx => {
       const contentItem = await tx.contentItem.create({
         data: {
@@ -498,6 +513,7 @@ export class ContentItemsService {
           ),
           note: dto.note,
           text: this.mapper.normalizeItemText(dto.text),
+          language: languageForSave,
           meta: (dto.meta ?? {}) as Prisma.JsonObject,
           media: dto.media
             ? {
@@ -586,19 +602,22 @@ export class ContentItemsService {
           );
         }
 
-        if (dto.tags !== undefined) {
+        if (dto.tags !== undefined || dto.language !== undefined) {
           await tx.contentItem.update({
             where: { id },
             data: {
-              tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-                dto.tags ?? [],
-                {
-                  projectId: item.projectId ?? undefined,
-                  userId: item.userId ?? undefined,
-                },
-                'CONTENT_LIBRARY',
-                true,
-              ),
+              ...(dto.language !== undefined ? { language: dto.language } : {}),
+              ...(dto.tags !== undefined ? {
+                tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
+                  dto.tags ?? [],
+                  {
+                    projectId: item.projectId ?? undefined,
+                    userId: item.userId ?? undefined,
+                  },
+                  'CONTENT_LIBRARY',
+                  true,
+                ),
+              } : {})
             },
           });
         }
@@ -618,6 +637,7 @@ export class ContentItemsService {
         where: { id },
         data: {
           title: dto.title,
+          language: dto.language,
           tagObjects:
             dto.tags !== undefined
               ? await this.tagsService.prepareTagsConnectOrCreate(

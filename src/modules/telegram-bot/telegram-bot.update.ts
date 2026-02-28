@@ -11,6 +11,7 @@ import { AppConfig } from '../../config/app.config.js';
 import { StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
 import { Readable } from 'node:stream';
+import { eld } from 'eld';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 import { TELEGRAM_MESSAGES_QUEUE, TELEGRAM_PROCESS_MESSAGE_JOB } from './telegram-bot.queue.js';
@@ -415,6 +416,20 @@ export class TelegramBotUpdate {
     }
 
     const title = this.getTitleForMessage(message, finalText);
+    
+    let resolvedLanguage = language;
+    if (finalText) {
+      const detected = eld.detect(finalText);
+      if (detected?.language) {
+        const langMap: Record<string, string> = {
+          en: 'en-US', ru: 'ru-RU', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+          it: 'it-IT', pt: 'pt-BR', zh: 'zh-CN', ar: 'ar-SA', hi: 'hi-IN',
+          id: 'id-ID', ja: 'ja-JP', ko: 'ko-KR', pl: 'pl-PL', th: 'th-TH',
+          tr: 'tr-TR', uk: 'uk-UA', uz: 'uz-UZ', vi: 'vi-VN'
+        };
+        resolvedLanguage = langMap[detected.language] || detected.language;
+      }
+    }
 
     // Combine supported media with voice media for saving
     const allMediaToSave = [...supportedMedia, ...voiceMedia];
@@ -427,6 +442,7 @@ export class TelegramBotUpdate {
           title,
           note: null,
           text: finalText || null,
+          language: resolvedLanguage,
           meta: meta as any,
         },
       });
