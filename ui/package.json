@@ -40,6 +40,7 @@
     "@webav/av-canvas": "^1.2.8",
     "@webav/av-cliper": "^1.2.8",
     "bidc": "^0.0.4",
+    "eld": "^2.0.2",
     "filerobot-image-editor": "^4.8.1",
     "highlight.js": "^11.11.1",
     "isomorphic-dompurify": "^3.0.0",

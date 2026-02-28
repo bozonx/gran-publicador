@@ -14,43 +14,43 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  fullName           String?   @map("full_name")
+  fullName                String?   @map("full_name")
   // Telegram username without @ symbol
-  telegramUsername   String?   @map("telegram_username")
+  telegramUsername        String?   @map("telegram_username")
   // Unique Telegram user ID for authentication
-  telegramId         BigInt?   @unique @map("telegram_id")
+  telegramId              BigInt?   @unique @map("telegram_id")
   // System administrator flag for elevated permissions
-  avatarUrl          String?   @map("avatar_url")
-  isAdmin            Boolean   @default(false) @map("is_admin")
+  avatarUrl               String?   @map("avatar_url")
+  isAdmin                 Boolean   @default(false) @map("is_admin")
   // User ban status
-  isBanned           Boolean   @default(false) @map("is_banned")
-  banReason          String?   @map("ban_reason")
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  isBanned                Boolean   @default(false) @map("is_banned")
+  banReason               String?   @map("ban_reason")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
   // Timestamp when user was soft-deleted
-  deletedAt          DateTime? @map("deleted_at")
+  deletedAt               DateTime? @map("deleted_at")
   // Main content language (affects research, news, channels)
-  language           String    @default("en-US")
+  language                String    @default("en-US")
   // Interface language (e.g., en-US, ru-RU)
-  uiLanguage         String    @default("en-US") @map("ui_language")
+  uiLanguage              String    @default("en-US") @map("ui_language")
   // User preferences stored as JSON
-  preferences        Json      @default("{}")
+  preferences             Json      @default("{}")
   // Separate field for notification preferences
-  notificationPreferences Json @default("{}") @map("notification_preferences")
+  notificationPreferences Json      @default("{}") @map("notification_preferences")
   // Optimistic locking version
-  version            Int       @default(1)
+  version                 Int       @default(1)
 
-  ownedProjects          Project[]                   @relation("ProjectOwner")
-  projectMembers         ProjectMember[]
-  publications           Publication[]               @relation("PublicationCreator")
-  contentItems           ContentItem[]
-  sessions               UserSession[]
-  apiTokens              ApiToken[]
-  notifications          Notification[]
-  llmPromptTemplates     LlmPromptTemplate[]
-  authorSignatures       AuthorSignature[]
-  contentCollections     ContentCollection[]
-  tags                   Tag[]
+  ownedProjects               Project[]                    @relation("ProjectOwner")
+  projectMembers              ProjectMember[]
+  publications                Publication[]                @relation("PublicationCreator")
+  contentItems                ContentItem[]
+  sessions                    UserSession[]
+  apiTokens                   ApiToken[]
+  notifications               Notification[]
+  llmPromptTemplates          LlmPromptTemplate[]
+  authorSignatures            AuthorSignature[]
+  contentCollections          ContentCollection[]
+  tags                        Tag[]
   newsQueryNotificationStates NewsQueryNotificationState[]
 
   @@index([telegramUsername])
@@ -286,7 +286,7 @@ model ProjectNewsQuery {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project                Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project                Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   notificationUserStates NewsQueryNotificationState[]
 
   @@index([projectId])
@@ -337,16 +337,16 @@ model LlmPromptTemplate {
   // Project ID for project templates, null for personal templates
   projectId String? @map("project_id")
 
-  name        String?
-  note        String?
+  name     String?
+  note     String?
   // Dynamic category as free-form string (e.g. "General", "SEO", "Hooks")
-  category    String  @default("General")
+  category String  @default("General")
   // The actual prompt template text
-  prompt      String
+  prompt   String
   // Display order for UI
-  order       Int     @default(0)
+  order    Int     @default(0)
   // Whether the template is hidden from the main list
-  isHidden    Boolean @default(false) @map("is_hidden")
+  isHidden Boolean @default(false) @map("is_hidden")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -359,29 +359,28 @@ model LlmPromptTemplate {
   @@map("llm_prompt_templates")
 }
 
-
 model Channel {
-  id                String      @id @default(uuid())
-  projectId         String      @map("project_id")
+  id                  String      @id @default(uuid())
+  projectId           String      @map("project_id")
   // Social media platform type (TELEGRAM, INSTAGRAM, etc.)
-  socialMedia       SocialMedia @map("social_media")
-  name              String
-  note              String?
+  socialMedia         SocialMedia @map("social_media")
+  name                String
+  note                String?
   // Platform-specific channel identifier (e.g., @channel_name, channel_id)
-  channelIdentifier String      @map("channel_identifier")
+  channelIdentifier   String      @map("channel_identifier")
   // Channel language in format like ru-RU, en-US, etc.
-  language          String
+  language            String
   // Encrypted credentials for channel access
-  credentials       Json        @default("{}")
+  credentials         Json        @default("{}")
   // Channel preferences
-  preferences       Json        @default("{}")
+  preferences         Json        @default("{}")
   // Tags for navigation and publication orientation
-  tags              String?
+  tags                String?
   // Denormalized counts for performance
-  publishedPostsCount Int       @default(0) @map("published_posts_count")
-  failedPostsCount    Int       @default(0) @map("failed_posts_count")
+  publishedPostsCount Int         @default(0) @map("published_posts_count")
+  failedPostsCount    Int         @default(0) @map("failed_posts_count")
   // Optimistic locking version
-  version           Int         @default(1)
+  version             Int         @default(1)
 
   // Whether channel is active for posting
   isActive   Boolean   @default(true) @map("is_active")
@@ -392,8 +391,8 @@ model Channel {
   // User ID who archived the channel
   archivedBy String?   @map("archived_by")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  posts   Post[]
+  project            Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  posts              Post[]
   templateVariations ChannelTemplateVariation[]
 
   @@index([projectId])
@@ -401,8 +400,8 @@ model Channel {
 }
 
 model Publication {
-  id         String  @id @default(uuid())
-  projectId  String  @map("project_id")
+  id        String @id @default(uuid())
+  projectId String @map("project_id")
 
   // User who created the publication (nullable for system-generated)
   createdBy           String?   @map("created_by")
@@ -486,9 +485,9 @@ model Post {
   // Frozen snapshot of everything needed for publishing (body, media, version)
   postingSnapshot          Json?      @map("posting_snapshot")
   // Timestamp when the posting snapshot was created
-  postingSnapshotCreatedAt DateTime? @map("posting_snapshot_created_at")
+  postingSnapshotCreatedAt DateTime?  @map("posting_snapshot_created_at")
   // The fully prepared payload ready to be sent to the microservice
-  preparedPayload     Json?      @map("prepared_payload")
+  preparedPayload          Json?      @map("prepared_payload")
 
   // Overwrite of publication scheduledAt
   scheduledAt DateTime? @map("scheduled_at")
@@ -528,11 +527,11 @@ model ContentCollection {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user              User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project           Project?            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent            ContentCollection?  @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children          ContentCollection[] @relation("ContentCollectionHierarchy")
-  items             ContentCollectionItem[]
+  user     User?                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project  Project?                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent   ContentCollection?      @relation("ContentCollectionHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ContentCollection[]     @relation("ContentCollectionHierarchy")
+  items    ContentCollectionItem[]
 
   @@index([userId, order])
   @@index([projectId, order])
@@ -564,10 +563,11 @@ model ContentItem {
   title String?
   note  String?
 
-  text    String? @db.Text
-  meta    Json    @default("{}")
+  text     String? @db.Text
+  meta     Json    @default("{}")
+  language String?
   // Optimistic locking version
-  version Int     @default(1)
+  version  Int     @default(1)
 
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
@@ -662,11 +662,11 @@ model PublicationMedia {
 }
 
 model PublicationRelationGroup {
-  id        String            @id @default(uuid())
-  projectId String            @map("project_id")
+  id        String                       @id @default(uuid())
+  projectId String                       @map("project_id")
   type      PublicationRelationGroupType
-  createdBy String?           @map("created_by")
-  createdAt DateTime          @default(now()) @map("created_at")
+  createdBy String?                      @map("created_by")
+  createdAt DateTime                     @default(now()) @map("created_at")
 
   project Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   items   PublicationRelationItem[]
