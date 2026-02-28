@@ -306,26 +306,28 @@ const tagStyles = computed(() => {
   const rec = props.recommendedTags || props.maxTags || 0
   const max = props.maxTags || 0
 
+  const tagItemSelector = '[data-slot="tags-item"], [data-slot="tagsItem"]'
+
   return `
-    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) {
+    .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) {
       background-color: #f59e0b !important;
       border-color: #f59e0b !important;
     }
-    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) * {
+    .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) * {
       color: #fff !important;
     }
-    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) {
+    .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) {
       background-color: #ef4444 !important;
       border-color: #ef4444 !important;
     }
-    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) * {
+    .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) * {
       color: #fff !important;
     }
-    .dark .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) {
+    .dark .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) {
       background-color: #d97706 !important;
       border-color: #d97706 !important;
     }
-    .dark .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) {
+    .dark .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) {
       background-color: #dc2626 !important;
       border-color: #dc2626 !important;
     }
