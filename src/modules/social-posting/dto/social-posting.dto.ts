@@ -27,6 +27,8 @@ export class MediaInput {
   src!: string;
   hasSpoiler?: boolean;
   type?: string;
+  alt?: string;
+  description?: string;
 }
 
 export class PostResponseDto {

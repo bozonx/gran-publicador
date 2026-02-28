@@ -20,6 +20,14 @@ class ContentItemMediaInputDto {
 
   @IsOptional()
   public order?: number;
+
+  @IsString()
+  @IsOptional()
+  public alt?: string;
+
+  @IsString()
+  @IsOptional()
+  public description?: string;
 }
 
 export class CreateContentItemDto {

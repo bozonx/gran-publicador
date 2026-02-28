@@ -11,4 +11,12 @@ export class PublicationMediaInputDto {
   @IsBoolean()
   @IsOptional()
   public hasSpoiler?: boolean;
+
+  @IsString()
+  @IsOptional()
+  public alt?: string;
+
+  @IsString()
+  @IsOptional()
+  public description?: string;
 }

@@ -457,7 +457,6 @@ export class ContentItemsService {
           unsplashUsername: photo.user.username,
           unsplashUserUrl: photo.user.links.html,
         },
-        description: `Photo by ${photo.user.name || photo.user.username || photo.id} on Unsplash`,
       });
 
       dto.media = [
@@ -466,6 +465,7 @@ export class ContentItemsService {
           mediaId: media.id,
           order: (dto.media || []).length,
           hasSpoiler: false,
+          description: `Photo by ${photo.user.name || photo.user.username || photo.id} on Unsplash`,
         },
       ];
 
@@ -528,6 +528,8 @@ export class ContentItemsService {
                     mediaId: m.mediaId,
                     order: m.order ?? idx,
                     hasSpoiler: !!m.hasSpoiler,
+                    alt: m.alt,
+                    description: m.description,
                   })),
               }
             : undefined,
@@ -591,6 +593,9 @@ export class ContentItemsService {
           });
         }
       }
+
+      let removedMediaIds: string[] = [];
+
       if (dto.version !== undefined) {
         const { count } = await tx.contentItem.updateMany({
           where: { id, version: dto.version },
@@ -598,8 +603,10 @@ export class ContentItemsService {
             version: { increment: 1 },
             title: dto.title,
             note: dto.note,
+            text: dto.text !== undefined ? this.mapper.normalizeItemText(dto.text) : undefined,
           },
         });
+
         if (count === 0) {
           throw new ConflictException(
             'Item has been modified in another tab. Please refresh the page.',
@@ -610,21 +617,44 @@ export class ContentItemsService {
           await tx.contentItem.update({
             where: { id },
             data: {
-              ...(dto.language !== undefined ? { language: dto.language } : {}),
-              ...(dto.tags !== undefined ? {
-                tagObjects: await this.tagsService.prepareTagsConnectOrCreate(
-                  dto.tags ?? [],
-                  {
-                    projectId: item.projectId ?? undefined,
-                    userId: item.userId ?? undefined,
-                  },
-                  'CONTENT_LIBRARY',
-                  true,
-                ),
-              } : {})
+              language: dto.language,
+              tagObjects: dto.tags !== undefined ? await this.tagsService.prepareTagsConnectOrCreate(
+                dto.tags,
+                {
+                  projectId: item.projectId ?? undefined,
+                  userId: item.userId ?? undefined,
+                },
+                'CONTENT_LIBRARY',
+                true,
+              ) : undefined,
             },
           });
         }
+
+        if (dto.media !== undefined) {
+          const currentMedia = await tx.contentItemMedia.findMany({
+            where: { contentItemId: id },
+            select: { mediaId: true },
+          });
+          const oldMediaIds = currentMedia.map(m => m.mediaId);
+
+          await tx.contentItemMedia.deleteMany({ where: { contentItemId: id } });
+          if (dto.media.length > 0) {
+            await tx.contentItemMedia.createMany({
+              data: dto.media.map((m, idx) => ({
+                contentItemId: id,
+                mediaId: m.mediaId,
+                order: m.order ?? idx,
+                hasSpoiler: !!m.hasSpoiler,
+                alt: m.alt,
+                description: m.description,
+              })),
+            });
+          }
+          const newMediaIds = dto.media.map(m => m.mediaId);
+          removedMediaIds = oldMediaIds.filter(mid => !newMediaIds.includes(mid));
+        }
+
         return tx.contentItem.findUnique({
           where: { id },
           include: {
@@ -637,7 +667,7 @@ export class ContentItemsService {
         });
       }
 
-      return tx.contentItem.update({
+      const updatedItem = await tx.contentItem.update({
         where: { id },
         data: {
           title: dto.title,
@@ -645,7 +675,7 @@ export class ContentItemsService {
           tagObjects:
             dto.tags !== undefined
               ? await this.tagsService.prepareTagsConnectOrCreate(
-                  dto.tags ?? [],
+                  dto.tags,
                   {
                     projectId: item.projectId ?? undefined,
                     userId: item.userId ?? undefined,
@@ -655,6 +685,20 @@ export class ContentItemsService {
                 )
               : undefined,
           note: dto.note,
+          text: dto.text !== undefined ? this.mapper.normalizeItemText(dto.text) : undefined,
+          media:
+            dto.media !== undefined
+              ? {
+                  deleteMany: {},
+                  create: dto.media.map((m, idx) => ({
+                    mediaId: m.mediaId,
+                    order: m.order ?? idx,
+                    hasSpoiler: !!m.hasSpoiler,
+                    alt: m.alt,
+                    description: m.description,
+                  })),
+                }
+              : undefined,
         },
         include: {
           tagObjects: true,
@@ -664,6 +708,8 @@ export class ContentItemsService {
           },
         },
       });
+
+      return updatedItem;
     });
 
     return this.normalizeContentItemTags(updated);

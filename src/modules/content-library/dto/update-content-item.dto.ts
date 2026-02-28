@@ -39,7 +39,17 @@ export class UpdateContentItemDto {
   @IsOptional()
   public language?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
+  public text?: string;
+
   @IsInt()
   @IsOptional()
   public version?: number;
+
+  @IsArray()
+  @IsOptional()
+  @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
+  public media?: any[]; // Using any to avoid complex imports for now, but in practice it should be ContentItemMediaInputDto
 }

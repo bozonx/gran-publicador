@@ -56,6 +56,8 @@ export class PublicationsMediaService {
         const input = this.getMediaInput(m);
         let mediaId = input.id;
         const hasSpoiler = input.hasSpoiler;
+        const alt = input.alt;
+        const description = input.description;
 
         if (!mediaId) {
           const mediaItem = await tx.media.create({
@@ -78,6 +80,8 @@ export class PublicationsMediaService {
             mediaId,
             order: startOrder + i,
             hasSpoiler,
+            alt,
+            description,
           },
         });
       }
@@ -231,7 +235,7 @@ export class PublicationsMediaService {
     publicationId: string,
     userId: string,
     mediaLinkId: string,
-    data: { hasSpoiler?: boolean; order?: number },
+    data: { hasSpoiler?: boolean; order?: number; alt?: string; description?: string },
   ) {
     const publication = await this.prisma.publication.findUnique({
       where: { id: publicationId },
@@ -261,6 +265,8 @@ export class PublicationsMediaService {
       data: {
         hasSpoiler: data.hasSpoiler,
         order: data.order,
+        alt: data.alt,
+        description: data.description,
       },
     });
 
@@ -314,7 +320,19 @@ export class PublicationsMediaService {
       mediaToCreate.push(
         ...data.media.map((m, i) => ({
           order: currentOrder++,
-          media: { create: { ...m, meta: m.meta } },
+          media: { 
+            create: { 
+              type: m.type,
+              storageType: m.storageType,
+              storagePath: m.storagePath,
+              filename: m.filename,
+              mimeType: m.mimeType,
+              sizeBytes: m.sizeBytes,
+              meta: m.meta 
+            } 
+          },
+          alt: m.alt,
+          description: m.description,
         })),
       );
     }
@@ -327,6 +345,8 @@ export class PublicationsMediaService {
             order: currentOrder++,
             mediaId: input.id,
             hasSpoiler: input.hasSpoiler,
+            alt: input.alt,
+            description: input.description,
           };
         }),
       );
@@ -373,9 +393,9 @@ export class PublicationsMediaService {
               unsplashUsername: photo.user.username,
               unsplashUserUrl: photo.user.links.html,
             },
-            description: `Photo by ${authorName} on Unsplash`,
           },
         },
+        description: `Photo by ${authorName} on Unsplash`,
       };
     } catch (err: any) {
       this.logger.error(`Failed to upload Unsplash photo ${photo.id}: ${err.message}`);
@@ -418,10 +438,17 @@ export class PublicationsMediaService {
   private getMediaInput(item: string | PublicationMediaInputDto): {
     id: string;
     hasSpoiler: boolean;
+    alt?: string;
+    description?: string;
   } {
     if (typeof item === 'string') {
-      return { id: item, hasSpoiler: false };
+      return { id: item, hasSpoiler: false, alt: undefined, description: undefined };
     }
-    return { id: item.id, hasSpoiler: !!item.hasSpoiler };
+    return {
+      id: item.id,
+      hasSpoiler: !!item.hasSpoiler,
+      alt: item.alt,
+      description: item.description,
+    };
   }
 }

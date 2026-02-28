@@ -19,7 +19,7 @@ import {
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { PublicationStatus, PostType } from '../../../generated/prisma/index.js';
-import { CreateMediaDto } from '../../media/dto/index.js';
+import { CreatePublicationMediaDto } from './create-publication-media.dto.js';
 import { ValidateNested } from 'class-validator';
 import { IsUserStatus } from '../../../common/validators/index.js';
 import { PublicationMediaInputDto } from './publication-media-input.dto.js';
@@ -72,10 +72,10 @@ export class CreatePublicationDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateMediaDto)
+  @Type(() => CreatePublicationMediaDto)
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_REORDER_MEDIA)
-  public media?: CreateMediaDto[];
+  public media?: CreatePublicationMediaDto[];
 
   @IsArray()
   @ValidateNested({ each: true })

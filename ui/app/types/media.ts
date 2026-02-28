@@ -3,10 +3,8 @@ export interface MediaItem {
   type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'
   storageType: 'TELEGRAM' | 'STORAGE'
   storagePath: string
-  filename?: string
-  alt?: string
-  description?: string
-  mimeType?: string
+  filename?: string;
+  mimeType?: string;
   sizeBytes?: number | string
   meta?: Record<string, any>
   fullMediaMeta?: Record<string, any>
@@ -20,4 +18,6 @@ export interface MediaLinkItem {
   media?: MediaItem
   order: number
   hasSpoiler?: boolean
+  alt?: string
+  description?: string
 }

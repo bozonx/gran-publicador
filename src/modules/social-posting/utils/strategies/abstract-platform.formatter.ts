@@ -84,6 +84,8 @@ export abstract class AbstractPlatformFormatter {
       storagePath: string;
       order: number;
       hasSpoiler: boolean;
+      alt?: string | null;
+      description?: string | null;
     }>,
     mediaStorageUrl: string,
     publicMediaBaseUrl?: string,
@@ -107,17 +109,24 @@ export abstract class AbstractPlatformFormatter {
         mediaService,
       );
 
+      const baseMedia = {
+        src,
+        hasSpoiler: item.hasSpoiler,
+        alt: item.alt || undefined,
+        description: item.description || undefined,
+      };
+
       switch (item.type) {
         case 'IMAGE':
-          return { cover: { src, hasSpoiler: item.hasSpoiler } };
+          return { cover: baseMedia };
         case 'VIDEO':
-          return { video: { src, hasSpoiler: item.hasSpoiler } };
+          return { video: baseMedia };
         case 'AUDIO':
-          return { audio: { src } };
+          return { audio: { src, alt: item.alt || undefined, description: item.description || undefined } };
         case 'DOCUMENT':
-          return { document: { src } };
+          return { document: { src, alt: item.alt || undefined, description: item.description || undefined } };
         default:
-          return { cover: { src, hasSpoiler: item.hasSpoiler } };
+          return { cover: baseMedia };
       }
     }
 
@@ -126,6 +135,8 @@ export abstract class AbstractPlatformFormatter {
         src: this.getMediaSrc(toMediaLike(item), mediaStorageUrl, publicMediaBaseUrl, mediaService),
         type: this.mapMediaTypeToLibrary(item.type as MediaType),
         hasSpoiler: item.hasSpoiler,
+        alt: item.alt || undefined,
+        description: item.description || undefined,
       })),
     };
   }

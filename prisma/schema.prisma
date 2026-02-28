@@ -614,6 +614,9 @@ model ContentItemMedia {
   contentItem ContentItem @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
   media       Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
 
+  alt         String?
+  description String?
+
   @@index([contentItemId])
   @@index([mediaId])
   @@map("content_item_media")
@@ -625,8 +628,6 @@ model Media {
   storageType StorageType @map("storage_type")
   storagePath String      @map("storage_path")
   filename    String?
-  alt         String?
-  description String?
   mimeType    String?     @map("mime_type")
   sizeBytes   BigInt?     @map("size_bytes")
   // Metadata stored as JSON. For StorageType.TELEGRAM, contains:
@@ -655,6 +656,9 @@ model PublicationMedia {
 
   publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   media       Media       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  alt         String?
+  description String?
 
   @@index([publicationId])
   @@index([mediaId])

@@ -21,6 +21,7 @@ interface Props {
   showOverlay?: boolean
   size?: 'sm' | 'md' | 'lg'
   hasSpoiler?: boolean
+  alt?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -138,7 +139,7 @@ function handleDragStart(event: DragEvent) {
     :box-class="sizeClasses"
     :src="shouldShowPreview ? (previewUrl || null) : null"
     :srcset="shouldShowPreview ? (previewSrcset || null) : null"
-    :alt="media.filename || 'Media'"
+    :alt="alt || media.filename || 'Media'"
     :clickable="clickable"
     :size="size"
     :img-class="hasSpoiler ? 'blur-xl scale-110' : undefined"

@@ -32,16 +32,6 @@ export class CreateMediaDto {
 
   @IsString()
   @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_ALT_TEXT_LENGTH)
-  alt?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(VALIDATION_LIMITS.MAX_DESCRIPTION_LENGTH)
-  description?: string;
-
-  @IsString()
-  @IsOptional()
   @MaxLength(100)
   mimeType?: string;
 

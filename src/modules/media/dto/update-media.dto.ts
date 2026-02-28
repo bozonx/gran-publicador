@@ -21,14 +21,6 @@ export class UpdateMediaDto {
 
   @IsString()
   @IsOptional()
-  alt?: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsString()
-  @IsOptional()
   mimeType?: string;
 
   @IsOptional()

@@ -7,3 +7,4 @@ export * from './bulk-operation.dto.js';
 export * from './publication-llm-chat.dto.js';
 export * from './publication-media-input.dto.js';
 export * from './apply-llm-result.dto.js';
+export * from './create-publication-media.dto.js';

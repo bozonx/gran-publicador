@@ -26,8 +26,6 @@ export interface MediaItem {
   storageType: 'TELEGRAM' | 'STORAGE';
   storagePath: string;
   filename?: string;
-  alt?: string;
-  description?: string;
   mimeType?: string;
   sizeBytes?: number | string;
   meta?: Record<string, any>;
@@ -43,8 +41,6 @@ export interface CreateMediaInput {
   storageType?: 'TELEGRAM' | 'STORAGE';
   storagePath?: string;
   filename?: string;
-  alt?: string;
-  description?: string;
   mimeType?: string;
   sizeBytes?: number | string;
   meta?: Record<string, any>;
@@ -348,7 +344,7 @@ export function useMedia() {
   async function updateMediaLinkInPublication(
     publicationId: string,
     mediaLinkId: string,
-    data: { hasSpoiler?: boolean; order?: number },
+    data: { hasSpoiler?: boolean; order?: number; alt?: string; description?: string },
   ): Promise<boolean> {
     isLoading.value = true;
     error.value = null;

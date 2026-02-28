@@ -21,7 +21,7 @@ interface Props {
   // Generic callbacks for when not used in a publication context
   onAdd?: (media: CreateMediaInput[]) => Promise<void>
   onReorder?: (reorderData: Array<{ id: string; order: number }>) => Promise<void>
-  onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number }) => Promise<void>
+  onUpdateLink?: (mediaLinkId: string, data: { hasSpoiler?: boolean; order?: number; alt?: string | null; description?: string | null }) => Promise<void>
   onCopy?: (mediaLinkId: string) => Promise<void>
   collectionId?: string
   groupId?: string
@@ -135,37 +135,35 @@ const {
 } = useAutosave({
   data: autosaveMediaPayload,
   saveFn: async (data) => {
-    if (!isModalOpen.value || !data) return { saved: false, skipped: true }
-
+    // 1. Save general media metadata (meta object only)
     const updated = await updateMedia(data.id, {
-      alt: data.alt || undefined,
-      description: data.description || undefined,
       meta: data.meta || undefined,
     })
 
     if (selectedMedia.value && selectedMedia.value.id === updated.id) {
       selectedMedia.value.meta = updated.meta
-      selectedMedia.value.alt = updated.alt
-      selectedMedia.value.description = updated.description
     }
 
     emit('refresh')
 
     if (!data.mediaLinkId) return { saved: true }
 
+    // 2. Save link-specific metadata (alt, description, hasSpoiler)
     try {
+      const linkData = {
+        hasSpoiler: data.hasSpoiler,
+        alt: data.alt || null,
+        description: data.description || null,
+      }
+
       if (props.publicationId) {
-        await updateMediaLinkInPublication(props.publicationId, data.mediaLinkId, {
-          hasSpoiler: data.hasSpoiler,
-        })
+        await updateMediaLinkInPublication(props.publicationId, data.mediaLinkId, linkData)
       } else if (props.onUpdateLink) {
-        await props.onUpdateLink(data.mediaLinkId, { hasSpoiler: data.hasSpoiler })
+        await props.onUpdateLink(data.mediaLinkId, linkData)
       }
     } catch (error: any) {
-      // Media metadata was already saved successfully above.
-      // Log the spoiler update failure but do not fail the whole save,
-      // otherwise the user would see an error even though metadata is persisted.
-      console.error('Failed to update media spoiler', error)
+      console.error('Failed to update media link metadata', error)
+      return { saved: false, error: error.message }
     }
 
     return { saved: true }
@@ -523,8 +521,8 @@ function openMediaModal(item: MediaLinkItem) {
   editableHasSpoiler.value = !!item.hasSpoiler
   // editableMetadata is now a JSON object, not a YAML string
   editableMetadata.value = item.media.meta || {}
-  editableAlt.value = item.media.alt || ''
-  editableDescription.value = item.media.description || ''
+  editableAlt.value = item.alt || ''
+  editableDescription.value = item.description || ''
   isModalOpen.value = true
 
   // Fetch full media info from media storage
@@ -904,6 +902,7 @@ const mediaValidation = computed(() => {
                 v-if="item.media"
                 :media="item.media"
                 :has-spoiler="item.hasSpoiler"
+                :alt="item.alt"
                 size="md"
                 @click="openMediaModal(item)"
               >

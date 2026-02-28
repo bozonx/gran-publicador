@@ -48,6 +48,8 @@ export interface PostingSnapshotMedia {
   storagePath: string;
   order: number;
   hasSpoiler: boolean;
+  alt?: string | null;
+  description?: string | null;
 }
 
 export const POSTING_SNAPSHOT_VERSION = 1;
