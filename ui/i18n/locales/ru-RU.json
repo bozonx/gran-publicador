@@ -1538,6 +1538,7 @@
     },
     "url": "Введите корректный URL",
     "validationWarningTitle": "Внимание: обнаружены ошибки валидации",
+    "invalidForAutosave": "Ошибка валидации",
     "yamlError": "Ошибка синтаксиса YAML"
   },
   "videoEditor": {

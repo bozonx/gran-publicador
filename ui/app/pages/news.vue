@@ -241,7 +241,7 @@ function formatScore(score: number) {
               variant="soft"
               class="rounded-lg"
             >
-              {{ t('common.configure') || 'Настроить' }}
+              {{ t('common.configure') }}
             </UButton>
           </div>
         </div>

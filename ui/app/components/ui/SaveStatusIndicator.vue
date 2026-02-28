@@ -25,36 +25,36 @@ const { t } = useI18n()
         <template v-if="status === 'unsaved'">
           <UIcon name="i-heroicons-pencil-square" class="w-4 h-4 text-amber-500" />
           <span class="text-gray-500 dark:text-gray-400 font-medium">
-            {{ t('common.unsavedChanges') || 'Unsaved changes' }}
+            {{ t('common.unsavedChanges') }}
           </span>
         </template>
 
         <template v-else-if="status === 'saved'">
           <UIcon name="i-heroicons-check-circle" class="w-4 h-4 text-green-500" />
           <span class="text-gray-500 dark:text-gray-400 font-medium">
-            {{ t('common.saved') || 'Сохранено' }}
+            {{ t('common.saved') }}
           </span>
         </template>
         
         <template v-else-if="status === 'saving'">
           <UIcon name="i-heroicons-arrow-path" class="w-4 h-4 text-primary-500 animate-spin" />
           <span class="text-gray-500 dark:text-gray-400 font-medium">
-            {{ t('common.saving') || 'Сохранение...' }}
+            {{ t('common.saving') }}
           </span>
         </template>
         
         <template v-else-if="status === 'invalid'">
           <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
           <span class="text-amber-600 dark:text-amber-400 font-medium">
-            {{ t('validation.invalidForAutosave') || 'Ошибка валидации' }}
+            {{ t('validation.invalidForAutosave') }}
           </span>
         </template>
 
         <template v-else-if="status === 'error'">
           <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 text-red-500" />
-          <UTooltip :text="error || t('common.saveError') || 'Ошибка сохранения'">
+          <UTooltip :text="error || t('common.saveError')">
             <span class="text-red-500 font-medium cursor-help">
-              {{ t('common.saveError') || 'Ошибка сохранения' }}
+              {{ t('common.saveError') }}
             </span>
           </UTooltip>
         </template>

@@ -310,33 +310,25 @@ const tagStyles = computed(() => {
 
   return `
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) {
-      background-color: #f59e0b !important;
-      border-color: #f59e0b !important;
+      background-color: var(--color-warn) !important;
+      border-color: var(--color-warn) !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) * {
       color: #fff !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) {
-      background-color: #ef4444 !important;
-      border-color: #ef4444 !important;
+      background-color: var(--color-error) !important;
+      border-color: var(--color-error) !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) * {
       color: #fff !important;
-    }
-    .dark .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) {
-      background-color: #d97706 !important;
-      border-color: #d97706 !important;
-    }
-    .dark .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) {
-      background-color: #dc2626 !important;
-      border-color: #dc2626 !important;
     }
   `
 })
 </script>
 
 <template>
-  <div class="flex items-start gap-2" :class="uniqueTagsClass">
+  <div class="flex items-start gap-2 tags-container-root" :class="uniqueTagsClass">
     <UInputMenu
       v-model="value"
       v-model:search-term="searchTerm"
@@ -374,3 +366,15 @@ const tagStyles = computed(() => {
     </component>
   </div>
 </template>
+
+<style scoped>
+.tags-container-root {
+  --color-warn: #f59e0b;
+  --color-error: #ef4444;
+}
+
+.dark .tags-container-root {
+  --color-warn: #d97706;
+  --color-error: #dc2626;
+}
+</style>

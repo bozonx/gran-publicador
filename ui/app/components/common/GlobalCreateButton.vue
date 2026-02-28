@@ -226,7 +226,7 @@ function handleChannelCreated(channelId: string, projectId: string) {
               class="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl text-xs text-amber-700 dark:text-amber-400 flex gap-2"
             >
               <UIcon name="i-heroicons-information-circle" class="w-4 h-4 shrink-0" />
-              <span>{{ t('project.createFirst') || 'Сначала создайте проект, чтобы начать работу с публикациями.' }}</span>
+              <span>{{ t('project.createFirst') }}</span>
             </div>
           </div>
         </template>
