@@ -3,6 +3,7 @@ import { stripHtmlAndSpecialChars } from '~/utils/text'
 import CommonThumb from '~/components/common/Thumb.vue'
 import { getMediaLinksThumbDataLoose, type MediaItemLike } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
+import { useLanguages } from '~/composables/useLanguages'
 
 type MediaItemLikeLoose = Omit<MediaItemLike, 'filename' | 'mimeType'> & {
   filename?: string | null
@@ -22,6 +23,7 @@ interface ContentItem {
   createdAt: string
   archivedAt?: string | null
   text?: string | null
+  language?: string | null
   media?: Array<{ mediaId?: string; hasSpoiler?: boolean; order?: number; media?: MediaItemLikeLoose }>
   _virtual?: {
     source?: string
@@ -71,6 +73,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const { formatDateShort, truncateContent } = useFormatters()
 const authStore = useAuthStore()
+const { getLanguageLabel } = useLanguages()
 
 const actionsMenuItems = computed(() => {
   if (props.hideActions) {
@@ -331,6 +334,11 @@ const displayedGroups = computed(() => {
         <div class="flex items-center gap-1 shrink-0">
           <UIcon name="i-heroicons-calendar" class="w-3.5 h-3.5" />
           <span>{{ formatDateShort(item.createdAt) }}</span>
+        </div>
+
+        <div v-if="item.language" class="flex items-center gap-1 shrink-0" :title="getLanguageLabel(item.language ?? '')">
+          <UIcon name="i-heroicons-language" class="w-3.5 h-3.5" />
+          <span>{{ item.language?.split('-')[0]?.toUpperCase() }}</span>
         </div>
 
         <div v-if="!isUnsplash" class="flex items-center gap-3">

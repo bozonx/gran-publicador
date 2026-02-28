@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, toRef, watch } from 'vue'
+import { ref, toRef, watch, computed } from 'vue'
 import { normalizeTags } from '~/utils/tags'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { getApiErrorMessage } from '~/utils/error'
@@ -18,6 +18,7 @@ interface ContentItem {
   note: string | null
   tags: string[]
   text?: string | null
+  language?: string | null
   meta?: Record<string, unknown>
   media?: ContentItemMediaLink[]
   createdAt?: string | Date
@@ -93,10 +94,10 @@ const handleLanguageChange = (val: any) => {
   flushSave();
 }
 
-const autosaveForm = computed(() => {
-  const { meta, ...rest } = editForm.value
-  return rest
-})
+const autosaveForm = computed(() => ({
+  ...editForm.value,
+  meta: editForm.value.meta || {}, // Ensure meta is always an object for autosave
+}))
 
 const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, flushSave } = useAutosave({
   data: toRef(() => autosaveForm.value as any),
