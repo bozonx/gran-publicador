@@ -1188,13 +1188,13 @@ const mediaValidation = computed(() => {
 
         <MediaDetailsEditor
           v-if="editable"
-          class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
-          :media="selectedMedia"
-          :editable="editable"
-          v-model:hasSpoiler="editableHasSpoiler"
+          v-model:has-spoiler="editableHasSpoiler"
           v-model:description="editableDescription"
           v-model:alt="editableAlt"
           v-model:metadata="editableMetadata"
+          class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700"
+          :media="selectedMedia"
+          :editable="editable"
         />
       </div>
     </div>

@@ -238,9 +238,9 @@ export async function exportToContainer(
   let audioTimestampUs = 0;
 
   // Process first tick (already decoded for size detection)
-  let pendingVideo: VideoFrame | undefined = firstTick?.video;
-  let pendingAudio: Float32Array[] | undefined = firstTick?.audio;
-  let pendingState: 'success' | 'done' = firstTick?.state ?? 'success';
+  const pendingVideo: VideoFrame | undefined = firstTick?.video;
+  const pendingAudio: Float32Array[] | undefined = firstTick?.audio;
+  const pendingState: 'success' | 'done' = firstTick?.state ?? 'success';
 
   while (currentTimeUs < trimDurationUs) {
     if (encoderError !== null) throw encoderError;

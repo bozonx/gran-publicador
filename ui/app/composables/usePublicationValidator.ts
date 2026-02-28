@@ -19,6 +19,7 @@ export function usePublicationValidator() {
     selectedChannelIds: string[],
     availableChannels: Channel[],
     channelMap?: Record<string, { name: string; socialMedia: string }>,
+    tags?: string[],
   ): ValidationError[] {
     const errors: ValidationError[] = [];
 
@@ -37,6 +38,7 @@ export function usePublicationValidator() {
           channel.socialMedia as any,
           mediaArray,
           postType,
+          tags,
         );
 
         if (!result.isValid) {
@@ -62,6 +64,7 @@ export function usePublicationValidator() {
     mediaArray: Array<{ type: string }>,
     postType: string,
     publication: PublicationWithRelations | null,
+    tags?: string[],
   ): ValidationError[] {
     const errors: ValidationError[] = [];
     const { isTextContentEmpty } = useTextUtils();
@@ -80,6 +83,7 @@ export function usePublicationValidator() {
           post.channel.socialMedia as any,
           mediaArray,
           postType,
+          tags || publication?.tags || [],
         );
 
         if (!result.isValid) {

@@ -95,12 +95,12 @@ const { t } = useI18n()
           </UButton>
 
           <UButton
+            v-if="!hideCreatePublication"
             color="neutral"
             variant="ghost"
             icon="i-heroicons-paper-airplane"
             size="sm"
             class="text-white hover:bg-gray-700"
-            v-if="!hideCreatePublication"
             @click="emit('create-publication')"
           >
             {{ t('contentLibrary.bulk.createPublication') }}

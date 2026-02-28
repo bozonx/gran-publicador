@@ -5,9 +5,10 @@ interface Props {
   modelValue: PublicationStatus
   disabled?: boolean
   isContentMissing?: boolean
+  isValid?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), { isValid: true })
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
@@ -24,6 +25,9 @@ function selectStatus(status: string) {
   if (status === 'READY' && props.isContentMissing && props.modelValue === 'DRAFT') {
     return
   }
+  if (!props.isValid && (status === 'READY' || status === 'SCHEDULED') && props.modelValue === 'DRAFT') {
+    return
+  }
   emit('update:modelValue', status as PublicationStatus)
 }
 </script>
@@ -34,7 +38,9 @@ function selectStatus(status: string) {
       :model-value="modelValue"
       :options="options.map(opt => ({
         ...opt,
-        disabled: disabled || (opt.value === 'READY' && isContentMissing && modelValue === 'DRAFT')
+        disabled: disabled || 
+          (opt.value === 'READY' && isContentMissing && modelValue === 'DRAFT') ||
+          (!isValid && (opt.value === 'READY' || opt.value === 'SCHEDULED') && modelValue === 'DRAFT')
       }))"
       @update:model-value="selectStatus"
     />

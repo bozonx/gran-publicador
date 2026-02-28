@@ -104,12 +104,12 @@ const prefilledMediaIds = computed(() => {
 
           <!-- Text Preview -->
           <div class="p-4 space-y-4">
-            <h3 class="font-bold text-lg text-gray-900 dark:text-white" v-if="contentItem.title">
+            <h3 v-if="contentItem.title" class="font-bold text-lg text-gray-900 dark:text-white">
               {{ contentItem.title }}
             </h3>
             <div 
-              class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed"
               v-if="contentItem.text"
+              class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm leading-relaxed"
             >
               {{ contentItem.text }}
             </div>

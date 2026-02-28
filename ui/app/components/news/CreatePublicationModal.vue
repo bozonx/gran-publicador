@@ -415,7 +415,7 @@ const publicationPrefilledData = computed(() => {
       </div>
     </div>
     
-    <template #footer v-if="step === 1">
+    <template v-if="step === 1" #footer>
       <UButton color="neutral" variant="ghost" @click="isOpen = false">
         {{ t('common.cancel') }}
       </UButton>

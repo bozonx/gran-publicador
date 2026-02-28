@@ -51,12 +51,12 @@ const isAudioDisabled = computed(() => props.disabled || !props.hasAudio)
     <UFormField v-if="outputFormat === 'mp4'" :label="t('videoEditor.export.videoCodec', 'Video codec')">
       <USelectMenu
         :model-value="(props.videoCodecOptions.find(o => o.value === videoCodec) || videoCodec) as any"
-        @update:model-value="(v: any) => videoCodec = v?.value ?? v"
         :items="props.videoCodecOptions"
         value-key="value"
         label-key="label"
         :disabled="props.disabled || props.isLoadingCodecSupport"
         class="w-full"
+        @update:model-value="(v: any) => videoCodec = v?.value ?? v"
       />
     </UFormField>
     <UFormField v-else :label="t('videoEditor.export.videoCodec', 'Video codec')">

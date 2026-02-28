@@ -19,6 +19,8 @@ const props = withDefaults(defineProps<{
   groupId?: string
   disabled?: boolean
   searchEndpoint?: string
+  maxTags?: number
+  recommendedTags?: number
 }>(), {
   placeholder: '',
   searchEndpoint: '/tags/search',
@@ -38,6 +40,8 @@ const isCopying = ref(false)
 const searchRequestTracker = createSearchRequestTracker()
 const activeSearchController = ref<AbortController | null>(null)
 const hasShownScopeConflictWarning = ref(false)
+
+const uniqueTagsClass = `tags-wrapper-${Math.random().toString(36).substring(2, 9)}`
 
 const TAG_LIMIT = 50
 
@@ -297,7 +301,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex items-start gap-2">
+  <div class="flex items-start gap-2" :class="uniqueTagsClass">
     <UInputMenu
       v-model="value"
       v-model:search-term="searchTerm"
@@ -309,13 +313,13 @@ onBeforeUnmount(() => {
       :color="color"
       :variant="variant"
       :size="size"
-      @create="onCreateTag"
       :class="['flex-1', $props.class]"
-      @paste.capture="onPasteTags"
       :disabled="disabled"
-      @keydown.capture="onKeydownCreateTag"
       :loading="loading"
       icon="i-heroicons-tag"
+      @create="onCreateTag"
+      @paste.capture="onPasteTags"
+      @keydown.capture="onKeydownCreateTag"
     />
 
     <UButton
@@ -329,5 +333,22 @@ onBeforeUnmount(() => {
     >
       {{ t('common.copy') }}
     </UButton>
+
+    <component :is="'style'" v-if="maxTags || recommendedTags">
+      .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (recommendedTags || maxTags || 0) + 1 }}) {
+        background-color: #f59e0b !important;
+        color: #fff !important;
+      }
+      .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (maxTags || 0) + 1 }}) {
+        background-color: #ef4444 !important;
+        color: #fff !important;
+      }
+      .dark .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (recommendedTags || maxTags || 0) + 1 }}) {
+        background-color: #d97706 !important;
+      }
+      .dark .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (maxTags || 0) + 1 }}) {
+        background-color: #dc2626 !important;
+      }
+    </component>
   </div>
 </template>

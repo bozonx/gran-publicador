@@ -1084,11 +1084,11 @@ onMounted(() => { fetchItems() })
 
     <ContentLibraryToolbar
       v-model:q="q"
-      v-model:selectedTags="selectedTags"
-      v-model:selectedLanguage="selectedLanguage"
-      v-model:sortBy="sortBy"
-      v-model:sortOrder="sortOrder"
-      v-model:withMedia="withMedia"
+      v-model:selected-tags="selectedTags"
+      v-model:selected-language="selectedLanguage"
+      v-model:sort-by="sortBy"
+      v-model:sort-order="sortOrder"
+      v-model:with-media="withMedia"
       :scope="scope"
       :project-id="projectId"
       :user-id="projectId ? undefined : useAuth()?.user?.value?.id"

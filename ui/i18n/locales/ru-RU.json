@@ -1527,7 +1527,8 @@
       "notEnoughMedia": "Количество медиа ({current}) меньше минимально необходимого ({min}) для {platform}",
       "textTooLong": "Длина текста ({current}) превышает максимально допустимую ({max}) для {platform}",
       "tooManyMedia": "Количество медиа ({current}) превышает максимально допустимое ({max}) для {platform}",
-      "tooManyMediaInGallery": "Слишком много медиа файлов в галерее ({current}) для {platform}. Максимум: {max}"
+      "tooManyMediaInGallery": "Слишком много медиа файлов в галерее ({current}) для {platform}. Максимум: {max}",
+      "tooManyTags": "Количество тегов ({current}) превышает максимально допустимое ({max}) для {platform}"
     },
     "url": "Введите корректный URL",
     "validationWarningTitle": "Внимание: обнаружены ошибки валидации",

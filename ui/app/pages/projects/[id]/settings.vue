@@ -394,7 +394,7 @@ async function handleTransfer() {
             </UButton>
           </div>
 
-          <div class="mt-8 pt-8 border-t border-red-100 dark:border-red-900/50 flex items-center justify-between" v-if="canTransfer(currentProject)">
+          <div v-if="canTransfer(currentProject)" class="mt-8 pt-8 border-t border-red-100 dark:border-red-900/50 flex items-center justify-between">
             <div>
               <h3 class="font-medium text-gray-900 dark:text-white">
                 {{ t('project.transferProject', 'Transfer Project') }}

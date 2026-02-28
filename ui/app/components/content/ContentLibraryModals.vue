@@ -166,11 +166,11 @@ const editorHasContent = ref(false)
     >
       <ContentItemEditor
         v-if="activeItem"
+        v-model:has-content="editorHasContent"
         :item="activeItem"
         :scope="scope"
         :project-id="projectId"
         :group-id="currentGroupId ?? undefined"
-        v-model:has-content="editorHasContent"
         @refresh="emit('refresh-items', { reset: true })"
       />
       

@@ -24,6 +24,7 @@ import {
   getPostTypeOptionsForPlatforms,
   getSupportedPostTypesIntersection,
 } from '~/utils/socialMediaPlatforms'
+import { SOCIAL_MEDIA_PLATFORMS } from '@gran/shared/social-media-platforms'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -107,6 +108,26 @@ const postTypeOptions = computed(() => {
     t,
     platforms: selectedPlatforms.value,
   })
+})
+
+const tagLimits = computed(() => {
+  if (!selectedPlatforms.value || selectedPlatforms.value.length === 0) return null
+
+  let maxCount = Infinity
+  let recommendedCount = Infinity
+
+  for (const p of selectedPlatforms.value) {
+    const pConfig = SOCIAL_MEDIA_PLATFORMS[p]
+    if (pConfig?.tags?.supported) {
+      if (pConfig.tags.maxCount < maxCount) maxCount = pConfig.tags.maxCount
+      if (pConfig.tags.recommendedCount < recommendedCount) recommendedCount = pConfig.tags.recommendedCount
+    }
+  }
+
+  return {
+    maxCount: maxCount === Infinity ? undefined : maxCount,
+    recommendedCount: recommendedCount === Infinity ? undefined : recommendedCount,
+  }
 })
 
 const isEditMode = computed(() => !!props.publication?.id)
@@ -309,6 +330,7 @@ const validationErrors = computed(() => {
             state.channelIds,
             [],
             channelMap,
+            state.tags,
         )
     } else {
         // Editing: validate for existing posts that inherit content
@@ -317,7 +339,8 @@ const validationErrors = computed(() => {
             mediaCount,
             mediaArray,
             postType,
-            props.publication
+            props.publication,
+            state.tags,
         )
     }
 
@@ -631,6 +654,7 @@ function handleReset() {
           <FormsPublicationStatusSelector 
             v-model="state.status"
             :is-content-missing="isContentMissing"
+            :is-valid="isValid"
           />
         </UFormField>
 
@@ -727,6 +751,8 @@ function handleReset() {
           :search-endpoint="'/publications/tags/search'"
           color="neutral"
           :project-id="currentProjectId"
+          :max-tags="tagLimits?.maxCount"
+          :recommended-tags="tagLimits?.recommendedCount"
           class="w-full"
         />
       </UFormField>

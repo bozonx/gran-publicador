@@ -404,7 +404,6 @@ function handleCancel() {
       <UFormField :label="t('videoEditor.export.collection')">
         <USelectMenu
           :model-value="(collectionOptions.find(o => o.value === selectedCollectionId) || selectedCollectionId) as any"
-          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
           :items="collectionOptions"
           value-key="value"
           label-key="label"
@@ -414,6 +413,7 @@ function handleCancel() {
           :loading="isLoadingCollections"
           :disabled="isExporting || isLoadingCollections"
           class="w-full"
+          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
         />
       </UFormField>
 
@@ -434,7 +434,6 @@ function handleCancel() {
       <UFormField v-if="scope === 'project'" :label="t('contentLibrary.bulk.selectProject')">
         <USelectMenu
           :model-value="(projectOptions.find(o => o.value === selectedProjectId) || selectedProjectId) as any"
-          @update:model-value="(v: any) => selectedProjectId = v?.value ?? v"
           :items="projectOptions"
           value-key="value"
           label-key="label"
@@ -444,6 +443,7 @@ function handleCancel() {
           :disabled="isExporting || isLoadingProjects"
           :loading="isLoadingProjects"
           class="w-full"
+          @update:model-value="(v: any) => selectedProjectId = v?.value ?? v"
         />
       </UFormField>
 

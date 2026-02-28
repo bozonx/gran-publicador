@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { SKIP, visit } from 'unist-util-visit';
 import { toString } from 'mdast-util-to-string';
 import {
+  getPlatformConfig,
   getPostTypeConfig,
   MediaType,
   PostType,
@@ -191,6 +192,7 @@ export function useSocialMediaValidation() {
     socialMedia: SocialMedia,
     media?: Array<{ type: string }>,
     postType?: string,
+    tags?: string[],
   ): ValidationResult {
     const errors: ValidationError[] = [];
     const rules = getValidationRules(socialMedia, postType);
@@ -253,6 +255,23 @@ export function useSocialMediaValidation() {
     if (media && media.length > 0) {
       const mediaTypeErrors = validateMediaTypes(media, rules, socialMedia, postType);
       errors.push(...mediaTypeErrors);
+    }
+
+    // Validate tags count
+    if (tags && tags.length > 0) {
+      const platformConfig = getPlatformConfig(socialMedia);
+      if (platformConfig && platformConfig.tags && platformConfig.tags.supported) {
+        if (tags.length > platformConfig.tags.maxCount) {
+          errors.push({
+            field: 'tags',
+            message: t('validation.socialMedia.tooManyTags', {
+              current: tags.length,
+              max: platformConfig.tags.maxCount,
+              platform: socialMedia,
+            }),
+          });
+        }
+      }
     }
 
     return {
