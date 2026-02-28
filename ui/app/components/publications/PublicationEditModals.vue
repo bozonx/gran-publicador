@@ -90,16 +90,9 @@ async function handleCopyProject() {
             toast.add({
               title: t('common.success'),
               description: t('common.saveSuccess'),
-              color: 'success',
-              actions: [
-                {
-                  label: t('common.view', 'View'),
-                  onClick: () => {
-                    router.push(`/publications/${result.id}/edit`)
-                  },
-                },
-              ],
+              color: 'success'
             })
+            router.push(`/publications/${result.id}/edit`)
             emit('refresh')
         }
     } finally {
