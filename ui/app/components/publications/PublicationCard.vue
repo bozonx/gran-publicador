@@ -25,7 +25,8 @@ const isArchiveView = computed(() => route.query.archived === 'true')
 const authStore = useAuthStore()
 
 const isContentActionModalOpen = ref(false)
-const contentActionMode = ref<'copy' | 'move'>('copy')
+const isCopyProjectModalOpen = ref(false)
+const contentActionMode = ref<'copy'>('copy')
 
 const thumbData = computed(() => {
   if (!props.publication.media || props.publication.media.length === 0) {
@@ -138,18 +139,17 @@ function handleDelete(e: Event) {
         <UDropdownMenu
           :items="[[
             {
+              label: t('publication.copyToProject'),
+              icon: 'i-heroicons-document-duplicate',
+              click: () => {
+                isCopyProjectModalOpen = true
+              }
+            },
+            {
               label: t('publication.copyToContentLibrary'),
               icon: 'i-heroicons-arrow-down-on-square-stack',
               click: () => {
                 contentActionMode = 'copy'
-                isContentActionModalOpen = true
-              }
-            },
-            {
-              label: t('publication.moveToContentLibrary'),
-              icon: 'i-heroicons-arrow-right-start-on-rectangle',
-              click: () => {
-                contentActionMode = 'move'
                 isContentActionModalOpen = true
               }
             }
@@ -252,6 +252,12 @@ function handleDelete(e: Event) {
       :scope="publication.projectId ? 'project' : 'personal'"
       :project-id="publication.projectId || undefined"
       :mode="contentActionMode"
+    />
+
+    <ModalsCopyPublicationToProjectModal
+      v-model:open="isCopyProjectModalOpen"
+      :publication-id="publication.id"
+      :current-project-id="publication.projectId || undefined"
     />
   </div>
 </template>

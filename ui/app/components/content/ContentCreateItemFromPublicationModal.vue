@@ -9,12 +9,9 @@ interface Props {
   scope: 'project' | 'personal'
   projectId?: string
   publicationId: string | null
-  mode?: 'copy' | 'move'
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  mode: 'copy',
-})
+const props = defineProps<Props>()
 
 const isOpen = defineModel<boolean>('open', { default: false })
 
@@ -188,10 +185,6 @@ async function executeAction(groupId?: string) {
       publicationId: props.publicationId,
     })
 
-    if (props.mode === 'move') {
-      await api.delete(`/publications/${props.publicationId}`)
-    }
-
     isOpen.value = false
 
     const base = selectedScope.value === 'project' 
@@ -200,9 +193,7 @@ async function executeAction(groupId?: string) {
 
     toast.add({
       title: t('common.success'),
-      description: props.mode === 'move' 
-        ? t('archive.success_moved') 
-        : t('contentLibrary.actions.copyToItemSuccess'),
+      description: t('contentLibrary.actions.copyToItemSuccess'),
       color: 'success',
       actions: [
         {
@@ -220,16 +211,7 @@ async function executeAction(groupId?: string) {
       ],
     } as any)
     
-    // If we moved, we must redirect because the current page is deleted
-    if (props.mode === 'move') {
-      router.push({ 
-        path: base, 
-        query: { 
-          collectionId: targetCollectionId.value,
-          groupId: groupId
-        } 
-      })
-    }
+
   } catch (e: any) {
     toast.add({
       title: t('common.error'),
@@ -254,15 +236,12 @@ async function handleActionToSavedView() {
 <template>
   <UiAppModal
     v-model:open="isOpen"
-    :title="props.mode === 'move' ? t('publication.moveToContentLibrary') : t('contentLibrary.actions.copyToContentItem')"
+    :title="t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
   >
     <div class="space-y-4">
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        {{ props.mode === 'move' 
-          ? t('contentLibrary.moveModal.toProject') 
-          : t('contentLibrary.actions.copyPublicationToItemDescription', 'Select a target project and collection to create a new content item.') 
-        }}
+        {{ t('contentLibrary.actions.copyPublicationToItemDescription', 'Select a target project and collection to create a new content item.') }}
       </p>
 
       <div v-if="error" class="text-sm text-red-600 dark:text-red-400">
@@ -311,11 +290,11 @@ async function handleActionToSavedView() {
           <div v-else-if="selectedCollection.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
             <UButton
               color="primary"
-              :icon="props.mode === 'move' ? 'i-heroicons-arrow-right-circle' : 'i-heroicons-document-duplicate'"
+              icon="i-heroicons-document-duplicate'"
               :loading="isCreating"
               @click="handleActionToSavedView"
             >
-              {{ props.mode === 'move' ? t('common.move') : t('common.copy') }}
+              {{ t('common.copy') }}
             </UButton>
           </div>
         </div>

@@ -62,7 +62,7 @@ const isDesynced = computed(() => currentPublication.value?.meta?.isDesynced ===
 
 
 const isDuplicateModalOpen = ref(false)
-const isProjectModalOpen = ref(false)
+const isCopyModalOpen = ref(false)
 const isTemplateModalOpen = ref(false)
 const isRelationsModalOpen = ref(false)
 const showLlmModal = ref(false)
@@ -74,11 +74,10 @@ const isContentActionModalOpen = ref(false)
 const isPublishedWarningModalOpen = ref(false)
 const hasShownPublishedWarning = ref(false)
 
-const newProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
 const newScheduledDate = ref('')
 const archiveWarningMessage = ref('')
-const contentActionMode = ref<'copy' | 'move'>('copy')
+const contentActionMode = ref<'copy'>('copy')
 
 const modalsRef = ref<any>(null)
 
@@ -324,12 +323,14 @@ function handleDuplicateSuccess(id: string) {
     router.push(`/publications/${id}/edit`)
 }
 
-function openProjectModal() {
+function openCopyModal() {
     if (!currentProject.value) return
-    newProjectId.value = currentProject.value.id
-    modalsRef.value?.setNewProjectId(newProjectId.value)
-    isProjectModalOpen.value = true
+    targetProjectId.value = currentProject.value.id
+    modalsRef.value?.setTargetProjectId(targetProjectId.value)
+    isCopyModalOpen.value = true
 }
+
+const targetProjectId = ref<string | undefined>(undefined)
 
 function openTemplateModal() {
     if (!currentPublication.value) return
@@ -351,12 +352,9 @@ const moreActions = computed(() => [
       class: ''
     },
     {
-      label: t('publication.moveToContentLibrary'),
-      icon: 'i-heroicons-arrow-right-start-on-rectangle',
-      click: () => {
-        contentActionMode.value = 'move'
-        isContentActionModalOpen.value = true
-      },
+      label: t('publication.copyToProject'),
+      icon: 'i-heroicons-document-duplicate',
+      click: openCopyModal,
       disabled: false,
       class: ''
     },
@@ -574,7 +572,7 @@ async function executePublish(force: boolean, now: boolean = false) {
       v-model:archive-warning-modal="isArchiveWarningModalOpen"
       v-model:schedule-modal="isScheduleModalOpen"
       v-model:duplicate-modal="isDuplicateModalOpen"
-      v-model:project-modal="isProjectModalOpen"
+      v-model:copy-modal="isCopyModalOpen"
       v-model:template-modal="isTemplateModalOpen"
       v-model:llm-modal="showLlmModal"
       v-model:relations-modal="isRelationsModalOpen"
@@ -699,27 +697,9 @@ async function executePublish(force: boolean, now: boolean = false) {
                                     <span class="text-gray-900 dark:text-white font-medium text-base truncate">
                                         {{ currentPublication.project?.name || t('publication.personal_draft') }}
                                     </span>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
-                                        color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="openProjectModal"
-                                    />
                                 </div>
                                 <div v-else>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-folder"
-                                        variant="soft"
-                                        color="primary"
-                                        class="w-full justify-center shadow-sm"
-                                        @click="openProjectModal"
-                                    >
-                                        {{ t('publication.selectProject') }}
-                                    </UButton>
+                                    <span class="text-gray-400 italic">{{ t('publication.personal_draft') }}</span>
                                 </div>
                             </div>
 

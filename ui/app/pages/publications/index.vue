@@ -90,8 +90,6 @@ watch([filters.status, filters.channelId, filters.projectId, filters.ownership, 
 // Bulk operations
 const selectedIds = ref<string[]>([])
 const showBulkDeleteModal = ref(false)
-const showBulkMoveModal = ref(false)
-const targetProjectIdForBulk = ref<string>()
 const bulkActionPending = ref(false)
 
 async function handleBulkAction(operation: string, status?: string) {
@@ -104,16 +102,7 @@ async function handleBulkAction(operation: string, status?: string) {
   bulkActionPending.value = false
 }
 
-async function handleBulkMove() {
-  if (!targetProjectIdForBulk.value) return
-  bulkActionPending.value = true
-  if (await bulkOperation(selectedIds.value, 'MOVE', undefined, targetProjectIdForBulk.value)) {
-    selectedIds.value = []
-    showBulkMoveModal.value = false
-    loadPublications()
-  }
-  bulkActionPending.value = false
-}
+
 
 // Single delete
 const showDeleteModal = ref(false)
@@ -217,15 +206,10 @@ const publicationTagsSuggestions = computed(() => {
       @archive="handleBulkAction('ARCHIVE')"
       @restore="handleBulkAction('UNARCHIVE')"
       @set-status="s => handleBulkAction('SET_STATUS', s)"
-      @move="showBulkMoveModal = true"
       @delete="showBulkDeleteModal = true"
     />
 
     <UiConfirmModal v-model:open="showDeleteModal" :title="t('publication.deleteConfirm')" color="error" :loading="isDeleting" @confirm="handleDelete" />
     <UiConfirmModal v-model:open="showBulkDeleteModal" :title="t('publication.bulkDeleteConfirm', { count: selectedIds.length })" color="error" :loading="bulkActionPending" @confirm="handleBulkAction('DELETE')" />
-    
-    <UiConfirmModal v-model:open="showBulkMoveModal" :title="t('publication.bulk.moveTitle')" :loading="bulkActionPending" @confirm="handleBulkMove">
-      <USelectMenu v-model="targetProjectIdForBulk" :items="projects.map(p => ({ id: p.id, name: p.name }))" value-key="id" label-key="name" class="mt-4" />
-    </UiConfirmModal>
   </div>
 </template>

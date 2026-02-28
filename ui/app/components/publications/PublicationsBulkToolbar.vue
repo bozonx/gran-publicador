@@ -8,7 +8,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const emit = defineEmits(['clear', 'archive', 'restore', 'setStatus', 'move', 'delete'])
+const emit = defineEmits(['clear', 'archive', 'restore', 'setStatus', 'delete'])
 
 const { t } = useI18n()
 const { statusOptions } = usePublications()
@@ -81,16 +81,7 @@ const bulkStatusOptions = computed(() => [
           </UButton>
         </UDropdownMenu>
 
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-folder-plus"
-          size="sm"
-          :loading="pending"
-          @click="emit('move')"
-        >
-          {{ t('publication.bulk.moveToProject') }}
-        </UButton>
+
 
         <UButton
           color="error"

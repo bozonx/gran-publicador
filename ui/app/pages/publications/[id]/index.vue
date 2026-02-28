@@ -98,7 +98,8 @@ const isDeleting = ref(false)
 const isDeleteModalOpen = ref(false)
 const isDuplicateModalOpen = ref(false)
 const isContentActionModalOpen = ref(false)
-const contentActionMode = ref<'copy' | 'move'>('copy')
+const isCopyProjectModalOpen = ref(false)
+const contentActionMode = ref<'copy'>('copy')
 
 const isLocked = computed(() => !!currentPublication.value?.archivedAt || !!currentProject.value?.archivedAt)
 
@@ -106,20 +107,19 @@ const isLocked = computed(() => !!currentPublication.value?.archivedAt || !!curr
 const moreActions = computed(() => [
   [
     {
-      label: t('publication.copyToContentLibrary'),
-      icon: 'i-heroicons-arrow-down-on-square-stack',
+      label: t('publication.copyToProject'),
+      icon: 'i-heroicons-document-duplicate',
       click: () => {
-        contentActionMode.value = 'copy'
-        isContentActionModalOpen.value = true
+        isCopyProjectModalOpen.value = true
       },
       disabled: false,
       class: ''
     },
     {
-      label: t('publication.moveToContentLibrary'),
-      icon: 'i-heroicons-arrow-right-start-on-rectangle',
+      label: t('publication.copyToContentLibrary'),
+      icon: 'i-heroicons-arrow-down-on-square-stack',
       click: () => {
-        contentActionMode.value = 'move'
+        contentActionMode.value = 'copy'
         isContentActionModalOpen.value = true
       },
       disabled: false,
@@ -521,6 +521,13 @@ async function handleApplyLlm(data: any) {
       :scope="currentPublication.projectId ? 'project' : 'personal'"
       :project-id="currentPublication.projectId || undefined"
       :mode="contentActionMode"
+    />
+
+    <ModalsCopyPublicationToProjectModal
+      v-if="currentPublication"
+      v-model:open="isCopyProjectModalOpen"
+      :publication-id="currentPublication.id"
+      :current-project-id="currentPublication.projectId || undefined"
     />
 
     <!-- LLM Generator Modal -->

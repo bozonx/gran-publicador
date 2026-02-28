@@ -18,6 +18,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const api = useApi()
 const router = useRouter()
 const toast = useToast()
 
@@ -34,7 +35,7 @@ const isRepublishModalOpen = defineModel<boolean>('republishModal', { default: f
 const isArchiveWarningModalOpen = defineModel<boolean>('archiveWarningModal', { default: false })
 const isScheduleModalOpen = defineModel<boolean>('scheduleModal', { default: false })
 const isDuplicateModalOpen = defineModel<boolean>('duplicateModal', { default: false })
-const isProjectModalOpen = defineModel<boolean>('projectModal', { default: false })
+const isCopyModalOpen = defineModel<boolean>('copyModal', { default: false })
 const isTemplateModalOpen = defineModel<boolean>('templateModal', { default: false })
 const isLlmModalOpen = defineModel<boolean>('llmModal', { default: false })
 const isRelationsModalOpen = defineModel<boolean>('relationsModal', { default: false })
@@ -45,11 +46,11 @@ const archiveWarningMessage = ref('')
 const newScheduledDate = ref('')
 const isBulkScheduling = ref(false)
 const isDeleting = ref(false)
-const isUpdatingProject = ref(false)
+const isCopyingToProject = ref(false)
 const isUpdatingTemplate = ref(false)
-const newProjectId = ref<string | undefined>(undefined)
+const targetProjectId = ref<string | undefined>(undefined)
 const newTemplateId = ref<string | undefined>(undefined)
-const contentActionMode = ref<'copy' | 'move'>('copy')
+const contentActionMode = ref<'copy'>('copy')
 
 // Handlers
 async function handleDelete() {
@@ -79,17 +80,30 @@ async function handleBulkSchedule() {
     }
 }
 
-async function handleUpdateProject() {
-    isUpdatingProject.value = true
+async function handleCopyProject() {
+    isCopyingToProject.value = true
     try {
-        if (!newProjectId.value) return
-        const success = await bulkOperation([props.publication.id], 'MOVE', undefined, newProjectId.value)
-        if (success) {
-            isProjectModalOpen.value = false
+        if (!targetProjectId.value) return
+        const result = await api.post<PublicationWithRelations>(`/publications/${props.publication.id}/copy`, { projectId: targetProjectId.value })
+        if (result && result.id) {
+            isCopyModalOpen.value = false
+            toast.add({
+              title: t('common.success'),
+              description: t('common.saveSuccess'),
+              color: 'success',
+              actions: [
+                {
+                  label: t('common.view', 'View'),
+                  onClick: () => {
+                    router.push(`/publications/${result.id}/edit`)
+                  },
+                },
+              ],
+            })
             emit('refresh')
         }
     } finally {
-        isUpdatingProject.value = false
+        isCopyingToProject.value = false
     }
 }
 
@@ -106,9 +120,9 @@ async function handleUpdateTemplate(templateId: string) {
 
 defineExpose({
     setArchiveWarning: (msg: string) => { archiveWarningMessage.value = msg },
-    setContentActionMode: (mode: 'copy' | 'move') => { contentActionMode.value = mode },
+    setContentActionMode: (mode: 'copy') => { contentActionMode.value = mode },
     setNewScheduledDate: (date: string) => { newScheduledDate.value = date },
-    setNewProjectId: (id?: string) => { newProjectId.value = id },
+    setTargetProjectId: (id?: string) => { targetProjectId.value = id },
     setNewTemplateId: (id?: string) => { newTemplateId.value = id }
 })
 </script>
@@ -176,16 +190,16 @@ defineExpose({
       </template>
     </UiAppModal>
 
-    <!-- Project Change Modal -->
-    <UiAppModal v-model:open="isProjectModalOpen" :title="t('project.title')" :ui="{ content: 'sm:max-w-md' }">
+    <!-- Project Copy Modal -->
+    <UiAppModal v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
       <div class="space-y-4">
         <UFormField :label="t('project.title')">
-          <CommonProjectSelect v-model="newProjectId" class="w-full" />
+          <CommonProjectSelect v-model="targetProjectId" class="w-full" />
         </UFormField>
       </div>
       <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isProjectModalOpen = false">{{ t('common.cancel') }}</UButton>
-        <UButton color="primary" :loading="isUpdatingProject" @click="handleUpdateProject">{{ t('common.save') }}</UButton>
+        <UButton color="neutral" variant="ghost" @click="isCopyModalOpen = false">{{ t('common.cancel') }}</UButton>
+        <UButton color="primary" :loading="isCopyingToProject" @click="handleCopyProject">{{ t('common.copy') }}</UButton>
       </template>
     </UiAppModal>
 
