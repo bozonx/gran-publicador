@@ -42,7 +42,7 @@ function resolveUseToast(): null | (() => { add: (toast: unknown) => unknown }) 
   return null;
 }
 
-export type SaveStatus = 'saved' | 'saving' | 'error' | 'unsaved';
+export type SaveStatus = 'saved' | 'saving' | 'error' | 'unsaved' | 'invalid';
 
 export interface AutosaveOptions<T> {
   // Function to save data
@@ -394,12 +394,17 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
             isIndicatorVisible.value = false;
           }
         } else if (wasSkipped) {
-          // If skipped (e.g. invalid state), we keep the dirty flag and previous status
-          saveStatus.value = isDirty.value ? 'unsaved' : 'saved';
+          // If skipped (e.g. invalid state), we show 'invalid' status if it was dirty
+          saveStatus.value = isDirty.value ? 'invalid' : 'saved';
+
+          if (indicatorStatus.value !== 'saving') {
+             // If we didn't show "Saving...", don't show "Invalid" yet to avoid flicker
+             // unless it's already shown
+          }
 
           if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
           indicatorStatus.value = saveStatus.value;
-          isIndicatorVisible.value = saveStatus.value === 'unsaved';
+          isIndicatorVisible.value = saveStatus.value !== 'saved';
           clearRetryTimer();
           lastErrorStatus = null;
           lastErrorRetryable = false;
@@ -509,9 +514,16 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
       }
 
       // Check if this is a reference change (e.g., switching collections)
-      // vs actual data modification
-      const isReferenceChange =
-        oldValue && newValue !== oldValue && (oldValue as any).id !== (newValue as any).id;
+      // vs actual data modification.
+      // Comparing IDs is more reliable than reference equality for reactive objects,
+      // but we fall back to reference equality for objects without IDs.
+      const oldId = (oldValue as any)?.id;
+      const newId = (newValue as any)?.id;
+      const isReferenceChange = oldValue && (
+        (oldId !== undefined && newId !== undefined)
+          ? oldId !== newId
+          : newValue !== oldValue
+      );
 
       if (isReferenceChange) {
         // If the previous object was dirty, we should try to save it before switching
@@ -629,6 +641,12 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     if (enableBlurSave) {
       window.removeEventListener('focusout', handleFocusOut, true);
     }
+    
+    // Final flush on unmount if dirty to ensure no data is lost
+    if (isDirty.value && saveStatus.value !== 'saving') {
+      void performSave(false);
+    }
+
     clearIndicatorTimers();
     clearRetryTimer();
   });

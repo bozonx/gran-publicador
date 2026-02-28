@@ -43,6 +43,13 @@ const { t } = useI18n()
           </span>
         </template>
         
+        <template v-else-if="status === 'invalid'">
+          <UIcon name="i-heroicons-exclamation-triangle" class="w-4 h-4 text-amber-500" />
+          <span class="text-amber-600 dark:text-amber-400 font-medium">
+            {{ t('validation.invalidForAutosave') || 'Ошибка валидации' }}
+          </span>
+        </template>
+
         <template v-else-if="status === 'error'">
           <UIcon name="i-heroicons-exclamation-circle" class="w-4 h-4 text-red-500" />
           <UTooltip :text="error || t('common.saveError') || 'Ошибка сохранения'">
