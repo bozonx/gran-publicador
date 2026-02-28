@@ -42,6 +42,10 @@ export class SyncContentItemDto {
   @MaxLength(VALIDATION_LIMITS.MAX_SOURCE_TEXT_CONTENT_LENGTH)
   text?: string;
 
+  @IsString()
+  @IsOptional()
+  language?: string;
+
   @IsObject()
   @IsOptional()
   meta?: Record<string, any>;

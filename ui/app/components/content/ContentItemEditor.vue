@@ -128,7 +128,7 @@ const saveItem = async (formData: typeof editForm.value) => {
         language = resolved;
         editForm.value.language = resolved;
         toast.add({
-          title: t('common.info'),
+          title: t('common.info', 'Info'),
           description: `Language auto-detected: ${getLanguageLabel(resolved)}`,
           color: 'info'
         });
