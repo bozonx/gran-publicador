@@ -70,33 +70,11 @@ const languageParam = route.query.language as string | undefined
 const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
 const state = usePublicationFormState(props.publication, languageParam)
 
-const isApplyingAutoChannelSelection = ref(false)
-const hasManualChannelSelection = ref(false)
-const hasManualTemplateSelection = ref(false)
-const hasManualSignatureSelection = ref(false)
-
-watch(
-  () => state.channelIds,
-  () => {
-    if (isApplyingAutoChannelSelection.value) return
-    hasManualChannelSelection.value = true
-  },
-  { deep: true },
-)
-
-watch(
-  () => state.projectTemplateId,
-  () => {
-    hasManualTemplateSelection.value = true
-  },
-)
-
-watch(
-  () => state.authorSignatureId,
-  () => {
-    hasManualSignatureSelection.value = true
-  },
-)
+const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
+const showAdvancedFields = ref(false)
+const showValidationWarning = ref(false)
+const pendingSubmitData = ref<PublicationFormData | null>(null)
+const isLoading = ref(false)
 
 const selectedPlatforms = computed(() => {
   const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
@@ -153,30 +131,6 @@ watch(
 
     if (!newId) return
 
-    if (!isEditMode.value && oldId && newId !== oldId) {
-      isApplyingAutoChannelSelection.value = true
-      state.channelIds = []
-      isApplyingAutoChannelSelection.value = false
-
-      state.projectTemplateId = ''
-      state.authorSignatureId = ''
-
-      hasManualChannelSelection.value = false
-      hasManualTemplateSelection.value = false
-      hasManualSignatureSelection.value = false
-
-      state.title = ''
-      state.description = ''
-      state.content = ''
-      state.tags = []
-      state.note = ''
-      state.authorComment = ''
-      state.meta = {}
-      state.postDate = ''
-      state.scheduledAt = ''
-      state.status = 'DRAFT' as any
-    }
-
     const [, , fetchedSigs] = (await Promise.all([
       fetchChannels({ projectId: newId }),
       fetchPublicationsByProject(newId, { limit: 50 }),
@@ -187,63 +141,6 @@ watch(
     if (cancelled) return
 
     projectSignatures.value = fetchedSigs
-
-    if (!isEditMode.value) {
-      const userId = user.value?.id
-
-      const availableSignatureIds = new Set(fetchedSigs.map(s => s.id))
-      if (state.authorSignatureId && !availableSignatureIds.has(state.authorSignatureId)) {
-        state.authorSignatureId = ''
-        hasManualSignatureSelection.value = false
-      }
-
-      if (!hasManualSignatureSelection.value && userId) {
-        const userSigs = fetchedSigs.filter(s => s.userId === userId)
-        const firstSig = userSigs[0]
-        if (firstSig) state.authorSignatureId = firstSig.id
-      }
-
-      const availableTemplateIds = new Set(filteredProjectTemplates.value.map(t => t.id))
-      if (state.projectTemplateId && !availableTemplateIds.has(state.projectTemplateId)) {
-        state.projectTemplateId = ''
-        hasManualTemplateSelection.value = false
-      }
-      if (!hasManualTemplateSelection.value) {
-        const def = filteredProjectTemplates.value[0]
-        state.projectTemplateId = def?.id || ''
-      }
-
-      const shouldAutoSelectChannels = !hasManualChannelSelection.value || state.channelIds.length === 0
-      if (shouldAutoSelectChannels) {
-        const nextIds = channels.value
-          .filter(ch => ch.language === state.language)
-          .map(ch => ch.id)
-
-        const current = state.channelIds
-        if (current.length !== nextIds.length || current.some((id, idx) => id !== nextIds[idx])) {
-          isApplyingAutoChannelSelection.value = true
-          state.channelIds = nextIds
-          isApplyingAutoChannelSelection.value = false
-        }
-      }
-    }
-  },
-)
-
-watch(
-  () => state.language,
-  (newLang) => {
-    if (isEditMode.value) return
-    if (!currentProjectId.value) return
-
-    const nextIds = channels.value
-      .filter(ch => ch.language === newLang)
-      .map(ch => ch.id)
-
-    isApplyingAutoChannelSelection.value = true
-    state.channelIds = nextIds
-    hasManualChannelSelection.value = false
-    isApplyingAutoChannelSelection.value = false
   },
 )
 
@@ -256,20 +153,6 @@ const filteredProjectTemplates = computed(() => {
   })
 })
 
-// Watch language/postType changes to update template selection if needed
-watch([() => state.language, () => state.postType], () => {
-  if (isEditMode.value) return
-  
-  // If current template is not in the filtered list, pick a new one
-  if (state.projectTemplateId && !filteredProjectTemplates.value.some(t => t.id === state.projectTemplateId)) {
-    const def = filteredProjectTemplates.value[0]
-    state.projectTemplateId = def?.id || ''
-    hasManualTemplateSelection.value = false
-  } else if (!state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-    const def = filteredProjectTemplates.value[0]
-    state.projectTemplateId = def?.id || ''
-  }
-})
 
 // Signature selector options
 const signatureOptions = computed(() => {
@@ -296,11 +179,6 @@ const templateOptions = computed(() => {
   }))
 })
 
-const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
-const showAdvancedFields = ref(false)
-const showValidationWarning = ref(false)
-const pendingSubmitData = ref<PublicationFormData | null>(null)
-const isLoading = ref(false)
 
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
 const isContentMissing = computed(() => {
@@ -378,30 +256,6 @@ onMounted(async () => {
 
   projectSignatures.value = fetchedSigs
 
-  if (!isEditMode.value) {
-    const userId = user.value?.id
-    if (!hasManualSignatureSelection.value && state.authorSignatureId === '' && userId) {
-      const userSigs = fetchedSigs.filter(s => s.userId === userId)
-      const firstSig = userSigs[0]
-      if (firstSig) state.authorSignatureId = firstSig.id
-    }
-
-    if (!hasManualTemplateSelection.value && !state.projectTemplateId && filteredProjectTemplates.value.length > 0) {
-      const def = filteredProjectTemplates.value[0]
-      if (def) state.projectTemplateId = def.id
-    }
-
-    const shouldAutoSelectChannels = !hasManualChannelSelection.value && state.channelIds.length === 0
-    if (shouldAutoSelectChannels) {
-      const nextIds = channels.value
-        .filter(ch => ch.language === state.language)
-        .map(ch => ch.id)
-
-      isApplyingAutoChannelSelection.value = true
-      state.channelIds = nextIds
-      isApplyingAutoChannelSelection.value = false
-    }
-  }
 
   if (projects.value.length === 0) {
     await fetchProjects()
@@ -542,19 +396,6 @@ async function performSubmit(data: PublicationFormData) {
         // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
         status: undefined,
       }, { silent: props.autosave })
-      
-      const originalChannelIds = props.publication?.posts?.map((p: any) => p.channelId) || []
-      const newChannelIds = state.channelIds.filter(id => !originalChannelIds.includes(id))
-      
-      if (newChannelIds.length > 0) {
-          await createPostsFromPublication({
-              id: publicationId,
-              channelIds: newChannelIds,
-              scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
-              authorSignatureId: state.authorSignatureId || undefined,
-              projectTemplateId: state.projectTemplateId || undefined,
-          })
-      }
     } else {
       const createData = {
         ...commonData,
@@ -567,16 +408,6 @@ async function performSubmit(data: PublicationFormData) {
       const pub = await createPublication(createData)
       if (!pub) throw new Error('Failed to create publication')
       publicationId = pub.id
-
-      if (state.channelIds.length > 0) {
-        await createPostsFromPublication({
-          id: publicationId,
-          channelIds: state.channelIds,
-          scheduledAt: data.status === 'SCHEDULED' ? data.scheduledAt : undefined,
-          authorSignatureId: state.authorSignatureId || undefined,
-          projectTemplateId: state.projectTemplateId || undefined,
-        })
-      }
     }
 
     formActionsRef.value?.showSuccess()
