@@ -23,6 +23,7 @@ import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { normalizeTags, parseTags } from '~/utils/tags'
 import { getPostUrl } from '~/utils/posts'
+import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { SOCIAL_MEDIA_PLATFORMS } from '@gran/shared/social-media-platforms'
 
 interface Props {

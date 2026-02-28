@@ -1,7 +1,6 @@
 import { ref, watch, type Ref, computed, onMounted, onUnmounted, toRaw } from 'vue';
 import {
   onBeforeRouteLeave,
-  type NavigationGuardNext,
   type RouteLocationNormalized,
 } from 'vue-router';
 import {
@@ -583,21 +582,16 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   if (enableNavigationGuards) {
     try {
       onBeforeRouteLeave(
-        (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+        (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
           if (saveStatus.value === 'saving' || isDirty.value) {
             const key =
               saveStatus.value === 'saving'
                 ? 'common.savingInProgressConfirm'
                 : 'common.unsavedChangesConfirm';
             const answer = window.confirm(t(key));
-            if (answer) {
-              next();
-            } else {
-              next(false);
-            }
-          } else {
-            next();
+            return answer;
           }
+          return true;
         },
       );
     } catch (error) {

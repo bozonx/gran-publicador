@@ -53,7 +53,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('publication.create')">
+  <UiAppModal v-model:open="isOpen" :title="t('publication.create')" v-bind="$attrs">
     <PublicationCreateForm
       :project-id="props.projectId"
       :preselected-language="props.preselectedLanguage"

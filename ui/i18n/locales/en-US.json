@@ -640,6 +640,10 @@
     "unsavedChanges": "Unsaved changes"
   },
   "llm": {
+    "title": "AI Content Generation",
+    "description": "Use AI to generate or improve your publication text",
+    "reviewTitle": "Review Fields",
+    "reviewDescription": "Check the extracted parameters before applying",
     "addTemplate": "Add Template",
     "applyError": "Error applying changes",
     "applySuccess": "Changes applied successfully",
@@ -1163,7 +1167,9 @@
     "clickToScroll": "Click to scroll to {channel} settings",
     "copyToContentLibrary": "Copy to content library",
     "copyToProject": "Copy to project",
+    "noNewsSource": "No news source linked",
     "create": "Create Publication",
+    "createSuccess": "Publication created successfully",
     "createError": "Failed to create publication",
     "createModal": {
       "deleteOriginalContent": "Delete original content",

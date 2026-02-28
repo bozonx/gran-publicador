@@ -41,6 +41,7 @@ const handleClose = () => {
   <AppModal 
     v-model:open="isOpen"
     :title="title"
+    :description="description"
     :ui="{ content: 'sm:max-w-lg' }"
   >
     <div class="flex flex-col gap-4">

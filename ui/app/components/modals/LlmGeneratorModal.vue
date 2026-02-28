@@ -866,6 +866,7 @@ async function confirmResetChat() {
     :description="step === 1 ? t('llm.description') : t('llm.reviewDescription')"
     size="xl"
     :prevent-close="isGenerating || isChatGenerating || isRecording || isTranscribing"
+    v-bind="$attrs"
   >
     <div ref="modalRootRef" class="flex flex-col h-full overflow-hidden">
       <!-- STEP 1: CHAT / CONTEXT -->
