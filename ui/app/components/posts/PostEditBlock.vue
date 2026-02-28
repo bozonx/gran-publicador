@@ -21,9 +21,9 @@ import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import MetadataEditor from '~/components/common/MetadataEditor.vue'
 import TiptapEditor from '~/components/editor/TiptapEditor.vue'
 import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
-import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { normalizeTags, parseTags } from '~/utils/tags'
 import { getPostUrl } from '~/utils/posts'
+import { SOCIAL_MEDIA_PLATFORMS } from '@gran/shared/social-media-platforms'
 
 interface Props {
   post?: PostWithRelations
@@ -342,6 +342,18 @@ const displayTags = computed(() => {
     if (overriddenTags.value.length > 0) return overriddenTags.value
     return coerceTagsToArray(props.publication?.tags)
 })
+
+const tagLimits = computed(() => {
+  const sm = selectedChannel.value?.socialMedia
+  if (!sm) return null
+  const cfg = SOCIAL_MEDIA_PLATFORMS[sm as keyof typeof SOCIAL_MEDIA_PLATFORMS]?.tags
+  if (!cfg?.supported) return null
+  return {
+    maxCount: cfg.maxCount,
+    recommendedCount: cfg.recommendedCount
+  }
+})
+
 const hasActivatedPlatformOptions = computed(() => {
     if (!formData.platformOptions) return false
     return Object.values(formData.platformOptions).some(v => !!v)
@@ -740,7 +752,7 @@ async function executePublish() {
             
             <!-- Collapsed Preview info -->
             <div v-if="isCollapsed" class="space-y-1">
-                <div v-if="overriddenTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
+                <div v-if="displayTags.length > 0 || displayAuthorSignature" class="flex flex-wrap gap-1 items-center mt-1">
 
                      <!-- Author Signature -->
                      <UBadge
@@ -756,11 +768,13 @@ async function executePublish() {
 
                      <!-- Tags -->
                      <CommonTags
-                       :tags="overriddenTags"
+                       :tags="displayTags"
                        color="neutral"
                        variant="subtle"
                        size="xs"
                        badge-class="font-mono"
+                       :max-tags="tagLimits?.maxCount"
+                       :recommended-tags="tagLimits?.recommendedCount"
                      />
                 </div>
 

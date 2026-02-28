@@ -41,7 +41,8 @@ const searchRequestTracker = createSearchRequestTracker()
 const activeSearchController = ref<AbortController | null>(null)
 const hasShownScopeConflictWarning = ref(false)
 
-const uniqueTagsClass = `tags-wrapper-${Math.random().toString(36).substring(2, 9)}`
+const uniqueId = useId()
+const uniqueTagsClass = `tags-wrapper-${uniqueId.replace(/[^a-zA-Z0-9]/g, '')}`
 
 const TAG_LIMIT = 50
 
@@ -298,6 +299,38 @@ watch(searchTerm, () => {
 onBeforeUnmount(() => {
   activeSearchController.value?.abort()
 })
+
+const tagStyles = computed(() => {
+  if (!props.maxTags && !props.recommendedTags) return ''
+
+  const rec = props.recommendedTags || props.maxTags || 0
+  const max = props.maxTags || 0
+
+  return `
+    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) {
+      background-color: #f59e0b !important;
+      border-color: #f59e0b !important;
+    }
+    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) * {
+      color: #fff !important;
+    }
+    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) {
+      background-color: #ef4444 !important;
+      border-color: #ef4444 !important;
+    }
+    .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) * {
+      color: #fff !important;
+    }
+    .dark .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${rec + 1}) {
+      background-color: #d97706 !important;
+      border-color: #d97706 !important;
+    }
+    .dark .${uniqueTagsClass} [data-slot="tagsItem"]:nth-child(n+${max + 1}) {
+      background-color: #dc2626 !important;
+      border-color: #dc2626 !important;
+    }
+  `
+})
 </script>
 
 <template>
@@ -335,20 +368,7 @@ onBeforeUnmount(() => {
     </UButton>
 
     <component :is="'style'" v-if="maxTags || recommendedTags">
-      .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (recommendedTags || maxTags || 0) + 1 }}) {
-        background-color: #f59e0b !important;
-        color: #fff !important;
-      }
-      .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (maxTags || 0) + 1 }}) {
-        background-color: #ef4444 !important;
-        color: #fff !important;
-      }
-      .dark .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (recommendedTags || maxTags || 0) + 1 }}) {
-        background-color: #d97706 !important;
-      }
-      .dark .{{ uniqueTagsClass }} [data-slot="tagsItem"]:nth-of-type(n+{{ (maxTags || 0) + 1 }}) {
-        background-color: #dc2626 !important;
-      }
+      {{ tagStyles }}
     </component>
   </div>
 </template>

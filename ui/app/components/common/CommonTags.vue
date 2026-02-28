@@ -11,6 +11,8 @@ const props = withDefaults(defineProps<{
   containerClass?: string
   badgeClass?: string
   clickable?: boolean
+  maxTags?: number
+  recommendedTags?: number
 }>(), {
   prefix: '#',
   containerClass: '',
@@ -26,6 +28,12 @@ const normalizedTags = computed(() => {
   return parseTags(props.tags)
 })
 
+function getBadgeColor(index: number) {
+  if (props.maxTags && index >= props.maxTags) return 'error'
+  if (props.recommendedTags && index >= props.recommendedTags) return 'warning'
+  return props.color || 'neutral'
+}
+
 function onTagClick(tag: string) {
   if (props.clickable) {
     emit('tag-click', tag)
@@ -36,10 +44,10 @@ function onTagClick(tag: string) {
 <template>
   <div v-if="normalizedTags.length" class="flex flex-wrap gap-1" :class="containerClass">
     <UBadge
-      v-for="tag in normalizedTags"
+      v-for="(tag, index) in normalizedTags"
       :key="tag"
-      :color="color"
-      :variant="variant"
+      :color="getBadgeColor(index)"
+      :variant="getBadgeColor(index) === 'warning' ? 'solid' : variant"
       :size="size"
       :class="[
         badgeClass,
