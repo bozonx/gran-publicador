@@ -165,6 +165,10 @@ export class ContentItemsService {
       where.collectionItems = { none: {} };
     }
 
+    if (query.language) {
+      where.language = query.language;
+    }
+
     const groupIds = Array.isArray(query.groupIds)
       ? Array.from(new Set(query.groupIds.filter(Boolean)))
       : [];

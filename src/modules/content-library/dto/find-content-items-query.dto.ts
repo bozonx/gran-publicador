@@ -102,4 +102,8 @@ export class FindContentItemsQueryDto extends BasePaginationQueryDto {
   @IsOptional()
   @IsIn(['createdAt', 'title'])
   public sortBy?: 'createdAt' | 'title';
+
+  @IsString()
+  @IsOptional()
+  public language?: string;
 }

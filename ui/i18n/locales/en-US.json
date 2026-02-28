@@ -530,6 +530,7 @@
       "active": "Active",
       "archived": "Trash",
       "filterByTags": "Filter by tags",
+      "allLanguages": "All Languages",
       "withMedia": "With media"
     },
     "groups": {
@@ -571,6 +572,11 @@
         "disabledTitle": "Tag filter will not be saved in this Saved View.",
         "enabledTitle": "Tag filter will be saved in this Saved View.",
         "label": "Save tags"
+      },
+      "persistLanguage": {
+        "disabledTitle": "Language filter will not be saved in this collection.",
+        "enabledTitle": "Language filter will be saved in this collection.",
+        "label": "Save language"
       }
     },
     "searchPlaceholder": "Search by title, note, tags, text...",

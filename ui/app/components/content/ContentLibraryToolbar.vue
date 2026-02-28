@@ -26,6 +26,7 @@ const selectedTags = defineModel<string>('selectedTags')
 const sortBy = defineModel<string>('sortBy')
 const sortOrder = defineModel<'asc' | 'desc'>('sortOrder')
 const withMedia = defineModel<boolean>('withMedia')
+const selectedLanguage = defineModel<string | undefined>('selectedLanguage')
 
 const emit = defineEmits<{
   (e: 'update:archiveStatus', value: 'active' | 'archived'): void
@@ -37,6 +38,7 @@ const emit = defineEmits<{
   (e: 'toggle-sort-order'): void
   (e: 'set-saved-view-persist-search', value: boolean): void
   (e: 'set-saved-view-persist-tags', value: boolean): void
+  (e: 'set-saved-view-persist-language', value: boolean): void
   (e: 'set-orphans-only', value: boolean): void
 }>()
 
@@ -96,6 +98,11 @@ const savedViewPersistTags = computed(() => {
   return typeof raw === 'boolean' ? raw : true
 })
 
+const savedViewPersistLanguage = computed(() => {
+  const raw = props.activeCollection?.config?.persistLanguage
+  return typeof raw === 'boolean' ? raw : false
+})
+
 const publicationMediaVirtualPersistTags = computed(() => {
   const raw = props.activeCollection?.config?.persistTags
   return typeof raw === 'boolean' ? raw : false
@@ -113,6 +120,13 @@ const isTagsPersisted = computed(() => {
   if (!props.activeCollection) return false
   if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistTags.value
   if (props.activeCollection.type === 'PUBLICATION_MEDIA_VIRTUAL') return publicationMediaVirtualPersistTags.value
+  return false
+})
+
+const isLanguagePersisted = computed(() => {
+  if (!props.activeCollection) return false
+  if (props.activeCollection.type === 'SAVED_VIEW') return savedViewPersistLanguage.value
+  if (props.activeCollection.type === 'GROUP') return savedViewPersistLanguage.value
   return false
 })
 
@@ -166,6 +180,20 @@ const toolbarMenuItems = computed(() => {
             icon: 'i-heroicons-folder-minus',
             title: t('contentLibrary.savedView.orphans.title'),
             onSelect: () => emit('set-orphans-only', true),
+          },
+        ])
+      }
+
+      if (props.activeCollection.type === 'SAVED_VIEW' || props.activeCollection.type === 'GROUP') {
+        items.push([
+          {
+            label: t('contentLibrary.savedView.persistLanguage.label'),
+            icon: savedViewPersistLanguage.value ? 'i-heroicons-check-circle' : 'i-heroicons-x-circle',
+            color: savedViewPersistLanguage.value ? 'success' : 'neutral',
+            title: savedViewPersistLanguage.value
+              ? t('contentLibrary.savedView.persistLanguage.enabledTitle')
+              : t('contentLibrary.savedView.persistLanguage.disabledTitle'),
+            onSelect: () => emit('set-saved-view-persist-language', !savedViewPersistLanguage.value),
           },
         ])
       }
@@ -294,6 +322,19 @@ const toolbarMenuItems = computed(() => {
                 :scope="scope"
                 :group-id="Array.isArray(groupIds) ? groupIds[0] : undefined"
                 :search-endpoint="'/content-library/tags/search'"
+                class="w-full"
+              />
+            </div>
+            <div
+              v-if="!isUnsplash && (activeCollection?.type === 'GROUP' || activeCollection?.type === 'SAVED_VIEW')"
+              class="w-full sm:w-48 border-b-2"
+              :class="isLanguagePersisted ? 'border-primary-500' : 'border-primary-500/30'"
+            >
+              <CommonLanguageSelect
+                v-model="selectedLanguage"
+                :placeholder="t('contentLibrary.filter.allLanguages')"
+                clearable
+                searchable
                 class="w-full"
               />
             </div>

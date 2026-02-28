@@ -6,6 +6,7 @@ export interface ContentLibraryTabState {
   sortBy: 'createdAt' | 'title' | 'combined'
   sortOrder: 'asc' | 'desc'
   withMedia: boolean
+  selectedLanguage?: string
 }
 
 const DEFAULT_TAB_STATE: ContentLibraryTabState = {
@@ -14,6 +15,7 @@ const DEFAULT_TAB_STATE: ContentLibraryTabState = {
   sortBy: 'combined',
   sortOrder: 'desc',
   withMedia: true,
+  selectedLanguage: undefined,
 }
 
 const getTabKey = (collectionId: string | null) => collectionId ?? '__default__'
@@ -57,6 +59,11 @@ export const useContentLibraryFilters = (activeCollectionId: Ref<string | null>)
     get() { return currentTabState.value.withMedia },
     set(next) { currentTabState.value.withMedia = next },
   })
+  
+  const selectedLanguage = computed<string | undefined>({
+    get() { return currentTabState.value.selectedLanguage },
+    set(next) { currentTabState.value.selectedLanguage = next },
+  })
 
   const getSavedViewConfigBoolean = (collection: ContentCollection, key: string, defaultValue: boolean) => {
     const raw = (collection as any)?.config?.[key]
@@ -78,8 +85,15 @@ export const useContentLibraryFilters = (activeCollectionId: Ref<string | null>)
     if (collection.type === 'SAVED_VIEW') {
       const persistSearch = getSavedViewConfigBoolean(collection, 'persistSearch', false)
       const persistTags = getSavedViewConfigBoolean(collection, 'persistTags', true)
+      const persistLanguage = getSavedViewConfigBoolean(collection, 'persistLanguage', false)
       if (persistSearch && typeof cfg.q === 'string') base.q = cfg.q
       if (persistTags && typeof cfg.selectedTags === 'string') base.selectedTags = cfg.selectedTags
+      if (persistLanguage && typeof cfg.language === 'string') base.selectedLanguage = cfg.language
+    }
+
+    if (collection.type === 'GROUP') {
+      const persistLanguage = getSavedViewConfigBoolean(collection, 'persistLanguage', false)
+      if (persistLanguage && typeof cfg.language === 'string') base.selectedLanguage = cfg.language
     }
 
     if (collection.type === 'PUBLICATION_MEDIA_VIRTUAL') {
@@ -104,6 +118,7 @@ export const useContentLibraryFilters = (activeCollectionId: Ref<string | null>)
     sortBy,
     sortOrder,
     withMedia,
+    selectedLanguage,
     currentTabState,
     ensureTabState,
     initTabStateFromCollectionConfigIfMissing,

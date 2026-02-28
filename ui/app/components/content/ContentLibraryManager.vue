@@ -114,6 +114,7 @@ const activeCollectionId = ref<string | null>(null)
 const {
   q,
   selectedTags,
+  selectedLanguage,
   sortBy,
   sortOrder,
   withMedia,
@@ -249,6 +250,7 @@ const persistSavedViewStateToDb = async () => {
       : {}),
     persistSearch,
     persistTags,
+    persistLanguage: getSavedViewConfigBoolean(collection, 'persistLanguage', false),
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
   }
@@ -258,6 +260,9 @@ const persistSavedViewStateToDb = async () => {
 
   if (persistTags) nextConfig.selectedTags = state.selectedTags
   else delete nextConfig.selectedTags
+
+  if (nextConfig.persistLanguage) nextConfig.language = state.selectedLanguage
+  else delete nextConfig.language
 
   const updated = await updateCollection(collection.id, {
     scope: props.scope,
@@ -313,9 +318,13 @@ const persistGroupSortStateToDb = async () => {
     ...((typeof collection.config === 'object' && collection.config !== null)
       ? collection.config
       : {}),
+    persistLanguage: getSavedViewConfigBoolean(collection, 'persistLanguage', false),
     sortBy: state.sortBy,
     sortOrder: state.sortOrder,
   }
+
+  if (nextConfig.persistLanguage) nextConfig.language = state.selectedLanguage
+  else delete nextConfig.language
 
   delete nextConfig.q
   delete nextConfig.selectedTags
@@ -436,6 +445,27 @@ const setSavedViewPersistTags = async (value: boolean) => {
   updateCollectionsCache(updated)
 }
 
+const setSavedViewPersistLanguage = async (value: boolean) => {
+  const collection = activeCollection.value
+  if (!collection || (collection.type !== 'SAVED_VIEW' && collection.type !== 'GROUP')) return
+
+  const nextConfig: Record<string, any> = {
+    ...((typeof collection.config === 'object' && collection.config !== null)
+      ? collection.config
+      : {}),
+    persistLanguage: value,
+  }
+  if (!value) delete nextConfig.language
+
+  const updated = await updateCollection(collection.id, {
+    scope: props.scope,
+    projectId: props.projectId,
+    config: nextConfig,
+  })
+  activeCollection.value = updated
+  updateCollectionsCache(updated)
+}
+
 // Group Tree helpers for Move Modal
 const groupTreeItems = computed(() => {
   if (activeCollection.value?.type !== 'GROUP') return []
@@ -530,6 +560,7 @@ const fetchItems = async (opts?: { reset?: boolean }) => {
         sortBy: sortBy.value === 'combined' ? 'createdAt' : sortBy.value,
         sortOrder: sortOrder.value,
         tags: selectedTagsArray.value.length > 0 ? selectedTagsArray.value : undefined,
+        language: selectedLanguage.value || undefined,
         includeTotalUnfiltered: offset.value === 0 ? true : undefined,
         includeTotalInScope: offset.value === 0 ? true : undefined,
       },
@@ -579,7 +610,7 @@ const fetchAvailableTags = async () => {
 
 // Watchers
 watch(() => q.value, () => { selectedIds.value = []; debouncedFetch() })
-watch([archiveStatus, selectedTags, sortBy, sortOrder, withMedia], () => fetchItems({ reset: true }))
+watch([archiveStatus, selectedTags, selectedLanguage, sortBy, sortOrder, withMedia], () => fetchItems({ reset: true }))
 watch(activeCollection, (next, prev) => {
   if (next?.id !== prev?.id) {
     selectedIds.value = []
@@ -650,6 +681,8 @@ watch([q, selectedTags, sortBy, sortOrder, activeCollectionId], () => {
 watch(selectedGroupId, (next) => {
   if (activeCollection.value?.type !== 'GROUP') return
   selectedIds.value = []
+  fetchAvailableTags()
+  fetchItems({ reset: true })
 })
 const debouncedFetch = useDebounceFn(() => fetchItems({ reset: true }), 350)
 const hasMore = computed(() => items.value.length < total.value)
@@ -1052,6 +1085,7 @@ onMounted(() => { fetchItems() })
     <ContentLibraryToolbar
       v-model:q="q"
       v-model:selectedTags="selectedTags"
+      v-model:selectedLanguage="selectedLanguage"
       v-model:sortBy="sortBy"
       v-model:sortOrder="sortOrder"
       v-model:withMedia="withMedia"
@@ -1075,7 +1109,6 @@ onMounted(() => { fetchItems() })
       :is-window-file-drag-active="isWindowFileDragActive"
       :can-delete-active-collection="canDeleteActiveCollection"
       @update:archive-status="(v) => (archiveStatus = v)"
-      @purge="() => (isPurgeConfirmModalOpen = true)"
       @create="createAndEdit"
       @upload-files="uploadContentFiles"
       @rename-collection="() => { newCollectionTitle = activeCollection?.title || ''; isRenameCollectionModalOpen = true }"
@@ -1083,7 +1116,9 @@ onMounted(() => { fetchItems() })
       @toggle-sort-order="toggleSortOrder"
       @set-saved-view-persist-search="setSavedViewPersistSearch"
       @set-saved-view-persist-tags="setSavedViewPersistTags"
-      @set-orphans-only="setOrphansOnly"
+      @set-saved-view-persist-language="setSavedViewPersistLanguage"
+      @set-orphans-only="orphansOnly = $event"
+      @purge="isPurgeConfirmModalOpen = true"
     >
       <template #collections>
         <ContentCollections
