@@ -11,7 +11,7 @@ import { AppConfig } from '../../config/app.config.js';
 import { StorageType } from '../../generated/prisma/index.js';
 import type { Message } from 'grammy/types';
 import { Readable } from 'node:stream';
-import { eld } from 'eld';
+import eld from 'eld/small';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DEFAULT_MICROSERVICE_TIMEOUT_MS } from '../../common/constants/global.constants.js';
 import { TELEGRAM_MESSAGES_QUEUE, TELEGRAM_PROCESS_MESSAGE_JOB } from './telegram-bot.queue.js';

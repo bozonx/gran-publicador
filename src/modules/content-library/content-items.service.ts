@@ -25,7 +25,7 @@ import {
   BulkOperationType,
   SyncContentItemDto,
 } from './dto/index.js';
-import { eld } from 'eld';
+import eld from 'eld/small';
 
 @Injectable()
 export class ContentItemsService {

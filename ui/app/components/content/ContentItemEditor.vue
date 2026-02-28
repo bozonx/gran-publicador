@@ -44,6 +44,8 @@ const emit = defineEmits<{
   (e: 'create-publication', item: ContentItem): void
 }>()
 
+const hasContent = defineModel<boolean>('hasContent', { default: false })
+
 const { t } = useI18n()
 const { user } = useAuth()
 const api = useApi()
@@ -67,33 +69,28 @@ const groups = ref(
 )
 
 import { useLanguages } from '~/composables/useLanguages'
-import { eld } from 'eld'
+import eld from 'eld/small'
 
 const { languageOptions, getLanguageLabel } = useLanguages()
 
 const handleTextUpdate = (v: any) => {
   editForm.value.text = v;
-  if (!editForm.value.language && v && v.length > 5 && !props.item.id.includes('virtual')) {
-    const detected = eld.detect(v);
-    if (detected?.language) {
-        const langMap: Record<string, string> = {
-          en: 'en-US', ru: 'ru-RU', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
-          it: 'it-IT', pt: 'pt-BR', zh: 'zh-CN', ar: 'ar-SA', hi: 'hi-IN',
-          id: 'id-ID', ja: 'ja-JP', ko: 'ko-KR', pl: 'pl-PL', th: 'th-TH',
-          tr: 'tr-TR', uk: 'uk-UA', uz: 'uz-UZ', vi: 'vi-VN'
-        };
-        const resolved = langMap[detected.language] || detected.language;
-        if (languageOptions.some(o => o.value === resolved)) {
-           editForm.value.language = resolved;
-           toast.add({
-             title: t('common.info'),
-             description: `Language auto-detected: ${getLanguageLabel(resolved)}`,
-             color: 'info'
-           });
-           flushSave();
-        }
-    }
-  }
+}
+
+const textHasContent = computed(() => {
+  const t = editForm.value.text || '';
+  // Check if it's more than just empty tags like <p></p>
+  return t.replace(/<[^>]*>/g, '').trim().length > 0;
+})
+
+watch(textHasContent, (val) => {
+  hasContent.value = val;
+}, { immediate: true })
+
+const handleLanguageChange = (val: any) => {
+  if (!editForm.value.meta) editForm.value.meta = {};
+  editForm.value.meta.isLanguageManual = true;
+  flushSave();
 }
 
 const autosaveForm = computed(() => {
@@ -112,13 +109,40 @@ const { saveStatus, saveError, forceSave, isIndicatorVisible, indicatorStatus, f
 })
 
 const saveItem = async (formData: typeof editForm.value) => {
+  let language = formData.language;
+  const text = formData.text || '';
+  const plainText = text.replace(/<[^>]*>/g, '').trim();
+
+  // Auto-detect language if not manual and not set
+  if (!formData.meta?.isLanguageManual && !language && plainText.length > 5 && !props.item.id.includes('virtual')) {
+    const detected = eld.detect(plainText);
+    if (detected?.language) {
+      const langMap: Record<string, string> = {
+        en: 'en-US', ru: 'ru-RU', es: 'es-ES', fr: 'fr-FR', de: 'de-DE',
+        it: 'it-IT', pt: 'pt-BR', zh: 'zh-CN', ar: 'ar-SA', hi: 'hi-IN',
+        id: 'id-ID', ja: 'ja-JP', ko: 'ko-KR', pl: 'pl-PL', th: 'th-TH',
+        tr: 'tr-TR', uk: 'uk-UA', uz: 'uz-UZ', vi: 'vi-VN'
+      };
+      const resolved = langMap[detected.language] || detected.language;
+      if (languageOptions.some(o => o.value === resolved)) {
+        language = resolved;
+        editForm.value.language = resolved;
+        toast.add({
+          title: t('common.info'),
+          description: `Language auto-detected: ${getLanguageLabel(resolved)}`,
+          color: 'info'
+        });
+      }
+    }
+  }
+
   // Atomic update of item meta and content
   await api.post(`/content-library/items/${formData.id}/sync`, {
     title: formData.title || null,
     tags: formData.tags,
     note: formData.note || null,
     text: formData.text?.trim() || '',
-    language: formData.language || undefined,
+    language: language || undefined,
     meta: formData.meta || {},
     media: (formData.media || []).map((m: any) => ({
       mediaId: m.mediaId || m.media?.id,
@@ -324,7 +348,7 @@ defineExpose({
         label-key="label"
         class="w-full"
         icon="i-heroicons-language"
-        @change="flushSave()"
+        @change="handleLanguageChange"
       />
     </UFormField>
 

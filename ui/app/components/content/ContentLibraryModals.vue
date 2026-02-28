@@ -112,6 +112,8 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
     emit('update:isCreateItemFromUnsplashModalOpen', next)
   },
 })
+
+const editorHasContent = ref(false)
 </script>
 
 <template>
@@ -168,6 +170,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
         :scope="scope"
         :project-id="projectId"
         :group-id="currentGroupId ?? undefined"
+        v-model:has-content="editorHasContent"
         @refresh="emit('refresh-items', { reset: true })"
       />
       
@@ -175,6 +178,7 @@ const isCreateItemFromUnsplashModalOpenModel = computed<boolean>({
         <div class="flex justify-between items-center w-full">
            <div class="text-xs text-gray-400 dark:text-gray-500 flex flex-col sm:flex-row sm:items-center gap-2">
               <UButton
+                v-if="editorHasContent"
                 size="xs"
                 color="neutral"
                 variant="ghost"
