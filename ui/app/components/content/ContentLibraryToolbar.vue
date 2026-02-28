@@ -333,6 +333,7 @@ const toolbarMenuItems = computed(() => {
               <CommonLanguageSelect
                 v-model="selectedLanguage"
                 :placeholder="t('contentLibrary.filter.allLanguages')"
+                allow-all
                 clearable
                 searchable
                 class="w-full"
