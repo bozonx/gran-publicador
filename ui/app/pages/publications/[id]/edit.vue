@@ -162,10 +162,19 @@ watch(
     { immediate: true }
 )
 
+// Reset warning flag when navigating to a different publication
+watch(publicationId, () => {
+    hasShownPublishedWarning.value = false
+})
+
 // Show published warning when landing on a published post
 watch(
-    () => currentPublication.value?.status,
-    (status) => {
+    () => [currentPublication.value?.id, currentPublication.value?.status],
+    ([id, status]) => {
+        // Only trigger if we are viewing the publication that is actually in the store
+        // and avoid triggering on stale data from the previous publication
+        if (id !== publicationId.value) return
+
         if (['PUBLISHED', 'PARTIAL', 'FAILED'].includes(status as any) && !hasShownPublishedWarning.value) {
             isPublishedWarningModalOpen.value = true
             hasShownPublishedWarning.value = true
