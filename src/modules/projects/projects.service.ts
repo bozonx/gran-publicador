@@ -118,7 +118,7 @@ export class ProjectsService {
     this.logger.debug(`Creating default project template for project ${projectId}`);
 
     // Use i18n for default template name if possible, fallback to 'Standard'
-    const name = this.i18n.t('project.default_template_name', { defaultValue: 'Стандартный' });
+    const name = this.i18n.t('project.default_template_name', { defaultValue: 'Standard' });
 
     return tx.projectTemplate.create({
       data: {
@@ -598,7 +598,7 @@ export class ProjectsService {
 
       if (count === 0) {
         throw new ConflictException(
-          'Данные проекта были изменены в другой вкладке. Обновите страницу.',
+          'Project data was modified in another tab. Please refresh the page.',
         );
       }
 

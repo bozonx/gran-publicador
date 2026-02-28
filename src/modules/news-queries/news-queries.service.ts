@@ -111,7 +111,7 @@ export class NewsQueriesService {
       });
 
       if (count === 0) {
-        throw new ConflictException('Запрос был изменен в другой вкладке. Обновите страницу.');
+        throw new ConflictException('Query was modified in another tab. Please refresh the page.');
       }
 
       const updated = await this.prisma.projectNewsQuery.findUnique({ where: { id } });

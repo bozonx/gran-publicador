@@ -30,8 +30,7 @@ export class UsersService {
   }
 
   private normalizeUiLanguage(code?: string | null): string {
-    const normalized = normalizeLocale(code, { defaultLocale: 'en-US' });
-    return normalized.startsWith('ru-') ? 'ru-RU' : 'en-US';
+    return normalizeLocale(code, { defaultLocale: 'en-US', allowedLocales: ['en-US', 'ru-RU'] });
   }
 
   public async findByTelegramId(telegramId: bigint): Promise<UserWithFlags | null> {
@@ -348,7 +347,7 @@ export class UsersService {
       });
       if (count === 0) {
         throw new ConflictException(
-          'Данные пользователя были изменены в другой вкладке. Обновите страницу.',
+          'User data was modified in another tab. Please refresh the page.',
         );
       }
       const updatedUser = await this.prisma.user.findUnique({ where: { id: userId } });

@@ -233,7 +233,7 @@ export class RolesService {
       });
 
       if (count === 0) {
-        throw new ConflictException('Роль была изменена в другой вкладке. Обновите страницу.');
+        throw new ConflictException('Role was modified in another tab. Please refresh the page.');
       }
 
       updated = await this.prisma.role.findUnique({ where: { id } });

@@ -12,6 +12,7 @@ import { LlmConfig } from '../../config/llm.config.js';
 import { GenerateContentDto } from './dto/generate-content.dto.js';
 import { HttpConfig } from '../../config/http.config.js';
 import { filterUndefined } from '../../common/utils/object.utils.js';
+import { getLanguageName } from '../../common/utils/locale.util.js';
 import {
   isConnectionError,
   isTimeoutError,
@@ -367,7 +368,7 @@ export class LlmService {
     }));
 
     const instructionBlock = JSON.stringify({
-      publicationLanguage: dto.publicationLanguage,
+      publicationLanguage: getLanguageName(dto.publicationLanguage),
       channels: channelsForPrompt,
     });
 

@@ -248,7 +248,7 @@ export class ChannelsService {
       });
       if (count === 0) {
         throw new ConflictException(
-          'Данные канала были изменены в другой вкладке. Обновите страницу.',
+          'Channel data was modified in another tab. Please refresh the page.',
         );
       }
       return this.prisma.channel.findUnique({ where: { id } });

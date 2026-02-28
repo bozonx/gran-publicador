@@ -142,7 +142,7 @@ export class ProjectTemplatesService {
           });
 
           if (count === 0) {
-            throw new ConflictException('Шаблон был изменен в другой вкладке. Обновите страницу.');
+            throw new ConflictException('Template was modified in another tab. Please refresh the page.');
           }
 
           return tx.projectTemplate.findUnique({ where: { id: templateId } });

@@ -1,6 +1,6 @@
 export function normalizeLocale(
   input: string | null | undefined,
-  options: { defaultLocale?: string } = {},
+  options: { defaultLocale?: string; allowedLocales?: string[] } = {},
 ): string {
   const fallback = options.defaultLocale ?? 'en-US';
   if (!input) return fallback;
@@ -23,9 +23,25 @@ export function normalizeLocale(
     ru: 'ru-RU',
   };
 
-  if (!region) {
-    return defaults[language] ?? fallback;
+  const parsedLocale = region ? `${language}-${region.toUpperCase()}` : (defaults[language] ?? language);
+
+  if (options.allowedLocales?.length) {
+    if (options.allowedLocales.includes(parsedLocale)) {
+      return parsedLocale;
+    }
+    const match = options.allowedLocales.find((l) => l.toLowerCase().startsWith(language + '-'));
+    if (match) return match;
+    return fallback;
   }
 
-  return `${language}-${region.toUpperCase()}`;
+  return parsedLocale;
+}
+
+export function getLanguageName(locale: string): string {
+  const prefix = locale.split('-')[0]?.toLowerCase();
+  const map: Record<string, string> = {
+    en: 'English',
+    ru: 'Russian',
+  };
+  return map[prefix] || locale;
 }
