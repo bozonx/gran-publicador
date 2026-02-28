@@ -50,7 +50,7 @@ export class ContentItemsService {
       .slice(0, 20);
   }
 
-  private mapIncomingMediaIds(dto: any): string[] {
+  private mapIncomingMediaIds(dto: any): string[] | undefined {
     return this.mapper.mapIncomingMediaIds(dto);
   }
 
@@ -921,6 +921,7 @@ export class ContentItemsService {
           note: dto.note,
           tagObjects: tagData,
           text: this.mapper.normalizeItemText(dto.text),
+          language: dto.language,
           meta: dto.meta ? (dto.meta as Prisma.JsonObject) : undefined,
         },
       });

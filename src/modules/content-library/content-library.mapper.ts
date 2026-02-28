@@ -54,10 +54,11 @@ export class ContentLibraryMapper {
   public mapIncomingMediaIds(dto: {
     mediaIds?: string[];
     media?: Array<{ mediaId: string }>;
-  }): string[] {
+  }): string[] | undefined {
     if (Array.isArray(dto.mediaIds)) return dto.mediaIds;
     if (Array.isArray(dto.media)) return dto.media.map(m => m.mediaId);
-    return [];
+    if ('mediaIds' in dto || 'media' in dto) return [];
+    return undefined;
   }
 
   /**
