@@ -538,9 +538,14 @@ describe('PublicationsService (unit)', () => {
       expect(andConditions).toContainEqual({
         tagObjects: {
           some: {
-            normalizedName: {
-              in: ['news', 'tech'],
-            },
+            normalizedName: 'news',
+          },
+        },
+      });
+      expect(andConditions).toContainEqual({
+        tagObjects: {
+          some: {
+            normalizedName: 'tech',
           },
         },
       });
@@ -673,7 +678,13 @@ describe('PublicationsService (unit)', () => {
       expect(mockPrismaService.publication.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: publicationId },
-          data: expect.not.objectContaining({ meta: expect.anything() }),
+          data: expect.objectContaining({
+            meta: expect.objectContaining({
+              keep: 'yes',
+              llmPublicationContentGenerationChat: { messages: [] },
+              nested: { b: 2 },
+            }),
+          }),
         }),
       );
     });

@@ -170,4 +170,8 @@ export class CreatePublicationDto {
   @IsUUID()
   @IsOptional()
   public projectTemplateId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  public deleteOriginalContent?: boolean;
 }

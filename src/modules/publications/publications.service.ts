@@ -215,6 +215,19 @@ export class PublicationsService {
       await this.handleInitialPostsCreation(publication, data, userId, projectTemplateId);
     }
 
+    if (data.deleteOriginalContent && data.contentItemIds?.length) {
+      for (const contentItemId of data.contentItemIds) {
+        try {
+          // Pass userId to ensure authorization check within ContentItemsService
+          await this.contentItemsService.remove(contentItemId, userId!);
+        } catch (err: any) {
+          this.logger.warn(
+            `Failed to remove original content item ${contentItemId} after publication creation: ${err.message}`,
+          );
+        }
+      }
+    }
+
     return this.normalizePublicationTags(publication);
   }
 
@@ -387,7 +400,11 @@ export class PublicationsService {
             publication.status === PublicationStatus.SCHEDULED)));
 
     // Handle desync flag for published/failed publications
-    let meta = publication.meta || {};
+    let meta = {
+      ...(publication.meta || {}),
+      ...(data.meta || {}),
+    };
+
     if (
       isContentUpdated &&
       ['PUBLISHED', 'PARTIAL', 'FAILED'].includes(publication.status) &&
