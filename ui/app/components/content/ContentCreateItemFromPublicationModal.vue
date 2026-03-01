@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import type { ContentCollection } from '~/composables/useContentCollections'
-import { useContentCollections } from '~/composables/useContentCollections'
-import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree'
-import ContentGroupSelectTree from './ContentGroupSelectTree.vue'
+import CommonContentDestinationSelect from '../common/CommonContentDestinationSelect.vue'
 import { getApiErrorMessage } from '~/utils/error'
 
 interface Props {
@@ -28,58 +25,12 @@ const isCreating = ref(false)
 const error = ref<string | null>(null)
 
 const publication = ref<any | null>(null)
-const projects = ref<any[]>([])
-const collections = ref<ContentCollection[]>([])
-
 const selectedScope = ref<'project' | 'personal'>(props.scope)
-const targetProjectId = ref<string | undefined>(props.projectId)
+const targetProjectId = ref<string | null>(props.projectId || null)
 const targetCollectionId = ref<string | null>(null)
+const targetGroupId = ref<string | null>(null)
 
-const projectOptions = computed(() => {
-  const options = [{ label: t('contentLibrary.moveModal.personal'), value: 'personal' }]
-  projects.value.forEach((p) => {
-    options.push({ label: p.name, value: p.id })
-  })
-  return options
-})
-
-const selectedProjectOption = computed({
-  get: () => {
-    if (selectedScope.value === 'personal') return 'personal'
-    return targetProjectId.value
-  },
-  set: (val: string | undefined) => {
-    if (val === 'personal') {
-      selectedScope.value = 'personal'
-      targetProjectId.value = undefined
-    } else {
-      selectedScope.value = 'project'
-      targetProjectId.value = val
-    }
-  },
-})
-
-const collectionOptions = computed(() => {
-  return collections.value
-    .filter(c => (c.type === 'GROUP' || c.type === 'SAVED_VIEW') && !c.parentId)
-    .map(c => ({ label: c.title, value: c.id }))
-})
-
-const selectedCollection = computed(() => {
-  if (!targetCollectionId.value) return null
-  return collections.value.find(c => c.id === targetCollectionId.value) ?? null
-})
-
-const targetCollectionTreeItems = computed<ContentLibraryTreeItem[]>(() => {
-  if (!selectedCollection.value) return []
-  if (selectedCollection.value.type !== 'GROUP') return []
-
-  return buildGroupTreeFromRoot({
-    rootId: selectedCollection.value.id,
-    allGroupCollections: collections.value,
-    labelFn: c => c.title,
-  })
-})
+// Logic handled by CommonContentDestinationSelect
 
 function buildPublicationText(input: { content?: unknown; authorComment?: unknown }): string {
   const content = typeof input.content === 'string' ? input.content.trim() : ''
@@ -101,21 +52,14 @@ async function fetchPublication() {
   publication.value = await api.get<any>(`/publications/${props.publicationId}`)
 }
 
-async function fetchCollections() {
-  collections.value = await listCollections(selectedScope.value, targetProjectId.value)
-}
-
+// Collections fetching is handled by the component
 async function init() {
   if (!isOpen.value) return
 
   error.value = null
   isLoading.value = true
   try {
-    const promises: Promise<any>[] = [fetchPublication(), fetchCollections()]
-    // Fetch projects to allow selection
-    promises.push(fetchProjects().then(res => projects.value = res))
-    
-    await Promise.all(promises)
+    await fetchPublication()
   } catch (e: any) {
     error.value = getApiErrorMessage(e, 'Failed to load data')
   } finally {
@@ -126,15 +70,8 @@ async function init() {
 watch(isOpen, () => {
   if (isOpen.value) {
     selectedScope.value = props.scope
-    targetProjectId.value = props.projectId
+    targetProjectId.value = props.projectId || null
     init()
-  }
-})
-
-watch([selectedScope, targetProjectId], () => {
-  if (isOpen.value) {
-    targetCollectionId.value = null
-    fetchCollections()
   }
 })
 
@@ -144,15 +81,10 @@ watch(isOpen, (next) => {
     isCreating.value = false
     error.value = null
     publication.value = null
-    collections.value = []
     targetCollectionId.value = null
+    targetGroupId.value = null
   }
 })
-
-function handleSelectCollection(next: unknown) {
-  const targetId = (next && typeof next === 'object' && 'value' in next) ? (next as any).value : next
-  targetCollectionId.value = (targetId ?? null) as any
-}
 
 async function executeAction(groupId?: string) {
   if (!props.publicationId) return
@@ -223,12 +155,13 @@ async function executeAction(groupId?: string) {
   }
 }
 
-async function handleSelectGroup(groupId: string) {
+async function handleSelectGroup(groupId: string | null) {
   if (!groupId) return
   await executeAction(groupId)
 }
 
-async function handleActionToSavedView() {
+async function handleActionToSavedView(collectionId: string) {
+  targetCollectionId.value = collectionId
   await executeAction(undefined)
 }
 </script>
@@ -249,54 +182,24 @@ async function handleActionToSavedView() {
       </div>
 
       <div v-else class="space-y-3">
-        <USelectMenu
-          v-model="selectedProjectOption"
-          :items="projectOptions"
-          value-key="value"
-          label-key="label"
-          searchable
-          :loading="isLoading"
-          :placeholder="t('contentLibrary.moveModal.toProject')"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-briefcase" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
+        <CommonContentDestinationSelect
+          v-model:scope="selectedScope"
+          v-model:project-id="targetProjectId"
+          v-model:collection-id="targetCollectionId"
+          v-model:group-id="targetGroupId"
+          :is-loading="isLoading"
+          allow-saved-views
+          @select-saved-view="handleActionToSavedView"
+        />
 
-        <USelectMenu
-          :items="collectionOptions"
-          value-key="value"
-          label-key="label"
-          searchable
-          :loading="isLoading || isLoading"
-          :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
-          :placeholder="t('contentLibrary.bulk.searchGroups')"
-          @update:model-value="handleSelectCollection"
-        >
-          <template #leading>
-            <UIcon name="i-heroicons-magnifying-glass" class="w-4 h-4" />
-          </template>
-        </USelectMenu>
-
-        <div v-if="selectedCollection" class="py-2">
-          <div v-if="selectedCollection.type === 'GROUP'" class="max-h-60 overflow-y-auto custom-scrollbar">
-            <ContentGroupSelectTree
-              v-if="targetCollectionTreeItems.length > 0"
-              :items="targetCollectionTreeItems as any"
-              @select="handleSelectGroup"
-            />
-          </div>
-
-          <div v-else-if="selectedCollection.type === 'SAVED_VIEW'" class="p-4 flex justify-center border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
-            <UButton
-              color="primary"
-              icon="i-heroicons-document-duplicate'"
-              :loading="isCreating"
-              @click="handleActionToSavedView"
-            >
-              {{ t('common.copy') }}
-            </UButton>
-          </div>
+        <div v-if="targetGroupId" class="pt-4 flex justify-end">
+           <UButton
+            color="primary"
+            :loading="isCreating"
+            @click="handleSelectGroup(targetGroupId)"
+          >
+            {{ t('common.copy') }}
+          </UButton>
         </div>
       </div>
     </div>

@@ -1,49 +1,7 @@
 import { ref, computed } from 'vue';
 import { logger } from '~/utils/logger';
-
-export interface NewsItem {
-  id: string;
-  shortId: string;
-  source: string;
-  batchId: string;
-  taskId: string;
-  savedAt: string;
-  uniqueKey: string;
-  dataset: string;
-  url: string;
-  title: string;
-  description: string;
-  date: string;
-  _score: number;
-  locale?: string;
-  type?: string;
-  mainImageUrl?: string;
-  mainVideoUrl?: string;
-  content?: string;
-  tags?: string[];
-  publishedAt?: string;
-  publisher?: string;
-  _source?: string;
-  _savedAt?: string;
-  contentLength?: number;
-}
-
-export interface SearchNewsParams {
-  q: string;
-  mode?: 'text' | 'vector' | 'hybrid' | 'all';
-  savedFrom?: string;
-  savedTo?: string;
-  afterSavedAt?: string;
-  afterId?: string;
-  cursor?: string;
-  source?: string;
-  sourceTags?: string;
-  lang?: string;
-  minScore?: number;
-  includeContent?: boolean;
-  orderBy?: 'relevance' | 'savedAt';
-  sources?: string;
-}
+import type { NewsItem, SearchNewsParams } from '~/types/news';
+import { useCursorPagination } from './useCursorPagination';
 
 const NEWS_LIMIT = 10;
 
@@ -55,117 +13,70 @@ export const useNews = () => {
   const { t } = useI18n();
   const projectId = computed(() => route.params.id as string);
 
-  const news = ref<NewsItem[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const cursorPagination = useCursorPagination<NewsItem, SearchNewsParams & { pId: string }>({
+    limit: NEWS_LIMIT,
+    initialParams: { q: '', pId: projectId.value || '' },
+    fetchFn: async (params, cursor) => {
+      const { pId, ...rest } = params;
+      if (!pId) throw new Error('Project ID is required');
 
-  // Pagination state
-  const cursor = ref<string | undefined>(undefined);
-  const hasMore = ref(false);
+      const queryParams: any = {
+        ...rest,
+        mode: rest.mode === 'all' ? 'hybrid' : rest.mode,
+        sourceTags: Array.isArray(rest.sourceTags) ? rest.sourceTags.join(',') : rest.sourceTags,
+        sources: Array.isArray(rest.sources) ? rest.sources.join(',') : rest.sources,
+        cursor,
+        limit: NEWS_LIMIT,
+      };
+
+      // Clean undefined/null/empty strings
+      Object.keys(queryParams).forEach(key => {
+        if (queryParams[key] === undefined || queryParams[key] === null || queryParams[key] === '') {
+          delete queryParams[key];
+        }
+      });
+
+      const res = await api.get<any>(`/projects/${pId}/news/search`, { params: queryParams });
+
+      let items: NewsItem[] = [];
+      let nextCursor: string | undefined;
+
+      if (res && Array.isArray(res.items)) {
+        items = res.items.map((it: any) => ({
+          ...it,
+          id: it.id || it._id || it.shortId,
+        }));
+        nextCursor = res.nextCursor;
+      } else if (Array.isArray(res)) {
+        items = res.map((it: any) => ({
+          ...it,
+          id: it.id || it._id || it.shortId,
+        }));
+        if (items.length >= NEWS_LIMIT) {
+           // We don't have a cursor in legacy array response, but we can't reliably guess next page here
+        }
+      }
+
+      return { items, nextCursor };
+    }
+  });
 
   const searchNews = async (
     params: SearchNewsParams,
     customProjectId?: string,
     isLoadMore = false,
   ) => {
-    isLoading.value = true;
-    error.value = null;
-
     const pId = customProjectId || projectId.value;
-    if (!pId) {
-      error.value = 'Project ID is required';
-      isLoading.value = false;
-      return;
-    }
-
-    // Reset pagination on new search
-    if (!isLoadMore) {
-      cursor.value = undefined;
-    }
-
     try {
-      const sanitizeParams = (p: SearchNewsParams) => {
-        const queryParams: any = {
-          q: p.q,
-          mode: p.mode === 'all' ? 'hybrid' : p.mode,
-          savedFrom: p.savedFrom,
-          savedTo: p.savedTo,
-          afterSavedAt: p.afterSavedAt,
-          afterId: p.afterId,
-          cursor: isLoadMore ? cursor.value : p.cursor,
-          source: p.source,
-          sourceTags: Array.isArray(p.sourceTags) ? p.sourceTags.join(',') : p.sourceTags,
-          lang: p.lang,
-          limit: NEWS_LIMIT,
-          minScore: p.minScore,
-          includeContent: p.includeContent,
-          orderBy: p.orderBy,
-          sources: Array.isArray(p.sources) ? p.sources.join(',') : p.sources,
-        };
-
-        // Filter out undefined, null, or empty string values
-        Object.keys(queryParams).forEach(key => {
-          if (
-            queryParams[key] === undefined ||
-            queryParams[key] === null ||
-            queryParams[key] === ''
-          ) {
-            delete queryParams[key];
-          }
-        });
-
-        return queryParams;
-      };
-
-      const queryParams = sanitizeParams(params);
-      const res = await api.get<any>(`/projects/${pId}/news/search`, { params: queryParams });
-
-      let newItems: NewsItem[] = [];
-      if (res && Array.isArray(res.items)) {
-        newItems = res.items.map((it: any) => ({
-          ...it,
-          id: it.id || it._id || it.shortId,
-        }));
-
-        // Update cursor for next page if available
-        if (res.nextCursor) {
-          cursor.value = res.nextCursor;
-          hasMore.value = true;
-        } else {
-          hasMore.value = false;
-        }
-      } else if (Array.isArray(res)) {
-        newItems = res.map((it: any) => ({
-          ...it,
-          id: it.id || it._id || it.shortId,
-        }));
-        // If legacy array response, assume more if we got a full page
-        hasMore.value = newItems.length >= NEWS_LIMIT;
-      } else {
-        newItems = [];
-        hasMore.value = false;
-      }
-
-      if (isLoadMore) {
-        news.value.push(...newItems);
-      } else {
-        news.value = newItems;
-      }
+      await cursorPagination.load({ ...params, pId }, isLoadMore);
     } catch (err: any) {
       logger.error('Failed to search news', err);
-      const msg = err.message || 'Failed to search news';
-      error.value = msg;
-
       toast.add({
         title: t('news.searchErrorTitle'),
-        description: msg,
+        description: err.message || 'Failed to search news',
         color: 'error',
         icon: 'i-heroicons-exclamation-triangle',
       });
-
-      if (!isLoadMore) news.value = [];
-    } finally {
-      isLoading.value = false;
     }
   };
 
@@ -174,15 +85,7 @@ export const useNews = () => {
     customProjectId?: string,
     force = false,
     locale?: string,
-  ): Promise<{
-    title: string;
-    body: string;
-    image?: string;
-    date?: string;
-    url?: string;
-    author?: string;
-    description?: string;
-  } | null> => {
+  ) => {
     const newsId = item.id;
     const pId = customProjectId || projectId.value;
     if (!pId) throw new Error('Project ID is required');
@@ -199,13 +102,7 @@ export const useNews = () => {
         title: res.title || res.item?.title,
         body: res.content || res.body || res.item?.content || res.item?.description,
         image: res.image || res.mainImageUrl || res.item?.mainImageUrl || res.item?.mainVideoUrl,
-        date:
-          res.date ||
-          res.savedAt ||
-          res.publishedAt ||
-          res.item?.date ||
-          res.item?.savedAt ||
-          res.item?._savedAt,
+        date: res.date || res.savedAt || res.publishedAt || res.item?.date || res.item?.savedAt || res.item?._savedAt,
         url: res.url || res.item?.url,
         author: res.author || res.item?.publisher || res.item?._source,
         description: res.description || res.item?.description,
@@ -245,11 +142,9 @@ export const useNews = () => {
     if (!user.value) return false;
     try {
       await api.patch('/users/me', { newsQueryOrder: order });
-      if (user.value) {
-        user.value.newsQueryOrder = order;
-      }
+      if (user.value) user.value.newsQueryOrder = order;
       return true;
-    } catch (err: any) {
+    } catch (err) {
       logger.error('Failed to update news query order', err);
       return false;
     }
@@ -261,17 +156,17 @@ export const useNews = () => {
     try {
       await api.patch(`/projects/${pId}/news-queries/reorder`, { ids });
       return true;
-    } catch (err: any) {
+    } catch (err) {
       logger.error('Failed to reorder news queries', err);
       return false;
     }
   };
 
   return {
-    news,
-    isLoading,
-    error,
-    hasMore,
+    news: cursorPagination.items,
+    isLoading: cursorPagination.isLoading,
+    error: cursorPagination.error,
+    hasMore: cursorPagination.hasMore,
     searchNews,
     fetchNewsContent,
     getQueries,

@@ -1,75 +1,39 @@
-import { ref, watch, type Ref, computed, onMounted, onUnmounted, toRaw } from 'vue';
-import {
-  onBeforeRouteLeave,
-  type RouteLocationNormalized,
-} from 'vue-router';
+import { ref, watch, type Ref, computed, onUnmounted, toRaw } from 'vue';
 import {
   AUTO_SAVE_DEBOUNCE_MS,
   AUTOSAVE_INDICATOR_DELAY_MS,
   AUTOSAVE_INDICATOR_DISPLAY_MS,
-  AUTOSAVE_RETRY_BASE_DELAY_MS,
-  AUTOSAVE_RETRY_MAX_ATTEMPTS,
-  AUTOSAVE_RETRY_MAX_DELAY_MS,
 } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
+import {
+  defaultIsEqual,
+  deepCloneOrNull,
+  getErrorStatus,
+  isRetryableStatus,
+  isNetworkError,
+} from '~/utils/autosave';
+import { useAutosaveIndicator, type SaveStatus } from './autosave/useAutosaveIndicator';
+import { useAutosaveRetry } from './autosave/useAutosaveRetry';
+import { useAutosaveGuards } from './autosave/useAutosaveGuards';
 
-let autosaveCloneWarnedStructuredClone = false;
-let autosaveCloneWarnedJsonClone = false;
-
-function resolveUseI18n(): null | (() => { t: (key: string) => unknown }) {
-  // Nuxt auto-imports are available at runtime, but not in unit tests.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalUseI18n = (globalThis as any).useI18n;
-  if (typeof globalUseI18n === 'function') return globalUseI18n;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const localUseI18n = (globalThis as any).__nuxt_useI18n;
-  if (typeof localUseI18n === 'function') return localUseI18n;
-
-  return null;
+/**
+ * Resolver for i18n and toast in case they are not available during testing.
+ */
+function resolveNuxtTool(name: string) {
+  const globalAny = globalThis as any;
+  return globalAny[name] || globalAny[`__nuxt_${name}`] || null;
 }
 
-function resolveUseToast(): null | (() => { add: (toast: unknown) => unknown }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalUseToast = (globalThis as any).useToast;
-  if (typeof globalUseToast === 'function') return globalUseToast;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const localUseToast = (globalThis as any).__nuxt_useToast;
-  if (typeof localUseToast === 'function') return localUseToast;
-
-  return null;
-}
-
-export type SaveStatus = 'saved' | 'saving' | 'error' | 'unsaved' | 'invalid';
+export type { SaveStatus, SaveResult } from './autosave/useAutosaveIndicator';
 
 export interface AutosaveOptions<T> {
-  // Function to save data
   saveFn: (data: T, signal?: AbortSignal) => Promise<void | SaveResult>;
-
-  // Data to watch for changes
   data: Ref<T | null>;
-
-  // Debounce time in milliseconds
   debounceMs?: number;
-
-  // Skip initial watch trigger
   skipInitial?: boolean;
-
-  // Custom equality check function
   isEqual?: (a: T, b: T) => boolean;
-
-  // Enable navigation guards (route leave + beforeunload). Disable when
-  // another mechanism (e.g. useFormDirtyState) already handles guards.
   enableNavigationGuards?: boolean;
-
-  // Trigger immediate save on focusout/blur events
   enableBlurSave?: boolean;
-}
-
-export interface SaveResult {
-  saved: boolean;
-  skipped?: boolean;
 }
 
 export interface AutosaveReturn {
@@ -81,19 +45,11 @@ export interface AutosaveReturn {
   isDirty: Ref<boolean>;
   flushSave: () => Promise<void>;
   forceSave: () => Promise<void>;
-  // Manual trigger that ignores isEqual check
   triggerSave: () => Promise<void>;
   retrySave: () => Promise<void>;
-  /**
-   * Update the internal baseline to the current value without saving.
-   * Useful after syncing state from server/props to avoid triggering autosave.
-   */
   syncBaseline: () => void;
 }
 
-/**
- * Composable for auto-saving data with debouncing, dirty checking, and navigation guards
- */
 export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   const {
     saveFn,
@@ -106,28 +62,18 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   } = options;
 
   let t: (key: string) => string = key => key;
+  let toast: any = { add: () => undefined };
+  
   try {
-    const useI18nFn = resolveUseI18n();
+    const useI18nFn = resolveNuxtTool('useI18n');
     if (useI18nFn) {
       const i18n = useI18nFn();
       t = (key: string) => String(i18n.t(key));
     }
+    const useToastFn = resolveNuxtTool('useToast');
+    if (useToastFn) toast = useToastFn();
   } catch (error) {
-    logger.warn('useI18n is not available, falling back to identity translator', error);
-  }
-
-  // Nuxt UI toast has a richer type than we need here; keep it minimal.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let toast: any = {
-    add: () => undefined,
-  };
-  try {
-    const useToastFn = resolveUseToast();
-    if (useToastFn) {
-      toast = useToastFn();
-    }
-  } catch (error) {
-    logger.warn('useToast is not available, falling back to no-op toast', error);
+    logger.warn('useI18n or useToast is not available', error);
   }
 
   const saveStatus = ref<SaveStatus>('saved');
@@ -135,292 +81,92 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   const lastSavedAt = ref<Date | null>(null);
   const isDirty = ref(false);
 
-  const shouldRetry = computed(() => isDirty.value && saveStatus.value === 'error');
+  const {
+    indicatorStatus,
+    isIndicatorVisible,
+    showSaving,
+    showSaved,
+    showError,
+    hideIndicator,
+    clearIndicatorTimers,
+  } = useAutosaveIndicator();
 
-  // Indicator visibility logic
-  const isIndicatorVisible = ref(false);
-  const indicatorStatus = ref<SaveStatus>('saved');
-  let indicatorDelayTimer: NodeJS.Timeout | null = null;
-  let indicatorDisplayTimer: NodeJS.Timeout | null = null;
-
-  // Retry logic
-  let retryTimer: NodeJS.Timeout | null = null;
-  let retryAttempts = 0;
-  let errorToastShownForCycle = false;
-  let retryLimitToastShownForCycle = false;
-  let lastErrorStatus: number | null = null;
-  let lastErrorRetryable = false;
-  let authToastShownForCycle = false;
-
-  function getErrorStatus(err: unknown): number | null {
-    // useApi normalizes errors as { status, data }
-    // $fetch errors can have response.status
-    const anyErr = err as any;
-    const status =
-      anyErr?.status ??
-      anyErr?.response?.status ??
-      anyErr?.response?._data?.statusCode ??
-      anyErr?.data?.statusCode;
-    return typeof status === 'number' ? status : null;
-  }
-
-  function isRetryableStatus(status: number | null): boolean {
-    if (status === null) return false;
-    if (status === 0) return true;
-    if (status === 429) return true;
-    if (status >= 500) return true;
-    return false;
-  }
-
-  function isNetworkError(err: unknown): boolean {
-    const anyErr = err as any;
-    const message = String(anyErr?.message ?? '').toLowerCase();
-    if (!message) return false;
-    return (
-      message.includes('network') ||
-      message.includes('failed to fetch') ||
-      message.includes('fetch failed') ||
-      message.includes('econnreset')
-    );
-  }
-
-  function clearIndicatorTimers() {
-    if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
-    if (indicatorDisplayTimer) clearTimeout(indicatorDisplayTimer);
-  }
-
-  function clearRetryTimer() {
-    if (retryTimer) clearTimeout(retryTimer);
-    retryTimer = null;
-  }
-
-  function computeRetryDelayMs(attempt: number): number {
-    const base = AUTOSAVE_RETRY_BASE_DELAY_MS;
-    const exp = base * 2 ** Math.max(0, attempt - 1);
-    const capped = Math.min(exp, AUTOSAVE_RETRY_MAX_DELAY_MS);
-    const jitter = 0.2;
-    const jitterFactor = 1 + (Math.random() * 2 - 1) * jitter;
-    return Math.max(0, Math.round(capped * jitterFactor));
-  }
-
-  function stopRetriesWithToast() {
-    clearRetryTimer();
-    if (!retryLimitToastShownForCycle) {
-      retryLimitToastShownForCycle = true;
+  const retryManager = useAutosaveRetry({
+    shouldRetryRef: computed(() => isDirty.value && saveStatus.value === 'error'),
+    onRetry: () => performSave(true),
+    onStopWithToast: () => {
       toast.add({
         title: t('common.error'),
         description: t('common.unsavedChanges'),
         color: 'error',
-        actions: [
-          {
-            label: t('common.retry'),
-            onClick: () => {
-              void performSave(true);
-            },
-          },
-        ],
+        actions: [{ label: t('common.retry'), onClick: () => performSave(true) }],
       });
+    },
+    onStopWithAuthToast: (status) => {
+      const description = status === 401 ? t('auth.sessionExpiredDescription') : t('common.accessDenied');
+      toast.add({ title: t('common.error'), description, color: 'error' });
     }
-  }
+  });
 
-  function stopRetriesWithAuthToast(status: 401 | 403) {
-    clearRetryTimer();
-    lastErrorRetryable = false;
-    if (authToastShownForCycle) return;
-    authToastShownForCycle = true;
-
-    const description =
-      status === 401 ? t('auth.sessionExpiredDescription') : t('common.accessDenied');
-
-    toast.add({
-      title: t('common.error'),
-      description,
-      color: 'error',
-    });
-  }
-
-  function scheduleRetry() {
-    if (!shouldRetry.value) {
-      clearRetryTimer();
-      return;
-    }
-
-    if (!lastErrorRetryable) {
-      clearRetryTimer();
-      return;
-    }
-
-    if (retryAttempts >= AUTOSAVE_RETRY_MAX_ATTEMPTS) {
-      stopRetriesWithToast();
-      return;
-    }
-
-    if (retryTimer) return;
-
-    const nextAttempt = retryAttempts + 1;
-    const delayMs = computeRetryDelayMs(nextAttempt);
-    retryTimer = setTimeout(() => {
-      retryTimer = null;
-      if (!shouldRetry.value) return;
-      retryAttempts = nextAttempt;
-      void performSave(true);
-    }, delayMs);
-  }
-
-  // Store last saved state for dirty checking
-  const lastSavedState = ref<T | null>(null);
-  let baselineInitialized = false;
-
-  // Promise queue to ensure sequential saves
+  const lastSavedState = ref<T | null>(skipInitial && data.value ? deepCloneOrNull(data.value) : null);
+  let baselineInitialized = skipInitial && !!data.value;
   let saveQueue = Promise.resolve();
   let currentAbortController: AbortController | null = null;
+  let errorToastShownForCycle = false;
 
-  if (skipInitial && data.value) {
-    lastSavedState.value = deepCloneOrNull(data.value);
-    baselineInitialized = true;
-  }
-
-  function syncBaseline() {
-    if (!data.value) return;
-
-    lastSavedState.value = deepCloneOrNull(data.value);
-    baselineInitialized = true;
-    isDirty.value = false;
-    saveStatus.value = 'saved';
-    saveError.value = null;
-    errorToastShownForCycle = false;
-    retryLimitToastShownForCycle = false;
-    retryAttempts = 0;
-    lastErrorStatus = null;
-    lastErrorRetryable = false;
-    authToastShownForCycle = false;
-    isIndicatorVisible.value = false;
-    if (currentAbortController) {
-      currentAbortController.abort();
-      currentAbortController = null;
-    }
-    clearIndicatorTimers();
-    clearRetryTimer();
-  }
-
-  /**
-   * Perform the actual save operation
-   * @param force If true, skip equality check
-   */
   async function performSave(force = false) {
     if (!data.value) return;
 
-    // Abort the previous request immediately (outside the queue)
-    if (currentAbortController) {
-      currentAbortController.abort();
-    }
+    if (currentAbortController) currentAbortController.abort();
     const abortController = new AbortController();
     currentAbortController = abortController;
     const signal = abortController.signal;
 
-    // Capture snapshot of data to prevent partial saves
     const snapshot = deepCloneOrNull(data.value);
-    if (!snapshot) return; // If clone fails, we can't save safely
+    if (!snapshot) return;
 
-    // Add to queue to ensure sequential execution
     saveQueue = saveQueue.then(async () => {
-      // If this request was aborted by a newer one before starting, just skip
-      if (signal.aborted) {
-        return;
-      }
-
-      // Check equality inside the queue to avoid duplicate saves
-      // when multiple performSave calls pass the check before entering the queue
-      if (!force && lastSavedState.value && isEqual(snapshot, lastSavedState.value)) {
-        return;
-      }
+      if (signal.aborted) return;
+      if (!force && lastSavedState.value && isEqual(snapshot, lastSavedState.value)) return;
 
       saveStatus.value = 'saving';
       saveError.value = null;
-      clearRetryTimer();
+      retryManager.clearRetryTimer();
 
       const saveStartTime = Date.now();
-
-      // Start delay timer for "Saving..." indicator
-      clearIndicatorTimers();
-      indicatorDelayTimer = setTimeout(() => {
-        if (!signal.aborted) {
-          indicatorStatus.value = 'saving';
-          isIndicatorVisible.value = true;
-        }
-      }, AUTOSAVE_INDICATOR_DELAY_MS);
+      showSaving();
 
       try {
         const result = await saveFn(snapshot as T, signal);
+        if (signal.aborted) return;
 
-        // If this request was aborted by a newer one, just ignore the result
-        if (signal.aborted) {
-          return;
-        }
-
-        // Handle both simple void return and SaveResult object
-        const wasSaved =
-          result === undefined || (typeof result === 'object' && result.saved === true);
+        const wasSaved = result === undefined || (typeof result === 'object' && result.saved === true);
         const wasSkipped = typeof result === 'object' && result.skipped === true;
-
         const duration = Date.now() - saveStartTime;
 
         if (wasSaved) {
-          // Update last saved state
           lastSavedState.value = deepCloneOrNull(snapshot);
           saveStatus.value = 'saved';
           lastSavedAt.value = new Date();
           isDirty.value = false;
           errorToastShownForCycle = false;
-          retryLimitToastShownForCycle = false;
-          retryAttempts = 0;
-          lastErrorStatus = null;
-          lastErrorRetryable = false;
-          authToastShownForCycle = false;
-
-          // Clear delay timer if save finished before it fired
-          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
+          retryManager.reset();
 
           if (duration >= AUTOSAVE_INDICATOR_DELAY_MS) {
-            // If save took longer than delay, show "Saved" for a while
-            indicatorStatus.value = 'saved';
-            isIndicatorVisible.value = true;
-            indicatorDisplayTimer = setTimeout(() => {
-              isIndicatorVisible.value = false;
-            }, AUTOSAVE_INDICATOR_DISPLAY_MS);
+            showSaved();
           } else {
-            // Fast save - hide indicator if it was somehow shown
-            isIndicatorVisible.value = false;
+            hideIndicator();
           }
         } else if (wasSkipped) {
-          // If skipped (e.g. invalid state), we show 'invalid' status if it was dirty
           saveStatus.value = isDirty.value ? 'invalid' : 'saved';
-
-          if (indicatorStatus.value !== 'saving') {
-             // If we didn't show "Saving...", don't show "Invalid" yet to avoid flicker
-             // unless it's already shown
-          }
-
-          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
           indicatorStatus.value = saveStatus.value;
           isIndicatorVisible.value = saveStatus.value !== 'saved';
-          clearRetryTimer();
-          lastErrorStatus = null;
-          lastErrorRetryable = false;
+          retryManager.reset();
         } else {
-          // Failed to save according to result
           saveStatus.value = 'error';
           saveError.value = t('common.saveError');
           isDirty.value = true;
-
-          lastErrorStatus = null;
-          // If saveFn does not throw, we cannot reliably classify error.
-          // Do not retry automatically.
-          lastErrorRetryable = false;
-
-          if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
-          indicatorStatus.value = 'error';
-          isIndicatorVisible.value = true;
+          showError();
 
           if (!errorToastShownForCycle) {
             errorToastShownForCycle = true;
@@ -428,221 +174,105 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
               title: t('common.error'),
               description: saveError.value ?? undefined,
               color: 'error',
-              actions: [
-                {
-                  label: t('common.retry'),
-                  onClick: () => {
-                    errorToastShownForCycle = false;
-                    retryLimitToastShownForCycle = false;
-                    retryAttempts = 0;
-                    authToastShownForCycle = false;
-                    clearRetryTimer();
-                    void performSave(true);
-                  },
-                },
-              ],
+              actions: [{ label: t('common.retry'), onClick: () => {
+                errorToastShownForCycle = false;
+                retryManager.reset();
+                performSave(true);
+              }}]
             });
           }
         }
       } catch (err: any) {
-        // Ignore aborted requests
-        if (signal.aborted || err?.name === 'AbortError') {
-          return;
-        }
+        if (signal.aborted || err?.name === 'AbortError') return;
 
         logger.error('Auto-save failed', err);
         saveStatus.value = 'error';
         saveError.value = t('common.saveError');
         isDirty.value = true;
+        showError();
 
-        lastErrorStatus = getErrorStatus(err);
-        lastErrorRetryable =
-          isRetryableStatus(lastErrorStatus) || (lastErrorStatus === null && isNetworkError(err));
+        const status = getErrorStatus(err);
+        retryManager.lastErrorStatus.value = status;
+        retryManager.isLastErrorRetryable.value = isRetryableStatus(status) || (status === null && isNetworkError(err));
 
-        if (indicatorDelayTimer) clearTimeout(indicatorDelayTimer);
-        indicatorStatus.value = 'error';
-        isIndicatorVisible.value = true;
-
-        if (lastErrorStatus === 401 || lastErrorStatus === 403) {
-          stopRetriesWithAuthToast(lastErrorStatus);
+        if (status === 401 || status === 403) {
+          retryManager.handleAuthError(status);
           return;
         }
 
         if (!errorToastShownForCycle) {
-          errorToastShownForCycle = true;
-          toast.add({
-            title: t('common.error'),
-            description: saveError.value ?? undefined,
-            color: 'error',
-            actions: [
-              {
-                label: t('common.retry'),
-                onClick: () => {
-                  errorToastShownForCycle = false;
-                  retryLimitToastShownForCycle = false;
-                  retryAttempts = 0;
-                  authToastShownForCycle = false;
-                  clearRetryTimer();
-                  void performSave(true);
-                },
-              },
-            ],
-          });
-        }
+            errorToastShownForCycle = true;
+            toast.add({
+              title: t('common.error'),
+              description: saveError.value ?? undefined,
+              color: 'error',
+              actions: [{ label: t('common.retry'), onClick: () => {
+                errorToastShownForCycle = false;
+                retryManager.reset();
+                performSave(true);
+              }}]
+            });
+          }
 
-        scheduleRetry();
+        retryManager.scheduleRetry();
       }
     });
 
     await saveQueue;
   }
 
-  // Debounced save function
   const debouncedSave = useDebounceFn(performSave, debounceMs);
 
-  // Watch for changes
-  watch(
-    data,
-    (newValue: T | null, oldValue: T | null) => {
-      if (!newValue) return;
+  useAutosaveGuards({
+    isSaving: computed(() => saveStatus.value === 'saving'),
+    isDirty: isDirty,
+    enableNavigationGuards,
+    enableBlurSave,
+    t,
+    onBlurSave: () => performSave(false)
+  });
 
-      if (skipInitial && !baselineInitialized) {
-        lastSavedState.value = deepCloneOrNull(newValue);
-        baselineInitialized = true;
-        return;
-      }
+  watch(data, (newValue, oldValue) => {
+    if (!newValue) return;
+    if (skipInitial && !baselineInitialized) {
+      lastSavedState.value = deepCloneOrNull(newValue);
+      baselineInitialized = true;
+      return;
+    }
 
-      // Check if this is a reference change (e.g., switching collections)
-      // vs actual data modification.
-      // Comparing IDs is more reliable than reference equality for reactive objects,
-      // but we fall back to reference equality for objects without IDs.
-      const oldId = (oldValue as any)?.id;
-      const newId = (newValue as any)?.id;
-      const isReferenceChange = oldValue && (
-        (oldId !== undefined && newId !== undefined)
-          ? oldId !== newId
-          : newValue !== oldValue
-      );
+    const isReferenceChange = oldValue && (
+      (oldValue as any)?.id !== (newValue as any)?.id || oldValue !== newValue
+    );
 
-      if (isReferenceChange) {
-        // If the previous object was dirty, we should try to save it before switching
-        if (isDirty.value && oldValue) {
-          // Use the old data to perform save (sequentially)
-          // Defer new-value baseline reset until after save completes
-          // so that errors from saving old data are properly surfaced
-          saveQueue = saveQueue.then(async () => {
-            try {
-              saveStatus.value = 'saving';
-              saveError.value = null;
-              await saveFn(oldValue);
-              // Save succeeded — reset state for the new value
-              saveStatus.value = 'saved';
-            } catch (err: any) {
-              logger.error('Failed to save old state on reference change', err);
-              saveStatus.value = 'error';
-              saveError.value = t('common.saveError');
-
-              toast.add({
-                title: t('common.error'),
-                description: t('common.unsavedChanges'),
-                color: 'error',
-              });
-            }
-          });
-        }
-
-        // This is a collection switch or similar - update saved state without saving for the NEW value
-        lastSavedState.value = deepCloneOrNull(newValue);
-        baselineInitialized = true;
-        isDirty.value = false;
-        isIndicatorVisible.value = false;
-        clearIndicatorTimers();
-        clearRetryTimer();
-        errorToastShownForCycle = false;
-        return;
-      }
-
-      // This is an actual data change - mark as dirty and trigger save
-      isDirty.value = true;
-      errorToastShownForCycle = false;
-      retryLimitToastShownForCycle = false;
-      authToastShownForCycle = false;
-      if (saveStatus.value !== 'saving') {
-        saveStatus.value = 'unsaved';
-      }
-      indicatorStatus.value = saveStatus.value;
-      isIndicatorVisible.value = true;
-      debouncedSave();
-    },
-    { deep: true },
-  );
-
-  // Navigation guard - prevent navigation while saving
-  // In unit tests or some runtimes there may be no active router context.
-  if (enableNavigationGuards) {
-    try {
-      onBeforeRouteLeave(
-        (to: RouteLocationNormalized, from: RouteLocationNormalized) => {
-          if (saveStatus.value === 'saving' || isDirty.value) {
-            const key =
-              saveStatus.value === 'saving'
-                ? 'common.savingInProgressConfirm'
-                : 'common.unsavedChangesConfirm';
-            const answer = window.confirm(t(key));
-            return answer;
+    if (isReferenceChange) {
+      if (isDirty.value && oldValue) {
+        saveQueue = saveQueue.then(async () => {
+          try {
+            await saveFn(oldValue);
+          } catch (err) {
+            logger.error('Failed to save old state on reference change', err);
           }
-          return true;
-        },
-      );
-    } catch (error) {
-      logger.warn('Failed to register autosave route leave guard', error);
+        });
+      }
+      lastSavedState.value = deepCloneOrNull(newValue);
+      baselineInitialized = true;
+      isDirty.value = false;
+      hideIndicator();
+      retryManager.reset();
+      return;
     }
-  }
 
-  // Browser unload guard - prevent closing collection while saving
-  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-    if (saveStatus.value === 'saving' || isDirty.value) {
-      e.preventDefault();
-      e.returnValue = '';
-      return '';
-    }
-  };
-
-  // Blur/focusout handler – flush immediately to avoid waiting debounce
-  const handleFocusOut = () => {
-    if (!enableBlurSave) return;
-    if (!data.value) return;
-    if (!isDirty.value && saveStatus.value !== 'unsaved') return;
-    void performSave(false);
-  };
-
-  if (enableNavigationGuards) {
-    onMounted(() => {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-    });
-  }
-
-  if (enableBlurSave) {
-    onMounted(() => {
-      window.addEventListener('focusout', handleFocusOut, true);
-    });
-  }
+    isDirty.value = true;
+    if (saveStatus.value !== 'saving') saveStatus.value = 'unsaved';
+    indicatorStatus.value = saveStatus.value;
+    isIndicatorVisible.value = true;
+    debouncedSave();
+  }, { deep: true });
 
   onUnmounted(() => {
-    if (enableNavigationGuards) {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    }
-    if (enableBlurSave) {
-      window.removeEventListener('focusout', handleFocusOut, true);
-    }
-    
-    // Final flush on unmount if dirty to ensure no data is lost
-    if (isDirty.value && saveStatus.value !== 'saving') {
-      void performSave(false);
-    }
-
+    if (isDirty.value && saveStatus.value !== 'saving') performSave(false);
     clearIndicatorTimers();
-    clearRetryTimer();
+    retryManager.clearRetryTimer();
   });
 
   return {
@@ -656,64 +286,20 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     forceSave: () => performSave(true),
     triggerSave: () => performSave(true),
     retrySave: async () => {
-      if (!data.value) return;
       errorToastShownForCycle = false;
-      retryLimitToastShownForCycle = false;
-      retryAttempts = 0;
-      authToastShownForCycle = false;
-      clearRetryTimer();
+      retryManager.reset();
       await performSave(true);
     },
-    syncBaseline,
+    syncBaseline: () => {
+      if (!data.value) return;
+      lastSavedState.value = deepCloneOrNull(data.value);
+      baselineInitialized = true;
+      isDirty.value = false;
+      saveStatus.value = 'saved';
+      saveError.value = null;
+      hideIndicator();
+      retryManager.reset();
+      if (currentAbortController) currentAbortController.abort();
+    }
   };
-}
-
-/**
- * Default equality check using JSON serialization
- */
-function defaultIsEqual<T>(a: T, b: T): boolean {
-  try {
-    return JSON.stringify(a) === JSON.stringify(b);
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Deep clone using JSON serialization
- */
-function deepCloneOrNull<T>(obj: T): T | null {
-  let structuredCloneError: unknown = null;
-  if (typeof structuredClone === 'function') {
-    try {
-      return structuredClone(toRaw(obj));
-    } catch (error) {
-      // Vue reactive proxies and some complex objects can fail structuredClone.
-      // We'll try JSON clone and only warn if THAT fails too.
-      structuredCloneError = error;
-    }
-  }
-
-  try {
-    return JSON.parse(JSON.stringify(toRaw(obj)));
-  } catch (jsonCloneError) {
-    // Log only when we have no viable baseline at all.
-    if (!autosaveCloneWarnedStructuredClone && structuredCloneError) {
-      autosaveCloneWarnedStructuredClone = true;
-      logger.warn(
-        'Failed to structuredClone autosave state; falling back to JSON clone',
-        structuredCloneError,
-      );
-    }
-
-    if (!autosaveCloneWarnedJsonClone) {
-      autosaveCloneWarnedJsonClone = true;
-      logger.warn(
-        'Failed to deep clone autosave state, falling back to null baseline',
-        jsonCloneError,
-      );
-    }
-
-    return null;
-  }
 }

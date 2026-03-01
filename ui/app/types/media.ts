@@ -21,3 +21,33 @@ export interface MediaLinkItem {
   alt?: string
   description?: string
 }
+
+export interface MediaItemLike {
+  id: string;
+  type: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT' | string;
+  storageType?: 'TELEGRAM' | 'STORAGE' | string;
+  storagePath: string;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: number | string;
+  meta?: Record<string, any>;
+}
+
+export interface CreateMediaInput {
+  id?: string;
+  type?: 'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT';
+  storageType?: 'TELEGRAM' | 'STORAGE';
+  storagePath?: string;
+  filename?: string;
+  mimeType?: string;
+  sizeBytes?: number | string;
+  meta?: Record<string, any>;
+}
+
+export interface MediaThumbData {
+  src: string | null;
+  srcset: string | null;
+  isVideo: boolean;
+  placeholderIcon: string;
+  placeholderText: string;
+}

@@ -1,3 +1,4 @@
+import { ref, computed, watch, type Ref } from 'vue';
 import type { ProjectAuthorSignature } from '~/types/author-signatures';
 import type { PostType } from '~/types/posts';
 

@@ -1,8 +1,7 @@
 <script setup lang="ts">
+import { getPublicationDisplayTitle, getPublicationAuthorName } from '~/utils/publications'
+import { getMediaLinksThumbDataLoose } from '~/utils/media'
 import type { PublicationWithRelations } from '~/types/publications'
-import { stripHtmlAndSpecialChars } from '~/utils/text'
-import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
 import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{
@@ -37,28 +36,14 @@ const thumbData = computed(() => {
   return getMediaLinksThumbDataLoose(props.publication.media as any)
 })
 
-const displayTitle = computed(() => {
-  if (props.publication.title) {
-    return stripHtmlAndSpecialChars(props.publication.title)
-  }
-  if (props.publication.content) {
-    const cleaned = stripHtmlAndSpecialChars(props.publication.content)
-    if (cleaned) return cleaned
-  }
-  return t('post.untitled')
-})
+const displayTitle = computed(() => getPublicationDisplayTitle(props.publication, t))
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
 
-const authorName = computed(() => {
-  const creator = props.publication.creator
-  if (!creator) return ''
-  return creator.fullName || creator.telegramUsername || t('common.unknown')
-})
+const authorName = computed(() => getPublicationAuthorName(props.publication, t))
 
 function handleClick() {
-
   emit('click', props.publication)
 }
 

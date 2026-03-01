@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useContentCollections, type ContentCollection } from '~/composables/useContentCollections'
-import { useMedia } from '~/composables/useMedia'
-import { useApi } from '~/composables/useApi'
-import { useProjects } from '~/composables/useProjects'
-import { buildGroupTreeFromRoot } from '~/composables/useContentLibraryGroupsTree'
-import ContentGroupSelectTree from '../content/ContentGroupSelectTree.vue'
+import CommonContentDestinationSelect from '../common/CommonContentDestinationSelect.vue'
 import MediaEncodingSettings, { type FormatOption } from './MediaEncodingSettings.vue'
 import {
   BASE_VIDEO_CODEC_OPTIONS,
@@ -62,17 +57,6 @@ const scope = ref<'personal' | 'project'>('personal')
 const selectedProjectId = ref<string | null>(null)
 const selectedCollectionId = ref<string | null>(null)
 const selectedGroupId = ref<string | null>(null)
-const isInitialOpen = ref(true)
-
-const projects = ref<any[]>([])
-async function loadProjects() {
-  if (projects.value.length > 0) return
-  try {
-    projects.value = await fetchProjects({ hasContentCollections: true })
-  } catch (err) {
-    console.error('Failed to fetch projects', err)
-  }
-}
 
 const outputFormat = ref<'mp4' | 'webm' | 'mkv'>('mp4')
 const videoCodec = ref('avc1.42E032')
@@ -113,47 +97,11 @@ const normalizedExportFps = computed(() => {
   return Math.round(Math.min(240, Math.max(1, value)))
 })
 
-// Collections data
-const collections = ref<ContentCollection[]>([])
-const isLoadingCollections = ref(false)
-
 // Export state
 const isExporting = ref(false)
 const exportProgress = ref(0)
 const exportError = ref<string | null>(null)
 const exportPhase = ref<'encoding' | 'uploading' | 'saving' | null>(null)
-
-const scopeOptions = computed(() => {
-  const opts = [{ value: 'personal', label: t('videoEditor.export.scopePersonal') }]
-  if (projects.value.length > 0 || props.projectId) {
-    opts.push({ value: 'project', label: t('videoEditor.export.scopeProject') })
-  }
-  return opts
-})
-
-const projectOptions = computed(() => {
-  return projects.value.map((p) => ({ value: p.id, label: p.name }))
-})
-
-const collectionOptions = computed(() =>
-  collections.value
-    .filter((c) => !c.parentId && c.type !== 'PUBLICATION_MEDIA_VIRTUAL' && c.type !== 'UNSPLASH')
-    .map((c) => ({ value: c.id, label: c.title })),
-)
-
-const selectedCollection = computed(() => {
-  if (!selectedCollectionId.value) return null
-  return collections.value.find((c) => c.id === selectedCollectionId.value)
-})
-
-const subGroupTreeItems = computed(() => {
-  if (selectedCollection.value?.type !== 'GROUP') return []
-  return buildGroupTreeFromRoot({
-    rootId: selectedCollection.value.id,
-    allGroupCollections: collections.value,
-    labelFn: (c) => c.title,
-  })
-})
 
 const phaseLabel = computed(() => {
   if (exportPhase.value === 'encoding') return t('videoEditor.export.phaseEncoding')
@@ -162,73 +110,17 @@ const phaseLabel = computed(() => {
   return ''
 })
 
-async function loadCollections() {
-  if (isLoadingCollections.value) return
-  isLoadingCollections.value = true
-  try {
-    const result = await listCollections(
-      scope.value,
-      scope.value === 'project' ? selectedProjectId.value ?? undefined : undefined,
-    )
-    collections.value = result ?? []
-    
-    // Default selection logic
-    if (isInitialOpen.value) {
-      if (props.groupId) {
-        const group = collections.value.find(c => c.id === props.groupId)
-        if (group) {
-          selectedGroupId.value = group.id
-          // Find root parent collection
-          let root = group
-          const maxDepth = 10
-          let depth = 0
-          while (root.parentId && depth < maxDepth) {
-            const parent = collections.value.find(c => c.id === root.parentId)
-            if (!parent) break
-            root = parent
-            depth++
-          }
-          selectedCollectionId.value = root.id
-        }
-      } else if (props.collectionId) {
-        selectedCollectionId.value = props.collectionId
-      }
-      isInitialOpen.value = false
-    }
-
-    // If still no collection selected and we have collections, pick the first GROUP
-    if (!selectedCollectionId.value && collections.value.length > 0) {
-      const firstGroup = collections.value.find((c) => c.type === 'GROUP' && !c.parentId)
-      if (firstGroup) selectedCollectionId.value = firstGroup.id
-    }
-  } catch (err) {
-    console.error('Failed to load collections', err)
-    collections.value = []
-  } finally {
-    isLoadingCollections.value = false
-  }
-}
-
 watch(
   () => props.open,
   (val) => {
     if (!val) return
-    // Reset state on open
-    outputFormat.value = 'mp4'
-    const base = (props.filename || 'video').replace(/\.[^.]+$/, '')
-    outputFilename.value = `${base}_trimmed.mp4`
-    scope.value = props.projectId ? 'project' : 'personal'
-    selectedProjectId.value = props.projectId || null
-    videoCodec.value = 'avc1.42E032'
-    bitrateMbps.value = 5
-    excludeAudio.value = !props.hasAudio
     exportProgress.value = 0
     exportError.value = null
     exportPhase.value = null
     isExporting.value = false
-    isInitialOpen.value = true
-    loadProjects()
-    loadCollections()
+    // Initial state setup
+    selectedCollectionId.value = props.collectionId || null
+    selectedGroupId.value = props.groupId || null
     loadCodecSupport()
   },
 )
@@ -255,20 +147,7 @@ const bitrateBps = computed(() => {
   return Math.round(clamped * 1_000_000)
 })
 
-watch(scope, () => {
-  if (scope.value === 'project' && !selectedProjectId.value) return
-  loadCollections()
-})
-
-watch(selectedProjectId, () => {
-  if (scope.value === 'project') {
-    loadCollections()
-  }
-})
-
-watch(selectedCollectionId, () => {
-  selectedGroupId.value = null
-})
+// Destination selection logic is now handled by CommonContentDestinationSelect
 
 async function loadCodecSupport() {
   if (isLoadingCodecSupport.value) return
@@ -392,60 +271,13 @@ function handleCancel() {
       </UFormField>
 
       <!-- Scope selector -->
-      <UFormField :label="t('videoEditor.export.destination')">
-        <UiAppButtonGroup
-          v-model="scope"
-          :options="scopeOptions"
-          :disabled="isExporting"
-        />
-      </UFormField>
-
-      <!-- Collection selector -->
-      <UFormField :label="t('videoEditor.export.collection')">
-        <USelectMenu
-          :model-value="(collectionOptions.find(o => o.value === selectedCollectionId) || selectedCollectionId) as any"
-          :items="collectionOptions"
-          value-key="value"
-          label-key="label"
-          searchable
-          :search-input="{ placeholder: t('contentLibrary.bulk.searchGroups') }"
-          :placeholder="t('videoEditor.export.noCollection')"
-          :loading="isLoadingCollections"
-          :disabled="isExporting || isLoadingCollections"
-          class="w-full"
-          @update:model-value="(v: any) => selectedCollectionId = v?.value ?? v"
-        />
-      </UFormField>
-
-      <!-- Sub-group tree selector -->
-      <UFormField
-        v-if="selectedCollection?.type === 'GROUP' && subGroupTreeItems.length > 0"
-        :label="t('videoEditor.export.group')"
-      >
-        <div class="py-2.5 px-3 border border-gray-200 dark:border-gray-800 rounded-md max-h-60 overflow-y-auto custom-scrollbar bg-white dark:bg-gray-900">
-          <ContentGroupSelectTree
-            :items="subGroupTreeItems as any"
-            :selected-id="selectedGroupId"
-            @select="val => selectedGroupId = val"
-          />
-        </div>
-      </UFormField>
-
-      <UFormField v-if="scope === 'project'" :label="t('contentLibrary.bulk.selectProject')">
-        <USelectMenu
-          :model-value="(projectOptions.find(o => o.value === selectedProjectId) || selectedProjectId) as any"
-          :items="projectOptions"
-          value-key="value"
-          label-key="label"
-          searchable
-          :search-input="{ placeholder: t('contentLibrary.bulk.selectProject') }"
-          :placeholder="t('contentLibrary.bulk.selectProject')"
-          :disabled="isExporting || isLoadingProjects"
-          :loading="isLoadingProjects"
-          class="w-full"
-          @update:model-value="(v: any) => selectedProjectId = v?.value ?? v"
-        />
-      </UFormField>
+      <CommonContentDestinationSelect
+        v-model:scope="scope"
+        v-model:project-id="selectedProjectId"
+        v-model:collection-id="selectedCollectionId"
+        v-model:group-id="selectedGroupId"
+        :disabled="isExporting"
+      />
 
       <div class="grid grid-cols-2 gap-3">
         <UFormField :label="t('videoEditor.projectSettings.exportWidth', 'Width')">

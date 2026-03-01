@@ -1,3 +1,7 @@
+import { toRaw } from 'vue';
+// @ts-ignore
+import { useRuntimeConfig } from '#app';
+
 export function formatBytes(bytes?: number | string): string {
   if (!bytes || bytes === 0 || bytes === '0') return '0 B'
   const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
@@ -23,4 +27,231 @@ export function getMediaIcon(type: string): string {
     default:
       return 'i-heroicons-document'
   }
+}
+
+export function getExifData(media?: { fullMediaMeta?: any }) {
+  return media?.fullMediaMeta?.exif || null
+}
+
+export function getResolution(media?: { meta?: any; fullMediaMeta?: any }) {
+  if (!media) return null
+  const { meta, fullMediaMeta } = media
+  
+  // Try to find width and height in various common locations
+  const w = fullMediaMeta?.width || meta?.width || fullMediaMeta?.video?.width || meta?.video?.width
+  const h = fullMediaMeta?.height || meta?.height || fullMediaMeta?.video?.height || meta?.video?.height
+  
+  if (w && h) {
+    return `${w} × ${h}`
+  }
+  
+  // Fallback to EXIF if available
+  const exif = getExifData(media)
+  if (exif) {
+    const exifW = exif.ImageWidth || exif.ExifImageWidth
+    const exifH = exif.ImageHeight || exif.ExifImageHeight
+    if (exifW && exifH) {
+      return `${exifW} × ${exifH}`
+    }
+  }
+
+  return null
+}
+
+export function getCompressionStats(media?: { meta?: any; sizeBytes?: any }) {
+  if (!media?.meta) return null
+  const { meta } = media
+  
+  // Try both camelCase and snake_case for the original size
+  const original = meta.originalSize || meta.original_size
+  // Use size from meta or the top-level sizeBytes
+  const current = meta.size || media.sizeBytes
+  
+  if (!original || !current || Number(original) === Number(current)) return null
+
+  const originalNum = Number(original)
+  const currentNum = Number(current)
+  const saved = originalNum - currentNum
+  
+  // Only show if there is actually some meaningful compression (> 1KB)
+  if (saved < 1024) return null
+
+  const percent = Math.round((saved / originalNum) * 100)
+  const ratio = (originalNum / currentNum).toFixed(1)
+
+  // Get quality and lossless from root or optimizationParams
+  const params = meta.optimizationParams || {}
+  const quality = meta.quality ?? params.quality
+  const lossless = meta.lossless ?? params.lossless
+
+  return {
+    originalSize: formatBytes(originalNum),
+    optimizedSize: formatBytes(currentNum),
+    savedPercent: percent,
+    ratio,
+    quality,
+    lossless,
+    originalFormat: meta.originalMimeType || meta.original_mime_type,
+    optimizedFormat: meta.mimeType || meta.mime_type
+  }
+}
+
+/**
+ * Get URL for media file
+ */
+export function getMediaFileUrl(
+  mediaId: string,
+  token?: string,
+  version?: string | number,
+  download?: boolean,
+): string {
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
+  let url = `${apiBase}/media/${mediaId}/file`;
+
+  const params: string[] = [];
+
+  if (token) {
+    params.push(`token=${token}`);
+  }
+
+  if (version !== undefined && version !== null && String(version).length > 0) {
+    params.push(`v=${encodeURIComponent(String(version))}`);
+  }
+
+  if (download) {
+    params.push('download=1');
+  }
+
+  if (params.length > 0) {
+    url += `?${params.join('&')}`;
+  }
+
+  return url;
+}
+
+/**
+ * Get public URL for media file (no auth required)
+ */
+export function getPublicMediaUrl(mediaId: string, publicToken: string): string {
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
+  return `${apiBase}/media/p/${mediaId}/${publicToken}`;
+}
+
+/**
+ * Get URL for media thumbnail
+ */
+export function getThumbnailUrl(
+  mediaId: string,
+  width?: number,
+  height?: number,
+  token?: string,
+  version?: string | number,
+): string {
+  const config = useRuntimeConfig();
+  const apiBase = config.public.apiBase ? `${config.public.apiBase}/api/v1` : '/api/v1';
+  let url = `${apiBase}/media/${mediaId}/thumbnail`;
+
+  const params: string[] = [];
+  if (width) params.push(`w=${width}`);
+  if (height) params.push(`h=${height}`);
+  if (token) params.push(`token=${token}`);
+  if (version !== undefined && version !== null && String(version).length > 0)
+    params.push(`v=${encodeURIComponent(String(version))}`);
+
+  if (params.length > 0) {
+    url += `?${params.join('&')}`;
+  }
+
+  return url;
+}
+
+export function getMediaThumbData(media: any, token?: string): any {
+  const placeholderIcon =
+    media.type === 'IMAGE'
+      ? 'i-heroicons-photo'
+      : media.type === 'VIDEO'
+        ? 'i-heroicons-video-camera'
+        : media.type === 'AUDIO'
+          ? 'i-heroicons-musical-note'
+          : 'i-heroicons-document';
+
+  const placeholderText = media.filename || 'Untitled';
+
+  const type = (media.type || '').toUpperCase();
+  const storageType = (media.storageType || '').toUpperCase();
+  const hasThumbnailInMeta = !!media.meta?.telegram?.thumbnailFileId;
+
+  const canShowPreview =
+    media.id &&
+    (type === 'IMAGE' ||
+      (storageType === 'TELEGRAM' &&
+        (type === 'VIDEO' || type === 'DOCUMENT' || type === 'AUDIO') &&
+        hasThumbnailInMeta));
+
+  if (!canShowPreview) {
+    return {
+      src: null,
+      srcset: null,
+      isVideo: media.type === 'VIDEO',
+      placeholderIcon,
+      placeholderText,
+    };
+  }
+
+  if (type === 'IMAGE') {
+    if (storageType === 'STORAGE') {
+      const src = getThumbnailUrl(media.id, 400, 400, token);
+      const srcset = `${src} 1x, ${getThumbnailUrl(media.id, 800, 800, token)} 2x`;
+      return {
+        src,
+        srcset,
+        isVideo: false,
+        placeholderIcon,
+        placeholderText,
+      };
+    }
+
+    if (storageType === 'URL') {
+      return {
+        src: media.storagePath,
+        srcset: null,
+        isVideo: false,
+        placeholderIcon,
+        placeholderText,
+      };
+    }
+
+    return {
+      src: getMediaFileUrl(media.id, token),
+      srcset: null,
+      isVideo: false,
+      placeholderIcon,
+      placeholderText,
+    };
+  }
+
+  return {
+    src: getThumbnailUrl(media.id, 400, 400, token),
+    srcset: null,
+    isVideo: type === 'VIDEO',
+    placeholderIcon,
+    placeholderText,
+  };
+}
+
+export function getMediaLinksThumbDataLoose(
+  mediaLinks: Array<{ media?: any; order: number }>,
+  token?: string,
+): { first: any | null; totalCount: number } {
+  const firstMedia = mediaLinks[0]?.media;
+  if (!firstMedia) {
+    return { first: null, totalCount: mediaLinks.length };
+  }
+
+  return {
+    first: getMediaThumbData(firstMedia, token),
+    totalCount: mediaLinks.length,
+  };
 }

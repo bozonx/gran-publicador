@@ -1,3 +1,4 @@
+import { stripHtmlAndSpecialChars } from './text';
 import type { PublicationStatus } from '~/types/posts'
 import type { PublicationWithRelations, PublicationProblem } from '~/types/publications'
 
@@ -173,4 +174,21 @@ export function getPostProblemLevel(post: any): 'critical' | 'warning' | null {
     return 'critical'
   }
   return null
+}
+
+export function getPublicationDisplayTitle(publication: any, t: (key: string) => string): string {
+  if (publication.title) {
+    return stripHtmlAndSpecialChars(publication.title);
+  }
+  if (publication.content) {
+    const cleaned = stripHtmlAndSpecialChars(publication.content);
+    if (cleaned) return cleaned;
+  }
+  return t('post.untitled');
+}
+
+export function getPublicationAuthorName(publication: any, t: (key: string) => string): string {
+  const creator = publication.creator;
+  if (!creator) return '';
+  return creator.fullName || creator.telegramUsername || t('common.unknown');
 }

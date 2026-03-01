@@ -34,6 +34,7 @@ interface Props {
 }
 
 import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
+import { useApiAction } from '~/composables/useApiAction'
 
 const props = withDefaults(defineProps<Props>(), {
   allowProjectSelection: false,
@@ -188,50 +189,50 @@ watch([
   }
 })
 
+const { executeAction } = useApiAction()
+
 async function handleCreate() {
-  try {
-    if (!canSubmit.value) {
-      const toast = useToast()
-      toast.add({
-        title: t('common.error'),
-        description: t('publication.createModal.templateRequired', 'You must select a publication template before creating a publication'),
-        color: 'error',
-      })
-      return
-    }
-
-    const createData = {
-      projectId: formData.projectId,
-      language: formData.language,
-      postType: formData.postType,
-      channelIds: formData.channelIds,
-      title: props.prefilledTitle || '',
-      description: props.prefilledDescription || '',
-      authorComment: props.prefilledAuthorComment || '',
-      content: props.prefilledContent || '',
-      existingMediaIds: props.prefilledMediaIds || [],
-      tags: props.prefilledTags || [],
-      note: props.prefilledNote || '',
-      meta: props.prefilledMeta || {},
-      contentItemIds: props.prefilledContentItemIds || [],
-      unsplashId: props.prefilledUnsplashId || undefined,
-      authorSignatureId: formData.authorSignatureId || undefined,
-      projectTemplateId: formData.projectTemplateId || undefined,
-      deleteOriginalContent: formData.deleteOriginalContent,
-    }
-
-    const publication = await createPublication(createData)
-    if (publication) {
-      emit('success', publication.id)
-    }
-  } catch (error) {
-    console.error('Failed to create publication:', error)
+  if (!canSubmit.value) {
     const toast = useToast()
     toast.add({
       title: t('common.error'),
-      description: t('publication.createError', 'Failed to create publication'),
+      description: t('publication.createModal.templateRequired', 'You must select a publication template before creating a publication'),
       color: 'error',
     })
+    return
+  }
+
+  const createData = {
+    projectId: formData.projectId,
+    language: formData.language,
+    postType: formData.postType,
+    channelIds: formData.channelIds,
+    title: props.prefilledTitle || '',
+    description: props.prefilledDescription || '',
+    authorComment: props.prefilledAuthorComment || '',
+    content: props.prefilledContent || '',
+    existingMediaIds: props.prefilledMediaIds || [],
+    tags: props.prefilledTags || [],
+    note: props.prefilledNote || '',
+    meta: props.prefilledMeta || {},
+    contentItemIds: props.prefilledContentItemIds || [],
+    unsplashId: props.prefilledUnsplashId || undefined,
+    authorSignatureId: formData.authorSignatureId || undefined,
+    projectTemplateId: formData.projectTemplateId || undefined,
+    deleteOriginalContent: formData.deleteOriginalContent,
+  }
+
+  const [err, publication] = await executeAction(
+    () => createPublication(createData),
+    {
+      errorMessage: t('publication.createError', 'Failed to create publication'),
+      successMessage: t('publication.createSuccess', 'Publication created successfully'),
+      loadingRef: isCreating
+    }
+  )
+
+  if (publication) {
+    emit('success', (publication as any).id)
   }
 }
 </script>

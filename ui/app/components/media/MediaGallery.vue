@@ -7,7 +7,7 @@ import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAutosave } from '~/composables/useAutosave'
-import { formatBytes, getMediaIcon } from '~/utils/media'
+import { formatBytes, getMediaIcon, getCompressionStats, getResolution, getExifData } from '~/utils/media'
 import type { MediaItem, MediaLinkItem } from '~/types/media'
 import type { ValidationError } from '~/composables/useSocialMediaValidation'
 import { useMediaDnd } from '~/composables/media/useMediaDnd'
@@ -202,81 +202,9 @@ const addMediaButtonLabel = computed(() => {
 
 // formatBytes and getMediaIcon moved to utils/media.ts
 
-const compressionStats = computed(() => {
-  const meta = selectedMedia.value?.meta
-  
-  // Debug logging
-  
-  if (!meta) return null
-  
-
-  // Try both camelCase and snake_case for the original size
-  const original = meta.originalSize || meta.original_size
-  // Use size from meta or the top-level sizeBytes
-  const current = meta.size || selectedMedia.value?.sizeBytes
-  
-  
-  
-  if (!original || !current || Number(original) === Number(current)) return null
-
-  const originalNum = Number(original)
-  const currentNum = Number(current)
-  const saved = originalNum - currentNum
-  
-  // Only show if there is actually some meaningful compression (> 1KB)
-  if (saved < 1024) return null
-
-  const percent = Math.round((saved / originalNum) * 100)
-  const ratio = (originalNum / currentNum).toFixed(1)
-
-  // Get quality and lossless from root or optimizationParams
-  const params = meta.optimizationParams || {}
-  const quality = meta.quality ?? params.quality
-  const lossless = meta.lossless ?? params.lossless
-
-  const stats = {
-    originalSize: formatBytes(originalNum),
-    optimizedSize: formatBytes(currentNum),
-    savedPercent: percent,
-    ratio,
-    quality: quality,
-    lossless: lossless,
-    originalFormat: meta.originalMimeType || meta.original_mime_type,
-    optimizedFormat: meta.mimeType || meta.mime_type
-  }
-  
-  
-  return stats
-})
-
-const exifData = computed(() => {
-  const exif = selectedMedia.value?.fullMediaMeta?.exif
-  return exif
-})
-
-const resolution = computed(() => {
-  const meta = selectedMedia.value?.meta
-  const fullMeta = selectedMedia.value?.fullMediaMeta
-  
-  // Try to find width and height in various common locations
-  const w = fullMeta?.width || meta?.width || fullMeta?.video?.width || meta?.video?.width
-  const h = fullMeta?.height || meta?.height || fullMeta?.video?.height || meta?.video?.height
-  
-  if (w && h) {
-    return `${w} × ${h}`
-  }
-  
-  // Fallback to EXIF if available
-  if (exifData.value) {
-    const exifW = exifData.value.ImageWidth || exifData.value.ExifImageWidth
-    const exifH = exifData.value.ImageHeight || exifData.value.ExifImageHeight
-    if (exifW && exifH) {
-      return `${exifW} × ${exifH}`
-    }
-  }
-
-  return null
-})
+const compressionStats = computed(() => getCompressionStats(selectedMedia.value as any))
+const exifData = computed(() => getExifData(selectedMedia.value as any))
+const resolution = computed(() => getResolution(selectedMedia.value as any))
 
 const publicMediaUrl = computed(() => {
   if (!selectedMedia.value?.publicToken || !selectedMedia.value?.id) return null
