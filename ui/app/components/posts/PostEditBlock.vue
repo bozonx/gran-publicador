@@ -2,20 +2,12 @@
 import type { PostWithRelations } from '~/composables/usePosts'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { ChannelWithProject } from '~/composables/useChannels'
-import { 
-    usePosts, 
-    getPostTitle, 
-    getPostContent, 
-    getPostTags, 
-    getPostDescription,
-    getPostType,
-    getPostLanguage 
-} from '~/composables/usePosts'
 import type { PostStatus } from '~/types/posts'
  
-import { useSocialPosting } from '~/composables/useSocialPosting'
-import { useSocialMediaValidation } from '~/composables/useSocialMediaValidation'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
+import { usePostAccessors } from '~/composables/posts/usePostAccessors'
+import { usePostValidation } from '~/composables/posts/usePostValidation'
+import { usePostPublish } from '~/composables/posts/usePostPublish'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 
 import MetadataEditor from '~/components/common/MetadataEditor.vue'
@@ -24,6 +16,7 @@ import { stripHtmlAndSpecialChars, isTextContentEmpty } from '~/utils/text'
 import { normalizeTags, parseTags } from '~/utils/tags'
 import { getPostUrl } from '~/utils/posts'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
+import { useFormDirtyState } from '~/composables/useFormDirtyState'
 import { SOCIAL_MEDIA_PLATFORMS } from '@gran/shared/social-media-platforms'
 
 interface Props {
@@ -39,44 +32,26 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['deleted', 'cancel', 'success'])
 
-const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
-
 const { t } = useI18n()
 const { updatePost, deletePost, createPost, isLoading, statusOptions: postStatusOptions } = usePosts()
 const { getStatusColor, getStatusDisplayName, getStatusIcon } = usePosts()
-const { publishPost, isPublishing, canPublishPost: baseCanPublishPost } = useSocialPosting()
+const { canPublishPost: baseCanPublishPost } = useSocialPosting()
 
 const canPublishPost = (post: any, pub: any) => {
     if (pub?.status === 'DRAFT') return false
     return baseCanPublishPost(post, pub)
 }
-const { getPostProblemLevel } = usePublications()
+
 const { getChannelProblemLevel } = useChannels()
-const { user } = useAuth()
 const { fetchByProject } = useAuthorSignatures()
 
-const publicationContent = computed(() => props.publication?.content ?? '')
-const publicationMedia = computed(() => props.publication?.media?.map(m => m.media).filter(Boolean) ?? [])
-
-const projectId = computed(() => props.publication?.projectId ?? props.post?.channel?.projectId ?? '')
-
-const projectSignatures = ref<ProjectAuthorSignature[]>([])
-
-function coerceTagsToArray(raw: unknown): string[] {
-  if (Array.isArray(raw)) {
-    return normalizeTags(raw.map(tag => String(tag ?? '')))
-  }
-
-  if (typeof raw === 'string') {
-    return normalizeTags(parseTags(raw))
-  }
-
-  return []
-}
-
+const saveButtonRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const isCollapsed = ref(!props.isCreating)
 const isDeleting = ref(false)
 const isPreviewModalOpen = ref(false)
+const projectSignatures = ref<ProjectAuthorSignature[]>([])
+const showValidationWarning = ref(false)
+const isDeleteModalOpen = ref(false)
 
 // Formatting date helper
 const toDatetimeLocal = (dateStr?: string | null) => {
@@ -120,10 +95,6 @@ const headerDateInfo = computed(() => {
     return null
 })
 
-const overriddenTags = computed(() => {
-    return coerceTagsToArray(props.post?.tags)
-})
-
 const initPlatformOptions = (): Record<string, any> => {
   const raw = props.post?.platformOptions
   const opts: Record<string, any> = raw
@@ -138,7 +109,7 @@ const initPlatformOptions = (): Record<string, any> => {
 
 const formData = reactive({
   channelId: '', 
-  tags: coerceTagsToArray(props.post?.tags), // Empty array means use publication tags
+  tags: [] as string[], // Will be set by watcher
   scheduledAt: toDatetimeLocal(props.post?.scheduledAt),
   status: (props.post?.status || 'PENDING') as PostStatus,
   content: props.post?.content || '',
@@ -146,6 +117,34 @@ const formData = reactive({
   authorSignature: props.post?.authorSignature || '',
   platformOptions: initPlatformOptions()
 })
+
+const {
+    selectedChannel,
+    displayContent,
+    displayTags,
+    displayType,
+    displayAuthorSignature,
+    isPostContentOverride,
+    coerceTagsToArray,
+    channelLanguage,
+} = usePostAccessors(props, formData)
+
+// Initialize tags correctly after coerceTagsToArray is available
+formData.tags = coerceTagsToArray(props.post?.tags)
+
+const { 
+    validationResult, 
+    contentLength, 
+    remainingCharacters 
+} = usePostValidation({
+    displayContent,
+    mediaCount: computed(() => props.publication?.media?.length || 0),
+    selectedChannel,
+    mediaArray: computed(() => props.publication?.media?.map(m => ({ type: m.media?.type || 'UNKNOWN' })) || []),
+    displayType
+})
+
+const projectId = computed(() => props.publication?.projectId ?? props.post?.channel?.projectId ?? '')
 
 // Dirty state tracking
 const dirtyState = props.autosave
@@ -166,9 +165,6 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline
   saveFn: async (data) => {
     if (!props.autosave || props.isCreating) return { saved: false, skipped: true }
     
-    // Skip auto-save if invalid and NOT in PENDING status
-    // For PENDING posts we allow saving even if constraints are violated (draft mode)
-    // If it's already PUBLISHED or FAILED we are more strict, but usually those shouldn't be edited directly without republishing
     const canSaveAsInvalid = formData.status === 'PENDING'
     
     if (!validationResult.value.isValid && !canSaveAsInvalid) {
@@ -183,30 +179,6 @@ const { saveStatus, saveError, isIndicatorVisible, indicatorStatus, syncBaseline
   enableNavigationGuards: props.autosave,
 })
 
-const channelOptions = computed(() => {
-    return props.availableChannels?.map(c => ({
-        value: c.id,
-        label: c.name,
-        socialMedia: c.socialMedia,
-        language: c.language,
-        problemLevel: getChannelProblemLevel(c)
-    })) || []
-})
-
-
-
-const selectedChannel = computed(() => {
-    if (props.isCreating) {
-        return props.availableChannels?.find(c => c.id === formData.channelId)
-    }
-    // Try to find full channel object in props.channels
-    if (props.channels && props.post?.channelId) {
-        const pid = props.post.channelId
-        const found = props.channels.find(c => c.id === pid)
-        if (found) return found
-    }
-    return props.post?.channel
-})
 
 watch(
   () => selectedChannel.value?.socialMedia,
@@ -224,12 +196,14 @@ watch(
   { immediate: true },
 )
 
-const publicationLanguage = computed(() => {
-    return props.publication?.language || props.post?.publication?.language
-})
-
-const channelLanguage = computed(() => {
-    return selectedChannel.value?.language
+const channelOptions = computed(() => {
+    return props.availableChannels?.map(c => ({
+        value: c.id,
+        label: c.name,
+        socialMedia: c.socialMedia,
+        language: c.language,
+        problemLevel: getChannelProblemLevel(c)
+    })) || []
 })
 
 
@@ -238,12 +212,6 @@ function toggleCollapse() {
   isCollapsed.value = !isCollapsed.value
 }
 
-
-const isDeleteModalOpen = ref(false)
-const isRepublishModalOpen = ref(false)
-const isArchiveWarningModalOpen = ref(false)
-const showValidationWarning = ref(false)
-const archiveWarningMessage = ref('')
 
 async function handleSave() {
   if (!validationResult.value.isValid) {
@@ -314,56 +282,20 @@ async function performSave() {
   }
 }
 
-async function handleDelete() {
-  isDeleteModalOpen.value = true
-}
-
-async function confirmDelete() {
-  if (!props.post) return
-  isDeleting.value = true
-  const success = await deletePost(props.post.id)
-  isDeleting.value = false
-  isDeleteModalOpen.value = false
-  
-  if (success) {
-    saveOriginalState() // Clear dirty state
-    emit('deleted', props.post.id)
-  }
-}
-
-// Accessors for inherited content
-const displayTitle = computed(() => props.post ? getPostTitle(props.post) : props.publication?.title)
-const isPostContentOverride = computed(() => !isTextContentEmpty(formData.content))
-const displayContent = computed(() => {
-    if (!isPostContentOverride.value) return props.publication?.content || ''
-    return formData.content
+const {
+    isPublishing,
+    isRepublishModalOpen,
+    isArchiveWarningModalOpen,
+    archiveWarningMessage,
+    handlePublishPost,
+    handleConfirmArchivePublish,
+    handleConfirmRepublish
+} = usePostPublish({
+    post: computed(() => props.post),
+    selectedChannel,
+    publication: computed(() => props.publication),
+    emit
 })
-const displayAuthorSignature = computed(() => formData.authorSignature)
-const displayTags = computed(() => {
-    if (overriddenTags.value.length > 0) return overriddenTags.value
-    return coerceTagsToArray(props.publication?.tags)
-})
-
-const tagLimits = computed(() => {
-  const sm = selectedChannel.value?.socialMedia
-  if (!sm) return null
-  const cfg = SOCIAL_MEDIA_PLATFORMS[sm as keyof typeof SOCIAL_MEDIA_PLATFORMS]?.tags
-  if (!cfg?.supported) return null
-  return {
-    maxCount: cfg.maxCount,
-    recommendedCount: cfg.recommendedCount
-  }
-})
-
-const hasActivatedPlatformOptions = computed(() => {
-    if (!formData.platformOptions) return false
-    return Object.values(formData.platformOptions).some(v => !!v)
-})
-const displayLanguage = computed(() => {
-    // Priority: Channel language (since this block is for a post in a specific channel)
-    return channelLanguage.value || publicationLanguage.value
-})
-const displayType = computed(() => props.post ? getPostType(props.post) : props.publication?.postType)
 
 // Signature options filtered by channel language
 const signatureOptions = computed(() => {
@@ -388,51 +320,38 @@ const signatureOptions = computed(() => {
         .filter(Boolean) as { value: string; label: string; signatureId: string }[]
 })
 
-// Social media validation
-const { validatePostContent, getContentLength, getRemainingCharacters } = useSocialMediaValidation()
-
-const mediaCount = computed(() => {
-    // If post specific media overrides exist we should use them, but currently we only have publication media
-    // So we use publication media count.
-    return props.publication?.media?.length || 0
+const tagLimits = computed(() => {
+  const sm = selectedChannel.value?.socialMedia
+  if (!sm) return null
+  const cfg = SOCIAL_MEDIA_PLATFORMS[sm as keyof typeof SOCIAL_MEDIA_PLATFORMS]?.tags
+  if (!cfg?.supported) return null
+  return {
+    maxCount: cfg.maxCount,
+    recommendedCount: cfg.recommendedCount
+  }
 })
 
-const mediaArray = computed(() => {
-    // Map publication media to validation format
-    return props.publication?.media?.map(m => ({
-        type: m.media?.type || 'UNKNOWN'
-    })) || []
+const hasActivatedPlatformOptions = computed(() => {
+    if (!formData.platformOptions) return false
+    return Object.values(formData.platformOptions).some(v => !!v)
 })
 
-const validationResult = computed(() => {
-    if (!selectedChannel.value?.socialMedia) {
-        return { isValid: true, errors: [] }
-    }
-    
-    // Use displayContent (effective content)
-    const content = displayContent.value
-    return validatePostContent(
-        content,
-        mediaCount.value,
-        selectedChannel.value.socialMedia as any,
-        mediaArray.value,
-        displayType.value
-    )
-})
+async function handleDelete() {
+  isDeleteModalOpen.value = true
+}
 
-const contentLength = computed(() => {
-    return getContentLength(displayContent.value)
-})
-
-const remainingCharacters = computed(() => {
-    if (!selectedChannel.value?.socialMedia) return null
-    
-    return getRemainingCharacters(
-        displayContent.value,
-        mediaCount.value,
-        selectedChannel.value.socialMedia as any
-    )
-})
+async function confirmDelete() {
+  if (!props.post) return
+  isDeleting.value = true
+  const success = await deletePost(props.post.id)
+  isDeleting.value = false
+  isDeleteModalOpen.value = false
+  
+  if (success) {
+    saveOriginalState() // Clear dirty state
+    emit('deleted', props.post.id)
+  }
+}
 
 /**
  * Determines if the server error message should be displayed.
@@ -541,95 +460,6 @@ const isSaveDisabled = computed(() => {
     return false
 })
 
-async function handlePublishPost() {
-  if (!props.post) return
-
-  // Check for archive warnings
-  let warning = ''
-  const channel = selectedChannel.value as ChannelWithProject | undefined
-  
-  if (props.publication?.archivedAt) {
-      warning = t('publication.archiveWarning.publication')
-  } else if (channel?.archivedAt) {
-      warning = t('publication.archiveWarning.channel', { name: channel.name })
-  } else if (channel?.project?.archivedAt) {
-      warning = t('publication.archiveWarning.project', { name: channel.project.name })
-  } else if (channel?.isActive === false) {
-      warning = t('publication.archiveWarning.inactiveChannel', { name: channel.name })
-  }
-
-  if (warning) {
-      archiveWarningMessage.value = warning
-      isArchiveWarningModalOpen.value = true
-      return
-  }
-
-  // Check if already published or failed
-  if (props.post.status === 'PUBLISHED' || props.post.status === 'FAILED') {
-      isRepublishModalOpen.value = true
-      return
-  }
-  
-  await executePublish()
-}
-
-async function handleConfirmArchivePublish() {
-    isArchiveWarningModalOpen.value = false
-    
-    // Proceed to Republish check
-    if (props.post?.status === 'PUBLISHED' || props.post?.status === 'FAILED') {
-        isRepublishModalOpen.value = true
-        return
-    }
-
-    await executePublish()
-}
-
-async function handleConfirmRepublish() {
-    isRepublishModalOpen.value = false
-    await executePublish()
-}
-
-async function executePublish() {
-  if (!props.post) return
-
-  const toast = useToast()
-  try {
-    const result = await publishPost(props.post.id)
-    
-    if (result.success) {
-      toast.add({
-        title: t('common.success'),
-        description: t('publication.publishSuccess'),
-        color: 'success'
-      })
-    } else {
-         let errorMsg = result.message || t('publication.publishError')
-         if (result.data?.results?.[0]?.error) {
-             errorMsg = result.data.results[0].error
-         }
-         
-         toast.add({
-            title: t('common.error'),
-            description: errorMsg,
-            color: 'error'
-         })
-    }
-
-    // Always emit success to refresh the parent publication state 
-    // (which includes current post status, errors and meta)
-    emit('success')
-
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('publication.publishError'),
-      color: 'error'
-    })
-    // Also emit success on catch if something went wrong but backend might have saved some status
-    emit('success')
-  }
-}
 
 </script>
 

@@ -11,6 +11,8 @@ import { formatBytes, getMediaIcon } from '~/utils/media'
 import type { MediaItem, MediaLinkItem } from '~/types/media'
 import type { ValidationError } from '~/composables/useSocialMediaValidation'
 import { useMediaDnd } from '~/composables/media/useMediaDnd'
+import { useMediaUploader } from '~/composables/media/useMediaUploader'
+import { useMediaGalleryEditor } from '~/composables/media/useMediaGalleryEditor'
 
 interface Props {
   media: MediaLinkItem[]
@@ -42,6 +44,7 @@ const emit = defineEmits<Emits>()
 const { t } = useI18n()
 const authStore = useAuthStore()
 const { currentProject } = useProjects()
+
 const {
   deleteMedia,
   uploadMedia, 
@@ -55,126 +58,9 @@ const {
   fetchMedia,
   createMedia,
 } = useMedia()
+
 const { validatePostContent } = useSocialMediaValidation()
 const toast = useToast()
-
-const fileInput = ref<any>(null)
-const uploadProgress = ref(false)
-const uploadProgressPercent = ref(0)
-const sourceType = ref<'URL' | 'TELEGRAM'>('URL')
-const mediaType = ref<'IMAGE' | 'VIDEO' | 'AUDIO' | 'DOCUMENT'>('IMAGE')
-const sourceInput = ref('')
-const filenameInput = ref('')
-
-// Extended options state
-const isAddingMedia = ref(false)
-const showExtendedOptions = ref(false)
-const stagedFiles = ref<File[]>([])
-const optimizationSettings = ref<any>(JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS)))
-
-const currentProjectOptimization = computed(() => {
-  return currentProject.value?.preferences?.mediaOptimization
-})
-
-// Initialize optimization settings with project defaults when opening extended options
-watch(showExtendedOptions, (val) => {
-  if (val) {
-    if (currentProjectOptimization.value) {
-      optimizationSettings.value = JSON.parse(JSON.stringify(currentProjectOptimization.value))
-    } else {
-      optimizationSettings.value = JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS))
-    }
-  }
-})
-
-const addMediaButtonLabel = computed(() => {
-  if (sourceType.value === 'URL') {
-    return t('media.add', 'Add media')
-  }
-  const types = {
-    IMAGE: t('media.type.image'),
-    VIDEO: t('media.type.video'),
-    AUDIO: t('media.type.audio'),
-    DOCUMENT: t('media.type.document'),
-  }
-  const typeText = (types[mediaType.value as keyof typeof types] || t('media.type.image')).toLowerCase()
-  return `${t('common.add', 'Add')} ${typeText}`
-})
-
-const selectedMedia = ref<MediaItem | null>(null)
-const selectedMediaLinkId = ref<string | null>(null)
-const editableHasSpoiler = ref(false)
-const isModalOpen = ref(false)
-
-
-const editableMetadata = ref<Record<string, any> | null>(null)
-const editableAlt = ref('')
-const editableDescription = ref('')
-const isSavingMeta = ref(false)
-
-const autosaveMediaPayload = computed(() => {
-  if (!selectedMedia.value) return null
-
-  return {
-    id: selectedMedia.value.id,
-    mediaLinkId: selectedMediaLinkId.value,
-    alt: editableAlt.value,
-    description: editableDescription.value,
-    meta: editableMetadata.value,
-    hasSpoiler: editableHasSpoiler.value,
-  }
-})
-
-const { 
-  saveStatus: mediaSaveStatus, 
-  saveError: mediaSaveError, 
-  forceSave: forceSaveMediaMeta,
-  retrySave: retrySaveMediaMeta,
-  isIndicatorVisible: isMediaIndicatorVisible,
-  indicatorStatus: mediaIndicatorStatus
-} = useAutosave({
-  data: autosaveMediaPayload,
-  saveFn: async (data) => {
-    // 1. Save general media metadata (meta object only)
-    const updated = await updateMedia(data.id, {
-      meta: data.meta || undefined,
-    })
-
-    if (selectedMedia.value && selectedMedia.value.id === updated.id) {
-      selectedMedia.value.meta = updated.meta
-    }
-
-    emit('refresh')
-
-    if (!data.mediaLinkId) return { saved: true }
-
-    // 2. Save link-specific metadata (alt, description, hasSpoiler)
-    try {
-      const linkData = {
-        hasSpoiler: data.hasSpoiler,
-        alt: data.alt || null,
-        description: data.description || null,
-      }
-
-      if (props.publicationId) {
-        await updateMediaLinkInPublication(props.publicationId, data.mediaLinkId, linkData)
-      } else if (props.onUpdateLink) {
-        await props.onUpdateLink(data.mediaLinkId, linkData)
-      }
-    } catch (error: any) {
-      console.error('Failed to update media link metadata', error)
-      return { saved: false, error: error.message }
-    }
-
-    return { saved: true }
-  },
-  debounceMs: AUTO_SAVE_DEBOUNCE_MS,
-  skipInitial: true,
-})
-
-const isDeleteModalOpen = ref(false)
-const mediaToDeleteMediaId = ref<string | null>(null)
-const isDeleting = ref(false)
 
 function normalizeMediaLinks(items: MediaLinkItem[]): MediaLinkItem[] {
   return [...items].sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
@@ -188,217 +74,80 @@ watch(() => props.media, (newMedia) => {
   localMedia.value = normalizeMediaLinks(newMedia)
 }, { deep: true })
 
-const mediaTypeOptions = [
-  { value: 'IMAGE', label: t('media.type.image', 'Image') },
-  { value: 'VIDEO', label: t('media.type.video', 'Video') },
-  { value: 'AUDIO', label: t('media.type.audio', 'Audio') },
-  { value: 'DOCUMENT', label: t('media.type.document', 'Document') },
-]
+const {
+  fileInput,
+  uploadProgress,
+  uploadProgressPercent,
+  sourceType,
+  mediaType,
+  sourceInput,
+  filenameInput,
+  stagedFiles,
+  showExtendedOptions,
+  optimizationSettings,
+  isAddingMedia,
+  getDefaultOptimizationParams,
+  uploadFiles,
+  addMedia,
+  handleFileUpload,
+  confirmAndUploadExtended,
+  removeStagedFile,
+  toggleExtendedOptions,
+  triggerFileInput
+} = useMediaUploader({
+  props,
+  currentProject,
+  uploadMedia,
+  uploadMediaFromUrl,
+  addMediaToPublication,
+  createMedia,
+  t,
+  toast,
+  emit
+})
 
-const sourceTypeOptions = computed(() => [
-  { value: 'URL', label: t('media.url') },
-  { value: 'TELEGRAM', label: t('media.telegramFileId') },
-])
-
-
-
-function triggerFileInput() {
-  fileInput.value?.triggerFileInput()
-}
-
-function getDefaultOptimizationParams() {
-  const projectOpt = currentProjectOptimization.value
-  if (projectOpt) {
-    return JSON.parse(JSON.stringify(projectOpt))
-  }
-  
-  return JSON.parse(JSON.stringify(DEFAULT_MEDIA_OPTIMIZATION_SETTINGS))
-}
-
-async function handleFileUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  if (target.files?.length) {
-    const files = Array.from(target.files)
-    if (showExtendedOptions.value) {
-      stagedFiles.value.push(...files)
-    } else {
-      const defaults = getDefaultOptimizationParams()
-      await uploadFiles(files, defaults)
-    }
-    target.value = ''
-  }
-}
-
-async function uploadFiles(files: FileList | File[], options?: any) {
-  const fileArray = Array.from(files)
-  if (fileArray.length === 0) return
-
-  uploadProgress.value = true
-  uploadProgressPercent.value = 0
-  
-  const progresses = new Array(fileArray.length).fill(0)
-  
-  const optimizeParams = options
-
-  try {
-      const uploadedMediaItems = await Promise.all(
-        fileArray.map(async (file, index) => {
-          return await uploadMedia(file, (progress) => {
-            progresses[index] = progress
-            const totalProgress = progresses.reduce((a, b) => a + b, 0)
-            uploadProgressPercent.value = Math.round(totalProgress / fileArray.length)
-          }, optimizeParams, currentProject.value?.id)
-        })
-      ) as any[]
-      
-      if (props.publicationId) {
-        await addMediaToPublication(
-          props.publicationId, 
-          uploadedMediaItems.map(m => ({ id: m.id }))
-        )
-      } else if (props.onAdd) {
-        await props.onAdd(uploadedMediaItems)
-      }
-    
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.uploadError', 'Failed to upload files'),
-      color: 'error',
-    })
-  } finally {
-    uploadProgress.value = false
-    uploadProgressPercent.value = 0
-  }
-}
-
-async function addMedia() {
-  if (!sourceInput.value.trim()) return
-
-  uploadProgress.value = true
-  try {
-    let uploadedMedia: MediaItem
-
-    if (sourceType.value === 'URL') {
-      // For URL type: download file and save to filesystem with original URL in meta
-      const defaults = getDefaultOptimizationParams()
-      const optimizeParams = showExtendedOptions.value
-        ? optimizationSettings.value
-        : defaults
-
-      uploadedMedia = await uploadMediaFromUrl(
-        sourceInput.value.trim(),
-        filenameInput.value.trim() || undefined,
-        optimizeParams
-      )
-    } else {
-      // For TELEGRAM type: create media record directly
-      const newMedia: CreateMediaInput = {
-        type: mediaType.value,
-        storageType: 'TELEGRAM',
-        storagePath: sourceInput.value.trim(),
-        filename: filenameInput.value.trim() || undefined,
-      }
-      
-      if (props.publicationId) {
-        await addMediaToPublication(props.publicationId, [newMedia])
-      } else if (props.onAdd) {
-        // Create media record first if not in publication context
-        const created = await createMedia(newMedia)
-        await props.onAdd([created])
-      }
-      
-      sourceInput.value = ''
-      filenameInput.value = ''
-      isAddingMedia.value = false
-      emit('refresh')
-      return
-    }
-
-    // For URL: add the downloaded media to publication
-    if (props.publicationId) {
-      await addMediaToPublication(props.publicationId, [{ id: uploadedMedia.id }])
-    } else if (props.onAdd) {
-      await props.onAdd([uploadedMedia])
-    }
-    
-    sourceInput.value = ''
-    filenameInput.value = ''
-    isAddingMedia.value = false
-    
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.addError', 'Failed to add media'),
-      color: 'error',
-    })
-  } finally {
-    uploadProgress.value = false
-  }
-}
-
-async function confirmAndUploadExtended() {
-  if (stagedFiles.value.length === 0 && !sourceInput.value.trim()) return
-
-  uploadProgress.value = true
-  try {
-    // 1. Upload staged files
-    if (stagedFiles.value.length > 0) {
-      await uploadFiles(stagedFiles.value, optimizationSettings.value)
-      stagedFiles.value = []
-    }
-
-    // 2. Upload from URL if present
-    if (sourceInput.value.trim()) {
-      await addMedia()
-    }
-
-    isAddingMedia.value = false
-    showExtendedOptions.value = false
-  } catch (error) {
-    // Error handled in uploadFiles/addMedia
-  } finally {
-    uploadProgress.value = false
-  }
-}
-
-function removeStagedFile(index: number) {
-  stagedFiles.value.splice(index, 1)
-}
-
-function toggleExtendedOptions() {
-  showExtendedOptions.value = !showExtendedOptions.value
-  isAddingMedia.value = showExtendedOptions.value
-}
-
-function handleDeleteClick(mediaId: string) {
-  mediaToDeleteMediaId.value = mediaId
-  isDeleteModalOpen.value = true
-}
-
-async function confirmRemoveMedia() {
-  if (!mediaToDeleteMediaId.value) return
-
-  isDeleting.value = true
-  try {
-    await deleteMedia(mediaToDeleteMediaId.value)
-
-    // Emit event to refresh publication data
-    emit('refresh')
-  } catch (error: any) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.removeError', 'Failed to remove media'),
-      color: 'error',
-    })
-  } finally {
-    isDeleting.value = false
-    isDeleteModalOpen.value = false
-    mediaToDeleteMediaId.value = null
-  }
-}
+const {
+  isModalOpen,
+  selectedMedia,
+  selectedMediaLinkId,
+  editableHasSpoiler,
+  editableMetadata,
+  editableAlt,
+  editableDescription,
+  isDeleteModalOpen,
+  isDeleting,
+  mediaToDeleteMediaId,
+  isIndicatorVisible,
+  saveStatus,
+  saveError,
+  indicatorStatus,
+  syncBaseline,
+  currentMediaIndex,
+  hasPreviousMedia,
+  hasNextMedia,
+  transitionName,
+  swipeElement,
+  isSwiping,
+  openMediaModal,
+  closeMediaModal,
+  navigateToPreviousMedia,
+  navigateToNextMedia,
+  handleDeleteClick,
+  confirmRemoveMedia,
+  handleEditMedia,
+  handleEditVideo
+} = useMediaGalleryEditor({
+  props,
+  localMedia,
+  updateMedia,
+  updateMediaLinkInPublication,
+  deleteMedia,
+  fetchMedia,
+  emit,
+  t,
+  toast,
+  currentProject
+})
 
 const {
   isDropZoneActive,
@@ -424,169 +173,32 @@ const {
   uploadFiles,
 })
 
-// Computed property to get current media index
-const currentMediaIndex = computed(() => {
-  if (!selectedMedia.value) return -1
-  return localMedia.value.findIndex(item => item.media?.id === selectedMedia.value?.id)
+
+const mediaTypeOptions = [
+  { value: 'IMAGE', label: t('media.type.image', 'Image') },
+  { value: 'VIDEO', label: t('media.type.video', 'Video') },
+  { value: 'AUDIO', label: t('media.type.audio', 'Audio') },
+  { value: 'DOCUMENT', label: t('media.type.document', 'Document') },
+]
+
+const sourceTypeOptions = computed(() => [
+  { value: 'URL', label: t('media.url') },
+  { value: 'TELEGRAM', label: t('media.telegramFileId') },
+])
+
+const addMediaButtonLabel = computed(() => {
+  if (sourceType.value === 'URL') {
+    return t('media.add', 'Add media')
+  }
+  const types = {
+    IMAGE: t('media.type.image'),
+    VIDEO: t('media.type.video'),
+    AUDIO: t('media.type.audio'),
+    DOCUMENT: t('media.type.document'),
+  }
+  const typeText = (types[mediaType.value as keyof typeof types] || t('media.type.image')).toLowerCase()
+  return `${t('common.add', 'Add')} ${typeText}`
 })
-
-// Check if there's a previous media item
-const hasPreviousMedia = computed(() => currentMediaIndex.value > 0)
-
-// Check if there's a next media item
-const hasNextMedia = computed(() => {
-  return currentMediaIndex.value >= 0 && currentMediaIndex.value < localMedia.value.length - 1
-})
-
-function openMediaModal(item: MediaLinkItem) {
-  if (!item.media) return
-  selectedMedia.value = item.media
-  selectedMediaLinkId.value = item.id || null
-  editableHasSpoiler.value = !!item.hasSpoiler
-  // editableMetadata is now a JSON object, not a YAML string
-  editableMetadata.value = item.media.meta || {}
-  editableAlt.value = item.alt || ''
-  editableDescription.value = item.description || ''
-  isModalOpen.value = true
-
-  // Fetch full media info from media storage
-  if (item.media.id) {
-    fetchMedia(item.media.id).then(fullMedia => {
-      if (fullMedia && selectedMedia.value && selectedMedia.value.id === fullMedia.id) {
-        selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
-        selectedMedia.value.publicToken = fullMedia.publicToken
-      }
-    })
-  }
-}
-
-function closeMediaModal() {
-  isModalOpen.value = false
-  selectedMedia.value = null
-  selectedMediaLinkId.value = null
-}
-
-function handleEditMedia() {
-  if (!selectedMedia.value) return
-  const isIMAGE = (selectedMedia.value.type || '').toUpperCase() === 'IMAGE'
-  const isEditableStorage = ['STORAGE', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
-
-  if (!isIMAGE || !isEditableStorage) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.editOnlyStorageOrTelegramImages', 'Only local or Telegram images can be edited'),
-      color: 'error',
-    })
-    return
-  }
-
-  const mediaId = selectedMedia.value.id
-  const projectId = currentProject.value?.id
-  const url = projectId
-    ? `/media/${mediaId}/image-editor?projectId=${projectId}`
-    : `/media/${mediaId}/image-editor`
-
-  window.open(url, '_blank')
-}
-
-function handleEditVideo() {
-  if (!selectedMedia.value) return
-  const isVIDEO = (selectedMedia.value.type || '').toUpperCase() === 'VIDEO'
-  const isEditableStorage = ['STORAGE', 'TELEGRAM'].includes((selectedMedia.value.storageType || '').toUpperCase())
-
-  if (!isVIDEO || !isEditableStorage) {
-    toast.add({
-      title: t('common.error'),
-      description: t('media.editOnlyStorageOrTelegramVideos', 'Only local or Telegram videos can be edited'),
-      color: 'error',
-    })
-    return
-  }
-
-  const mediaId = selectedMedia.value.id
-  const projectId = currentProject.value?.id
-  let url = `/media/${mediaId}/video-edit`
-  const params = new URLSearchParams()
-  if (projectId) params.set('projectId', projectId)
-  if (props.collectionId) params.set('collectionId', props.collectionId)
-  if (props.groupId) params.set('groupId', props.groupId)
-  
-  const queryString = params.toString()
-  if (queryString) {
-    url += `?${queryString}`
-  }
-
-  window.open(url, '_blank')
-}
-
-
-const transitionName = ref('slide-next')
-
-function navigateToPreviousMedia() {
-  if (!hasPreviousMedia.value) return
-  transitionName.value = 'slide-prev'
-  const prevItem = localMedia.value[currentMediaIndex.value - 1]
-  if (prevItem?.media) {
-    openMediaModal(prevItem)
-  }
-}
-
-function navigateToNextMedia() {
-  if (!hasNextMedia.value) return
-  transitionName.value = 'slide-next'
-  const nextItem = localMedia.value[currentMediaIndex.value + 1]
-  if (nextItem?.media) {
-    openMediaModal(nextItem)
-  }
-}
-
-// Keyboard navigation
-function handleKeydown(event: KeyboardEvent) {
-  if (!isModalOpen.value) return
-  if (event.key === 'ArrowLeft') {
-    event.preventDefault()
-    navigateToPreviousMedia()
-  } else if (event.key === 'ArrowRight') {
-    event.preventDefault()
-    navigateToNextMedia()
-  } else if (event.key === 'Escape') {
-    event.preventDefault()
-    closeMediaModal()
-  }
-}
-
-// Add keyboard listener when modal is open
-watch(isModalOpen, (isOpen) => {
-  if (isOpen) {
-    window.addEventListener('keydown', handleKeydown)
-  } else {
-    window.removeEventListener('keydown', handleKeydown)
-  }
-})
-
-// Swipe navigation
-const swipeElement = ref<HTMLElement | null>(null)
-const { isSwiping, direction } = useSwipe(swipeElement, {
-  onSwipeEnd(e: TouchEvent, direction: 'left' | 'right' | 'up' | 'down' | 'none') {
-    if (direction === 'left') {
-      navigateToNextMedia()
-    } else if (direction === 'right') {
-      navigateToPreviousMedia()
-    }
-  },
-})
-
-// Cleanup on unmount
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
-
-// Reset data when changing media
-watch(selectedMedia, () => {
-  // Reset any temporary state if needed
-})
-
-
 
 // formatBytes and getMediaIcon moved to utils/media.ts
 
@@ -1128,16 +740,16 @@ const mediaValidation = computed(() => {
         class="flex items-center justify-between gap-3 px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-800"
       >
         <UiSaveStatusIndicator
-          :status="mediaIndicatorStatus" 
-          :visible="isMediaIndicatorVisible"
-          :error="mediaSaveError" 
+          :status="indicatorStatus" 
+          :visible="isIndicatorVisible"
+          :error="saveError" 
         />
 
         <UButton
           icon="i-heroicons-check"
           variant="solid"
           color="primary"
-          :loading="mediaSaveStatus === 'saving'"
+          :loading="saveStatus === 'saving'"
           @click="closeMediaModal"
         >
           {{ t('common.done', 'Done') }}
