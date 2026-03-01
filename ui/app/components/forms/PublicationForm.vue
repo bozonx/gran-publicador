@@ -6,25 +6,15 @@ import type { PublicationWithRelations } from '~/composables/usePublications'
 import type { PostType, PublicationStatus } from '~/types/posts'
 import type { PublicationFormData } from '~/types/publication-form'
 import { usePublicationFormState, usePublicationFormValidation } from '~/composables/usePublicationForm'
-import { usePublicationValidator } from '~/composables/usePublicationValidator'
-import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
-import { useChannels } from '~/composables/useChannels'
 import { useFormDirtyState } from '~/composables/useFormDirtyState'
 import { FORM_SPACING, FORM_STYLES, GRID_LAYOUTS } from '~/utils/design-tokens'
-import { usePosts } from '~/composables/usePosts'
 import { useLanguages } from '~/composables/useLanguages'
-import { isTextContentEmpty } from '~/utils/text'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import { useProjectTemplates } from '~/composables/useProjectTemplates'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import type { ProjectTemplate } from '~/types/channels'
-import {
-  getPostTypeOptionsForPlatforms,
-  getSupportedPostTypesIntersection,
-} from '~/utils/socialMediaPlatforms'
-import { SOCIAL_MEDIA_PLATFORMS } from '@gran/shared/social-media-platforms'
 
 interface Props {
   /** Project ID for fetching channels */
@@ -56,7 +46,6 @@ const toast = useToast()
 const { user } = useAuth()
 
 // 2. Publication state & logic
-const { updatePublication, createPublication, statusOptions } = usePublications()
 const { projects, fetchProjects } = useProjects()
 
 import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
@@ -77,7 +66,6 @@ const {
 })
 
 const { schema } = usePublicationFormValidation(t)
-const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
@@ -87,95 +75,23 @@ const isLoading = ref(false)
 const isEditMode = computed(() => !!props.publication?.id)
 const isLocked = computed(() => state.status === 'READY')
 
-const selectedPlatforms = computed(() => {
-  const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
-  return state.channelIds.map(id => map.get(id)).filter(Boolean) as any[]
+import { usePublicationPlatformRules } from '~/composables/usePublicationPlatformRules'
+
+const pubRef = computed(() => props.publication)
+const {
+  selectedPlatforms,
+  postTypeOptions,
+  tagLimits,
+  isContentMissing,
+  validationErrors,
+  isValid,
+} = usePublicationPlatformRules({
+  isEditMode,
+  state,
+  channels,
+  publication: pubRef,
+  t,
 })
-
-const postTypeOptions = computed(() => {
-  return getPostTypeOptionsForPlatforms({
-    t,
-    platforms: selectedPlatforms.value,
-  })
-})
-
-const tagLimits = computed(() => {
-  if (!selectedPlatforms.value || selectedPlatforms.value.length === 0) return null
-
-  let maxCount = Infinity
-  let recommendedCount = Infinity
-
-  for (const p of selectedPlatforms.value) {
-    const pConfig = SOCIAL_MEDIA_PLATFORMS[p as keyof typeof SOCIAL_MEDIA_PLATFORMS]
-    if (pConfig?.tags?.supported) {
-      if (pConfig.tags.maxCount < maxCount) maxCount = pConfig.tags.maxCount
-      if (pConfig.tags.recommendedCount < recommendedCount) recommendedCount = pConfig.tags.recommendedCount
-    }
-  }
-
-  return {
-    maxCount: maxCount === Infinity ? undefined : maxCount,
-    recommendedCount: recommendedCount === Infinity ? undefined : recommendedCount,
-  }
-})
-
-// Automatically select the first supported postType if none is selected (for new publications)
-watch(postTypeOptions, (options) => {
-  const firstOption = options[0]
-  if (!isEditMode.value && firstOption && !state.postType) {
-    state.postType = firstOption.value as any
-  }
-}, { immediate: true })
-
-
-const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
-const isContentMissing = computed(() => {
-    // Only show content/media requirement for non-DRAFT statuses
-    if (state.status === 'DRAFT') return false
-    return isTextContentEmpty(state.content) && !hasMedia.value
-})
-
-// Social Media Validation
-const validationErrors = computed(() => {
-    const mediaCount = props.publication?.media?.length || 0
-    const mediaArray = props.publication?.media?.map(m => ({ type: m.media?.type || 'UNKNOWN' })) || []
-    const postType = state.postType
-
-    let errors = []
-    
-    if (!isEditMode.value) {
-        const channelMap = Object.fromEntries(
-            channels.value.map(ch => [ch.id, { name: ch.name, socialMedia: ch.socialMedia }])
-        )
-        // Creating: validate for selected channels
-        errors = validateForChannels(
-            state.content,
-            mediaCount,
-            mediaArray,
-            postType,
-            state.channelIds,
-            [],
-            channelMap,
-            state.tags,
-        )
-    } else {
-        // Editing: validate for existing posts that inherit content
-        errors = validateForExistingPosts(
-            state.content,
-            mediaCount,
-            mediaArray,
-            postType,
-            props.publication,
-            state.tags,
-        )
-    }
-
-    return errors
-        .filter(e => e.message?.trim())
-        .map(e => `${e.channel}: ${e.message}`)
-})
-
-const isValid = computed(() => validationErrors.value.length === 0)
 
 
 // Dirty state tracking

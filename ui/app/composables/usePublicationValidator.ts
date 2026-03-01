@@ -2,6 +2,8 @@ import type { ValidationError } from '~/types/publication-form';
 import type { Channel } from '~/types/channels';
 import type { PublicationWithRelations } from '~/composables/usePublications';
 
+import { isTextContentEmpty } from '~/utils/text';
+
 /**
  * Composable for validating publication content against social media constraints
  */
@@ -67,7 +69,6 @@ export function usePublicationValidator() {
     tags?: string[],
   ): ValidationError[] {
     const errors: ValidationError[] = [];
-    const { isTextContentEmpty } = useTextUtils();
 
     if (!publication?.posts) return errors;
 
@@ -106,15 +107,3 @@ export function usePublicationValidator() {
   };
 }
 
-/**
- * Helper composable for text utilities
- */
-function useTextUtils() {
-  function isTextContentEmpty(content: string | null | undefined): boolean {
-    return !content || content.trim() === '';
-  }
-
-  return {
-    isTextContentEmpty,
-  };
-}
