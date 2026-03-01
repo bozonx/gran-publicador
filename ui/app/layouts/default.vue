@@ -18,45 +18,44 @@ function closeSidebar() {
     <LayoutHeader @toggle-sidebar="toggleSidebar" />
 
     <div class="flex">
-      <!-- Sidebar overlay (mobile) -->
-      <Transition
-        enter-active-class="transition-opacity duration-300"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-300"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="isSidebarOpen"
-          class="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          @click="closeSidebar"
-        />
-      </Transition>
-
-      <!-- Sidebar -->
+      <!-- Sidebar (Desktop) -->
       <aside
-        class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto"
-        :class="isSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="hidden lg:block sticky top-0 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800"
       >
-        <!-- Sidebar header (mobile close button) -->
-        <div
-          class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800 lg:hidden"
-        >
-          <span class="text-lg font-semibold text-gray-900 dark:text-white">Menu</span>
-          <UButton
-            variant="ghost"
-            color="neutral"
-            icon="i-heroicons-x-mark"
-            @click="closeSidebar"
-          />
-        </div>
-
-        <!-- Navigation -->
-        <div class="p-4 pt-4 lg:pt-6">
+        <div class="h-full p-4 pt-6">
           <LayoutNavigation />
         </div>
       </aside>
+
+      <!-- Sidebar (Mobile via USlideover) -->
+      <USlideover
+        v-model:open="isSidebarOpen"
+        side="left"
+        class="lg:hidden"
+      >
+
+        <template #content>
+          <div class="flex flex-col h-full bg-white dark:bg-gray-900">
+            <!-- Sidebar header (mobile close button) -->
+            <div
+              class="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-gray-800"
+            >
+              <span class="text-lg font-semibold text-gray-900 dark:text-white">Menu</span>
+              <UButton
+                variant="ghost"
+                color="neutral"
+                icon="i-heroicons-x-mark"
+                @click="closeSidebar"
+              />
+            </div>
+
+            <!-- Navigation -->
+            <div class="flex-1 overflow-y-auto p-4 pt-4">
+              <LayoutNavigation />
+            </div>
+          </div>
+        </template>
+      </USlideover>
 
       <!-- Main content -->
       <main class="flex-1 min-w-0 pb-20 lg:pb-0">
@@ -79,3 +78,4 @@ function closeSidebar() {
     <UiConfirmUnsavedChanges />
   </div>
 </template>
+

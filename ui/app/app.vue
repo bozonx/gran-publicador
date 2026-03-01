@@ -1,8 +1,18 @@
 <template>
   <UApp>
     <NuxtRouteAnnouncer />
-    <NuxtLayout>
-      <NuxtPage :key="route.path" />
+    
+    <!-- Initial startup loader -->
+    <Transition
+      leave-active-class="transition-opacity duration-500"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <CommonAppLoading v-if="!authStore.isInitialized" />
+    </Transition>
+
+    <NuxtLayout v-if="authStore.isInitialized">
+      <NuxtPage :key="route.fullPath" />
     </NuxtLayout>
   </UApp>
 </template>
@@ -28,3 +38,4 @@ onBeforeUnmount(() => {
   notificationsStore.disconnectWebSocket();
 });
 </script>
+

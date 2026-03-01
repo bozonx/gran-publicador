@@ -4,24 +4,27 @@
  * Supports hybrid auth: Telegram + Browser
  */
 export default defineNuxtRouteMiddleware(async (_to) => {
-  const { isAuthenticated, initialize, isLoading, authMode } = useAuth()
+  const { isAuthenticated, initialize, isLoading, isInitialized } = useAuth()
 
-  // Wait for auth initialization if still loading
-  if (isLoading.value) {
-    return
-  }
-
-  // If not authenticated, try to initialize
-  if (!isAuthenticated.value) {
-    const user = await initialize()
-
-    if (!user) {
-      // Always redirect to login page if we are not authenticated
-      // This allows showing the Telegram Widget on production
-      return navigateTo('/auth/login', {
-        redirectCode: 302,
-        replace: true,
-      })
+  // Wait for auth initialization if still loading and not yet initialized
+  if (isLoading.value && !isInitialized.value) {
+    // If we're on the client, we can wait. On the server, plugin should have handled it.
+    if (import.meta.client) {
+      await initialize()
     }
   }
+
+  // If not authenticated, try to initialize one more time if not already done
+  if (!isAuthenticated.value && !isInitialized.value) {
+    await initialize()
+  }
+
+  if (!isAuthenticated.value) {
+    // Always redirect to login page if we are not authenticated
+    return navigateTo('/auth/login', {
+      redirectCode: 302,
+      replace: true,
+    })
+  }
 })
+

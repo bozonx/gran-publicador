@@ -9,10 +9,11 @@ const { projects, fetchProjects } = useProjects()
 const isSheetOpen = ref(false)
 
 onMounted(() => {
-  if (projects.value.length === 0) {
-    fetchProjects()
-  }
+  // Projects are fetched by Navigation layout, no need to duplicate here usually.
+  // But if this is used in absolute isolation, we might need it. 
+  // Given it's a global button, we can rely on store state.
 })
+
 
 const hasProjects = computed(() => projects.value.length > 0)
 
