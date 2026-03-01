@@ -1,8 +1,7 @@
-import { ref, watch, type Ref, computed, onUnmounted, toRaw } from 'vue';
+import { ref, watch, type Ref, computed, onUnmounted, onMounted } from 'vue';
 import {
   AUTO_SAVE_DEBOUNCE_MS,
   AUTOSAVE_INDICATOR_DELAY_MS,
-  AUTOSAVE_INDICATOR_DISPLAY_MS,
 } from '~/constants/autosave';
 import { logger } from '~/utils/logger';
 import {
@@ -12,9 +11,10 @@ import {
   isRetryableStatus,
   isNetworkError,
 } from '~/utils/autosave';
-import { useAutosaveIndicator, type SaveStatus } from './autosave/useAutosaveIndicator';
+import { useAutosaveIndicator, type SaveStatus, type SaveResult } from './autosave/useAutosaveIndicator';
 import { useAutosaveRetry } from './autosave/useAutosaveRetry';
 import { useAutosaveGuards } from './autosave/useAutosaveGuards';
+import { useAutosaveStore } from '~/stores/autosave';
 
 /**
  * Resolver for i18n and toast in case they are not available during testing.
@@ -29,6 +29,7 @@ export type { SaveStatus, SaveResult } from './autosave/useAutosaveIndicator';
 export interface AutosaveOptions<T> {
   saveFn: (data: T, signal?: AbortSignal) => Promise<void | SaveResult>;
   data: Ref<T | null>;
+  id?: string; // Optional ID for the global store session
   debounceMs?: number;
   skipInitial?: boolean;
   isEqual?: (a: T, b: T) => boolean;
@@ -54,12 +55,16 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
   const {
     saveFn,
     data,
+    id,
     debounceMs = AUTO_SAVE_DEBOUNCE_MS,
     skipInitial = true,
     isEqual = defaultIsEqual,
     enableNavigationGuards = true,
     enableBlurSave = true,
   } = options;
+
+  const store = useAutosaveStore();
+  const sessionId = id || `autosave_${Math.random().toString(36).substring(7)}`;
 
   let t: (key: string) => string = key => key;
   let toast: any = { add: () => undefined };
@@ -90,6 +95,21 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     hideIndicator,
     clearIndicatorTimers,
   } = useAutosaveIndicator();
+
+  // Unified status sync to global store
+  const syncToStore = () => {
+    store.setSession(sessionId, {
+      id: sessionId,
+      status: saveStatus.value,
+      error: saveError.value,
+      lastSavedAt: lastSavedAt.value,
+      isDirty: isDirty.value,
+      isIndicatorVisible: isIndicatorVisible.value,
+      indicatorStatus: indicatorStatus.value
+    });
+  };
+
+  watch([saveStatus, saveError, lastSavedAt, isDirty, isIndicatorVisible, indicatorStatus], syncToStore);
 
   const retryManager = useAutosaveRetry({
     shouldRetryRef: computed(() => isDirty.value && saveStatus.value === 'error'),
@@ -269,10 +289,15 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     debouncedSave();
   }, { deep: true });
 
+  onMounted(() => {
+    syncToStore();
+  });
+
   onUnmounted(() => {
     if (isDirty.value && saveStatus.value !== 'saving') performSave(false);
     clearIndicatorTimers();
     retryManager.clearRetryTimer();
+    store.removeSession(sessionId);
   });
 
   return {

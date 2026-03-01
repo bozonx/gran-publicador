@@ -13,6 +13,8 @@ import { usePostsStore } from '~/stores/posts';
 import { useNewsStore } from '~/stores/news';
 import { useMediaStore } from '~/stores/media';
 import { useTemplatesStore } from '~/stores/templates';
+import { useContentDestinationStore } from '~/stores/content-destination';
+import { useAutosaveStore } from '~/stores/autosave';
 import type { User, AuthResponse } from '~/types/user';
 import { logger } from '~/utils/logger';
 
@@ -102,6 +104,8 @@ export const useAuth = () => {
     useNewsStore().reset();
     useMediaStore().reset();
     useTemplatesStore().reset();
+    useContentDestinationStore().reset();
+    useAutosaveStore().reset();
     
     navigateTo('/auth/login');
   }

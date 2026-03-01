@@ -1,11 +1,13 @@
-import { ref, computed, watch, toRaw } from 'vue';
+import { ref, computed, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import type { ContentCollection } from '~/composables/useContentCollections';
 import { useContentCollections } from '~/composables/useContentCollections';
 import { useProjects } from '~/composables/useProjects';
 import { buildGroupTreeFromRoot, type ContentLibraryTreeItem } from '~/composables/useContentLibraryGroupsTree';
+import { useContentDestinationStore, type DestinationScope } from '~/stores/content-destination';
 
 export interface UseContentDestinationOptions {
-  initialScope?: 'personal' | 'project';
+  initialScope?: DestinationScope;
   initialProjectId?: string | null;
   initialCollectionId?: string | null;
   initialGroupId?: string | null;
@@ -14,20 +16,27 @@ export interface UseContentDestinationOptions {
 }
 
 export const useContentDestination = (options: UseContentDestinationOptions = {}) => {
+  const store = useContentDestinationStore();
+  const { 
+    scope, 
+    projectId, 
+    collectionId, 
+    groupId, 
+    projects, 
+    collections, 
+    isLoading, 
+    error 
+  } = storeToRefs(store);
+
   const { listCollections } = useContentCollections();
   const { fetchProjects: apiFetchProjects } = useProjects();
   const { t } = useI18n();
 
-  // State
-  const scope = ref<'personal' | 'project'>(options.initialScope || 'personal');
-  const projectId = ref<string | null>(options.initialProjectId || null);
-  const collectionId = ref<string | null>(options.initialCollectionId || null);
-  const groupId = ref<string | null>(options.initialGroupId || null);
-  
-  const projects = ref<any[]>([]);
-  const collections = ref<ContentCollection[]>([]);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  // Initialize store state from options if provided
+  if (options.initialScope) store.setScope(options.initialScope);
+  if (options.initialProjectId) store.setProjectId(options.initialProjectId);
+  if (options.initialCollectionId) store.setCollectionId(options.initialCollectionId);
+  if (options.initialGroupId) store.setGroupId(options.initialGroupId);
 
   // Computed
   const projectOptions = computed(() => {
@@ -61,7 +70,8 @@ export const useContentDestination = (options: UseContentDestinationOptions = {}
   // Actions
   const fetchProjects = async () => {
     try {
-      projects.value = await apiFetchProjects({ hasContentCollections: true });
+      const result = await apiFetchProjects({ hasContentCollections: true });
+      store.setProjects(result);
     } catch (err) {
       console.error('Failed to fetch projects', err);
     }
@@ -69,58 +79,60 @@ export const useContentDestination = (options: UseContentDestinationOptions = {}
 
   const fetchCollections = async () => {
     if (isLoading.value) return;
-    isLoading.value = true;
+    store.setLoading(true);
     try {
       const result = await listCollections(scope.value, projectId.value || undefined);
-      collections.value = result || [];
+      store.setCollections(result || []);
       
       // If current collectionId is not in the new list, reset it
       if (collectionId.value && !collections.value.some(c => c.id === collectionId.value)) {
-        collectionId.value = null;
-        groupId.value = null;
+        store.setCollectionId(null);
+        store.setGroupId(null);
       }
     } catch (err) {
       console.error('Failed to load collections', err);
-      collections.value = [];
+      store.setCollections([]);
     } finally {
-      isLoading.value = false;
+      store.setLoading(false);
     }
   };
 
   // Watchers
   watch(scope, () => {
     if (scope.value === 'personal') {
-      projectId.value = null;
+      store.setProjectId(null);
     }
-    collectionId.value = null;
-    groupId.value = null;
+    store.setCollectionId(null);
+    store.setGroupId(null);
     fetchCollections();
   });
 
-  watch(projectId, () => {
+  watch(projectId, (newVal) => {
     if (scope.value === 'project') {
-      collectionId.value = null;
-      groupId.value = null;
-      fetchCollections();
+      store.setCollectionId(null);
+      store.setGroupId(null);
+      if (newVal) fetchCollections();
     }
   });
 
   watch(collectionId, () => {
-    groupId.value = null;
+    store.setGroupId(null);
   });
 
   // Init
-  if (options.fetchProjectsOnInit) {
+  if (options.fetchProjectsOnInit && projects.value.length === 0) {
     fetchProjects();
   }
   
-  // Initial fetch of collections if initial state allows
-  if (scope.value === 'personal' || (scope.value === 'project' && projectId.value)) {
-    fetchCollections();
+  // Initial fetch of collections if initial state allows and list is empty
+  if (collections.value.length === 0) {
+    if (scope.value === 'personal' || (scope.value === 'project' && projectId.value)) {
+      fetchCollections();
+    }
   }
 
   return {
-    // State
+    // State from store
     scope,
     projectId,
     collectionId,
@@ -140,5 +152,9 @@ export const useContentDestination = (options: UseContentDestinationOptions = {}
     // Actions
     fetchProjects,
     fetchCollections,
+    setScope: store.setScope,
+    setProjectId: store.setProjectId,
+    setCollectionId: store.setCollectionId,
+    setGroupId: store.setGroupId,
   };
 };
