@@ -180,6 +180,7 @@ const publicationTagsSuggestions = computed(() => {
         <PublicationsPublicationListItem
           v-for="pub in publications" :key="pub.id"
           :publication="pub" :selected="selectedIds.includes(pub.id)"
+          selectable
           show-project-info
           @click="router.push(`/publications/${pub.id}`)"
           @delete="(p: PublicationWithRelations) => { pubToDelete = p; showDeleteModal = true }"
@@ -190,6 +191,7 @@ const publicationTagsSuggestions = computed(() => {
         <PublicationsPublicationCard
           v-for="pub in publications" :key="pub.id"
           :publication="pub" :selected="selectedIds.includes(pub.id)"
+          selectable
           show-project-info
           @click="router.push(`/publications/${pub.id}`)"
           @delete="(p: PublicationWithRelations) => { pubToDelete = p; showDeleteModal = true }"

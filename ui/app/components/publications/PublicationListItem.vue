@@ -9,6 +9,7 @@ const props = defineProps<{
   publication: PublicationWithRelations
   showProjectInfo?: boolean
   selected?: boolean
+  selectable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -49,7 +50,12 @@ const displayTitle = computed(() => {
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
-const showCheckbox = computed(() => route.path === '/publications')
+
+const authorName = computed(() => {
+  const creator = props.publication.creator
+  if (!creator) return ''
+  return creator.fullName || creator.telegramUsername || t('common.unknown')
+})
 
 function handleClick() {
 
@@ -70,7 +76,7 @@ function handleDelete(e: Event) {
     <div class="flex flex-col h-full">
       <div class="flex items-start gap-4">
         <!-- Checkbox for bulk operations -->
-        <div v-if="showCheckbox" class="px-3 pb-3 pt-4 -m-3 cursor-default" @click.stop="emit('update:selected', !selected)">
+        <div v-if="selectable" class="px-3 pb-3 pt-4 -m-3 cursor-default" @click.stop="emit('update:selected', !selected)">
           <UCheckbox
             :model-value="selected"
             :ui="{ wrapper: 'pointer-events-none' }"
@@ -187,9 +193,9 @@ function handleDelete(e: Event) {
       <!-- Footer Info -->
       <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-gray-500 dark:text-gray-400">
         <!-- Author -->
-        <div v-if="publication.creator" class="flex items-center gap-1.5 min-w-0">
+        <div v-if="authorName" class="flex items-center gap-1.5 min-w-0">
           <UIcon name="i-heroicons-user" class="w-4 h-4 shrink-0" />
-          <span class="truncate">{{ publication.creator.fullName || publication.creator.telegramUsername }}</span>
+          <span class="truncate">{{ authorName }}</span>
         </div>
 
         <!-- Date -->

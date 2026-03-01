@@ -6,6 +6,8 @@ import { usePublications } from '~/composables/usePublications'
 const props = defineProps<{
   publication: PublicationWithRelations
   projectId?: string | null
+  templateOptions?: any[]
+  normalizedPublicationMeta?: any
 }>()
 
 const emit = defineEmits<{
@@ -200,7 +202,7 @@ defineExpose({
     <UiAppModal v-model:open="isTemplateModalOpen" :title="t('projectTemplates.title')" :ui="{ content: 'sm:max-w-md' }">
       <div class="space-y-4">
         <UFormField :label="t('projectTemplates.title')">
-          <USelectMenu v-model="newTemplateId" :items="$attrs.templateOptions as any[]" value-key="value" label-key="label" class="w-full" />
+          <USelectMenu v-model="newTemplateId" :items="templateOptions || []" value-key="value" label-key="label" class="w-full" />
         </UFormField>
       </div>
       <template #footer>
@@ -223,7 +225,7 @@ defineExpose({
       :prefilled-author-comment="publication.authorComment || ''"
       :prefilled-content="publication.content || ''"
       :prefilled-tags="publication.tags"
-      :prefilled-meta="$attrs.normalizedPublicationMeta as any"
+      :prefilled-meta="normalizedPublicationMeta"
       :prefilled-note="publication.note || ''"
       :prefilled-media-ids="publication.media?.map((m: any) => ({ id: m.media?.id, hasSpoiler: m.hasSpoiler }))"
       :prefilled-content-item-ids="publication.contentItems?.map((ci: any) => ci.contentItemId)"
@@ -240,7 +242,7 @@ defineExpose({
       :title="publication.title || undefined"
       :media="((publication.media || []).map((m: any) => m.media).filter(Boolean) as any)"
       :project-id="projectId || undefined"
-      :publication-meta="$attrs.normalizedPublicationMeta as any"
+      :publication-meta="normalizedPublicationMeta"
       :post-type="publication.postType || undefined"
       :publication-language="publication.language || undefined"
       :post-channels="(publication.posts || []).map((p: any) => ({

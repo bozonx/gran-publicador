@@ -33,6 +33,8 @@ interface Props {
   isPostTypeLocked?: boolean
 }
 
+import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
+
 const props = withDefaults(defineProps<Props>(), {
   allowProjectSelection: false,
 })
@@ -43,13 +45,9 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
-const { channels, fetchChannels } = useChannels()
 const { projects, fetchProjects } = useProjects()
-const { createPublication, isLoading } = usePublications()
+const { createPublication, isLoading: isCreating } = usePublications()
 const { user } = useAuth()
-const { fetchByProject: fetchSignatures } = useAuthorSignatures()
-const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
-const projectSignatures = ref<ProjectAuthorSignature[]>([])
 
 const effectiveIsProjectLocked = computed(() => {
   if (props.isProjectLocked !== undefined) return props.isProjectLocked
@@ -129,111 +127,20 @@ watch(() => props.projectId, (newProjectId) => {
 }, { immediate: true })
 
 // Watch for project ID to load channels
-watch(
-  () => formData.projectId,
-  async (newProjectId, oldProjectId, onInvalidate) => {
-    let cancelled = false
-    onInvalidate(() => { cancelled = true })
+// Logic for dependency synchronization is now in usePublicationDependencies
 
-    if (newProjectId && newProjectId !== oldProjectId) {
-      // If we have preselected channels and this is the first load (oldProjectId is undefined),
-      // keep the preselected channels. Otherwise, clear them as the project changed.
-      const isFirstLoad = !oldProjectId
-      const hasPreselectedChannels = Boolean(props.preselectedChannelId || props.preselectedChannelIds?.length)
-
-      if (!isFirstLoad || !hasPreselectedChannels) {
-        isApplyingAutoChannelSelection.value = true
-        formData.channelIds = []
-        isApplyingAutoChannelSelection.value = false
-      }
-
-      if (!props.preselectedChannelId) {
-        if (!props.prefilledAuthorSignatureId) formData.authorSignatureId = ''
-        if (!props.prefilledProjectTemplateId) formData.projectTemplateId = ''
-        hasManualSignatureSelection.value = Boolean(props.prefilledAuthorSignatureId)
-        hasManualTemplateSelection.value = Boolean(props.prefilledProjectTemplateId)
-      }
-      hasManualChannelSelection.value = hasPreselectedChannels
-    }
-
-    if (newProjectId) {
-      const [, fetchedSigs] = (await Promise.all([
-        fetchChannels({ projectId: newProjectId }),
-        fetchSignatures(newProjectId),
-        fetchProjectTemplates(newProjectId),
-      ])) as [unknown, ProjectAuthorSignature[], unknown]
-
-      if (cancelled) return
-      projectSignatures.value = fetchedSigs
-
-      const userId = user.value?.id
-      const availableSignatureIds = new Set(fetchedSigs.map(s => s.id))
-      if (formData.authorSignatureId && !availableSignatureIds.has(formData.authorSignatureId)) {
-        formData.authorSignatureId = ''
-        hasManualSignatureSelection.value = false
-      }
-      if (!hasManualSignatureSelection.value && userId) {
-        const userSigs = fetchedSigs.filter(s => s.userId === userId)
-        const first = userSigs[0]
-        if (first) formData.authorSignatureId = first.id
-      }
-
-      const availableTemplateIds = new Set(projectTemplates.value.map(t => t.id))
-      if (formData.projectTemplateId && !availableTemplateIds.has(formData.projectTemplateId)) {
-        formData.projectTemplateId = ''
-        hasManualTemplateSelection.value = false
-      }
-
-      if (!hasManualTemplateSelection.value) {
-        const def = filteredProjectTemplates.value[0]
-        if (def) formData.projectTemplateId = def.id
-      }
-
-      if (!props.preselectedChannelId) {
-        const shouldAutoSelectChannels =
-          !props.preselectedChannelIds?.length
-          && (!hasManualChannelSelection.value || formData.channelIds.length === 0)
-
-        if (shouldAutoSelectChannels) {
-          const nextIds = channels.value
-            .filter(ch => ch.language === formData.language)
-            .map(ch => ch.id)
-
-          const current = formData.channelIds
-          if (current.length !== nextIds.length || current.some((id, idx) => id !== nextIds[idx])) {
-            isApplyingAutoChannelSelection.value = true
-            formData.channelIds = nextIds
-            isApplyingAutoChannelSelection.value = false
-          }
-        }
-      }
-    } else {
-      channels.value = []
-      isApplyingAutoChannelSelection.value = true
-      formData.channelIds = []
-      isApplyingAutoChannelSelection.value = false
-      formData.authorSignatureId = ''
-      formData.projectTemplateId = ''
-      hasManualChannelSelection.value = false
-      hasManualSignatureSelection.value = false
-      hasManualTemplateSelection.value = false
-    }
-  },
-  { immediate: true },
-)
-
-// Watch language changes: always select all channels matching the new language
-watch(() => formData.language, (newLang) => {
-  if (props.preselectedChannelId) return
-
-  const nextIds = channels.value
-    .filter(ch => ch.language === newLang)
-    .map(ch => ch.id)
-
-  isApplyingAutoChannelSelection.value = true
-  formData.channelIds = nextIds
-  hasManualChannelSelection.value = false
-  isApplyingAutoChannelSelection.value = false
+const {
+  channels,
+  signatures: projectSignatures,
+  templateOptions,
+  signatureOptions,
+  allTemplates: projectTemplates,
+  filteredTemplates: filteredProjectTemplates,
+  isLoading: isDependenciesLoading,
+} = usePublicationDependencies({
+  projectId: toRef(formData, 'projectId'),
+  language: toRef(formData, 'language'),
+  postType: toRef(formData, 'postType'),
 })
 
 const selectedPlatforms = computed(() => {
@@ -248,40 +155,12 @@ const postTypeOptions = computed(() => {
   })
 })
 
-// Automatically select the first supported postType if none is selected or current is invalid
-watch(postTypeOptions, (options) => {
-  const firstOption = options[0]
-  if (firstOption && (!formData.postType || !options.some(o => o.value === formData.postType))) {
-    formData.postType = firstOption.value as any
-  }
-}, { immediate: true })
-
-const signatureOptions = computed(() => {
-  const userLang = user.value?.language || 'en-US'
-  const userId = user.value?.id
-  const userSigs = projectSignatures.value.filter(sig => sig.userId === userId)
-  return userSigs.map(sig => {
-    const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
-    return { value: sig.id, label: variant?.content || sig.id }
-  })
-})
-
 const selectedAuthorSignatures = computed(() => {
   if (!formData.authorSignatureId) return []
   return projectSignatures.value.filter(s => s.id === formData.authorSignatureId)
 })
 
-const filteredProjectTemplates = computed(() => {
-  return projectTemplates.value.filter((tpl) => {
-    const langMatch = !tpl.language || tpl.language === formData.language
-    const typeMatch = !tpl.postType || tpl.postType === formData.postType
-    return langMatch && typeMatch
-  })
-})
-
-const templateOptions = computed(() => {
-  return filteredProjectTemplates.value.map(tpl => ({ value: tpl.id, label: tpl.name }))
-})
+const isLoading = computed(() => isCreating.value || isDependenciesLoading.value)
 
 const hasTemplateOptions = computed(() => templateOptions.value.length > 0)
 

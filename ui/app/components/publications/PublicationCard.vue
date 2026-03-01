@@ -9,6 +9,7 @@ const props = defineProps<{
   publication: PublicationWithRelations
   showProjectInfo?: boolean
   selected?: boolean
+  selectable?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -38,7 +39,12 @@ const thumbData = computed(() => {
 
 // Compute problems for this publication
 const problems = computed(() => getPublicationProblems(props.publication))
-const showCheckbox = computed(() => route.path === '/publications')
+
+const authorName = computed(() => {
+  const creator = props.publication.creator
+  if (!creator) return ''
+  return creator.fullName || creator.telegramUsername || t('common.unknown')
+})
 
 const displayTitle = computed(() => {
   if (props.publication.title) {
@@ -69,7 +75,7 @@ function handleDelete(e: Event) {
     @click="handleClick"
   >
     <!-- Checkbox for bulk operations -->
-    <div v-if="showCheckbox" class="absolute top-1 left-1 p-3 z-10 cursor-default" @click.stop="emit('update:selected', !selected)">
+    <div v-if="selectable" class="absolute top-1 left-1 p-3 z-10 cursor-default" @click.stop="emit('update:selected', !selected)">
       <UCheckbox
         :model-value="selected"
         :ui="{ wrapper: 'pointer-events-none' }"
@@ -79,7 +85,7 @@ function handleDelete(e: Event) {
     </div>
 
     <!-- Header: Title, Status, Delete -->
-    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': showCheckbox }">
+    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': selectable }">
       <div class="flex-1 min-w-0">
         <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400">
           <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />
@@ -195,9 +201,9 @@ function handleDelete(e: Event) {
     <CommonCardFooter>
       <!-- Author and Date -->
       <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-        <div v-if="publication.creator" class="flex items-center gap-1 min-w-0 flex-1">
+        <div v-if="authorName" class="flex items-center gap-1 min-w-0 flex-1">
           <UIcon name="i-heroicons-user" class="w-3.5 h-3.5 shrink-0" />
-          <span class="truncate">{{ publication.creator.fullName || publication.creator.telegramUsername }}</span>
+          <span class="truncate">{{ authorName }}</span>
         </div>
 
         <div class="flex items-center gap-1 shrink-0">
