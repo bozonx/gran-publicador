@@ -75,19 +75,32 @@ export function useFormatters() {
    */
   function getPublicationDisplayTitle(pub: any): string {
     let text = ''
-    if (pub.title && pub.title.trim()) {
+    
+    if (pub.title && typeof pub.title === 'string' && pub.title.trim()) {
       text = stripHtmlAndSpecialChars(pub.title)
-    } else if (pub.content) {
+    } 
+    
+    if (!text && pub.content && typeof pub.content === 'string' && pub.content.trim()) {
       text = stripHtmlAndSpecialChars(pub.content)
-    } else if (pub.tags && pub.tags.trim()) {
-      text = pub.tags
-    } else if (pub.createdAt) {
+    } 
+    
+    if (!text && pub.tags) {
+      if (Array.isArray(pub.tags) && pub.tags.length > 0) {
+        text = pub.tags.join(', ')
+      } else if (typeof pub.tags === 'string' && pub.tags.trim()) {
+        text = pub.tags
+      }
+    }
+    
+    if (!text && pub.createdAt) {
       text = formatDateShort(pub.createdAt)
-    } else {
+    }
+    
+    if (!text) {
       text = 'Untitled'
     }
     
-    return text.replace(/\s+/g, ' ').trim()
+    return text.toString().replace(/\s+/g, ' ').trim()
   }
 
   return {

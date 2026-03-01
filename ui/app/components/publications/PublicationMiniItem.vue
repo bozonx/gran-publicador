@@ -41,6 +41,7 @@ const displayDate = computed(() => {
 
 <template>
   <NuxtLink
+    v-if="publication"
     :to="`/publications/${publication.id}`"
     class="block p-3.5 hover:bg-white dark:hover:bg-gray-700 transition-all rounded-xl group border shadow-sm hover:shadow-md"
     :class="[

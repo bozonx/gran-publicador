@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useProjects } from '~/composables/useProjects'
 import { ArchiveEntityType } from '~/types/archive.types'
+import type { PublicationWithRelations } from '~/types/publications'
+import { 
+  useI18n, 
+  useNavigation, 
+  usePublications, 
+  useFormatters, 
+  useAuth 
+} from '#imports'
 
 definePageMeta({
   middleware: 'auth',
@@ -27,40 +35,34 @@ import { useRoles } from '~/composables/useRoles'
 const { getRoleDisplayName } = useRoles()
 
 const {
-  publications: draftPublications,
-  isLoading: isDraftsLoading,
-  totalCount: draftTotal,
-  fetchPublicationsByProject: fetchDrafts,
-  deletePublication
+  fetchPublicationsByProject,
+  deletePublication,
+  getStatusColor, 
+  getStatusDisplayName, 
+  getStatusIcon,
+  getPublicationProblems, 
+  getPublicationProblemLevel
 } = usePublications()
 
-const {
-  publications: readyPublications,
-  isLoading: isReadyLoading,
-  totalCount: readyTotal,
-  fetchPublicationsByProject: fetchReady,
-} = usePublications()
+const draftPublications = ref<PublicationWithRelations[]>([])
+const isDraftsLoading = ref(false)
+const draftTotal = ref(0)
 
-const {
-  publications: scheduledPublications,
-  isLoading: isScheduledLoading,
-  totalCount: scheduledTotal,
-  fetchPublicationsByProject: fetchScheduled,
-} = usePublications()
+const readyPublications = ref<PublicationWithRelations[]>([])
+const isReadyLoading = ref(false)
+const readyTotal = ref(0)
 
-const {
-  publications: problemPublications,
-  isLoading: isProblemsLoading,
-  totalCount: problemsTotal,
-  fetchPublicationsByProject: fetchProblems,
-} = usePublications()
+const scheduledPublications = ref<PublicationWithRelations[]>([])
+const isScheduledLoading = ref(false)
+const scheduledTotal = ref(0)
 
-const {
-  publications: publishedPublications,
-  isLoading: isPublishedLoading,
-  totalCount: publishedTotal,
-  fetchPublicationsByProject: fetchPublished,
-} = usePublications()
+const problemPublications = ref<PublicationWithRelations[]>([])
+const isProblemsLoading = ref(false)
+const problemsTotal = ref(0)
+
+const publishedPublications = ref<PublicationWithRelations[]>([])
+const isPublishedLoading = ref(false)
+const publishedTotal = ref(0)
 
 const scheduledOffset = ref(0)
 const problemsOffset = ref(0)
@@ -73,38 +75,47 @@ const hasMorePublished = computed(() => publishedPublications.value.length < pub
 
 async function loadMoreScheduled() {
   if (isScheduledLoading.value || !hasMoreScheduled.value) return
+  isScheduledLoading.value = true
   scheduledOffset.value += LIMIT
-  await fetchScheduled(projectId.value, { 
+  const res = await fetchPublicationsByProject(projectId.value, { 
     status: 'SCHEDULED', 
     limit: LIMIT, 
     offset: scheduledOffset.value,
     sortBy: 'byScheduled',
     sortOrder: 'asc'
-  }, { append: true })
+  }, { skipStore: true })
+  scheduledPublications.value = [...scheduledPublications.value, ...res.items]
+  isScheduledLoading.value = false
 }
 
 async function loadMoreProblems() {
   if (isProblemsLoading.value || !hasMoreProblems.value) return
+  isProblemsLoading.value = true
   problemsOffset.value += LIMIT
-  await fetchProblems(projectId.value, { 
+  const res = await fetchPublicationsByProject(projectId.value, { 
     status: ['PARTIAL', 'FAILED', 'EXPIRED'], 
     limit: LIMIT, 
     offset: problemsOffset.value,
     sortBy: 'createdAt',
     sortOrder: 'desc'
-  }, { append: true })
+  }, { skipStore: true })
+  problemPublications.value = [...problemPublications.value, ...res.items]
+  isProblemsLoading.value = false
 }
 
 async function loadMorePublished() {
   if (isPublishedLoading.value || !hasMorePublished.value) return
+  isPublishedLoading.value = true
   publishedOffset.value += LIMIT
-  await fetchPublished(projectId.value, { 
+  const res = await fetchPublicationsByProject(projectId.value, { 
     status: 'PUBLISHED', 
     limit: LIMIT, 
     offset: publishedOffset.value,
     sortBy: 'byPublished',
     sortOrder: 'desc'
-  }, { append: true })
+  }, { skipStore: true })
+  publishedPublications.value = [...publishedPublications.value, ...res.items]
+  isPublishedLoading.value = false
 }
 
 const projectId = computed(() => {
@@ -142,35 +153,68 @@ async function initialFetch() {
   const project = await fetchProject(projectId.value)
   if (!project) return
 
-  // 2. Fetch only necessary sections based on summary
+  // 2. Fetch all necessary sections
   const summary = project.publicationsSummary || { DRAFT: 0, READY: 0, SCHEDULED: 0, PUBLISHED: 0, ISSUES: 0 }
   
   const tasks: Promise<any>[] = []
 
-  if (summary.DRAFT > 0) tasks.push(fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 }))
-  if (summary.READY > 0) tasks.push(fetchReady(projectId.value, { status: 'READY', limit: 5 }))
+  if (summary.DRAFT > 0) {
+    isDraftsLoading.value = true
+    tasks.push(fetchPublicationsByProject(projectId.value, { status: 'DRAFT', limit: 5 }, { skipStore: true }).then((res: any) => {
+      draftPublications.value = res.items
+      draftTotal.value = res.meta.total
+      isDraftsLoading.value = false
+    }))
+  }
+  
+  if (summary.READY > 0) {
+    isReadyLoading.value = true
+    tasks.push(fetchPublicationsByProject(projectId.value, { status: 'READY', limit: 5 }, { skipStore: true }).then((res: any) => {
+      readyPublications.value = res.items
+      readyTotal.value = res.meta.total
+      isReadyLoading.value = false
+    }))
+  }
+  
   if (summary.PUBLISHED > 0) {
-    tasks.push(fetchPublished(projectId.value, { 
+    isPublishedLoading.value = true
+    tasks.push(fetchPublicationsByProject(projectId.value, { 
       status: 'PUBLISHED', 
       limit: LIMIT,
       sortBy: 'byPublished',
       sortOrder: 'desc'
+    }, { skipStore: true }).then((res: any) => {
+      publishedPublications.value = res.items
+      publishedTotal.value = res.meta.total
+      isPublishedLoading.value = false
     }))
   }
+  
   if (summary.SCHEDULED > 0) {
-    tasks.push(fetchScheduled(projectId.value, { 
+    isScheduledLoading.value = true
+    tasks.push(fetchPublicationsByProject(projectId.value, { 
       status: 'SCHEDULED', 
       limit: LIMIT,
       sortBy: 'byScheduled',
       sortOrder: 'asc'
+    }, { skipStore: true }).then((res: any) => {
+      scheduledPublications.value = res.items
+      scheduledTotal.value = res.meta.total
+      isScheduledLoading.value = false
     }))
   }
+  
   if (summary.ISSUES > 0) {
-    tasks.push(fetchProblems(projectId.value, { 
+    isProblemsLoading.value = true
+    tasks.push(fetchPublicationsByProject(projectId.value, { 
       status: ['PARTIAL', 'FAILED', 'EXPIRED'], 
       limit: LIMIT,
       sortBy: 'createdAt',
       sortOrder: 'desc'
+    }, { skipStore: true }).then((res: any) => {
+      problemPublications.value = res.items
+      problemsTotal.value = res.meta.total
+      isProblemsLoading.value = false
     }))
   }
 
@@ -222,17 +266,10 @@ function openCreateModal(lang: string) {
 
 function handleCreateSuccess(publicationId: string) {
     isCreateModalOpen.value = false
-    // Navigate to the new publication or refresh list
-    // The user wanted the modal to just work. Navigate to the new publication seems appropriate.
     router.push(`/publications/${publicationId}/edit`)
 }
 
 // Project problems detection
-const { 
-  getPublicationProblems, 
-  getPublicationProblemLevel 
-} = usePublications()
-
 const { 
   getProjectProblems 
 } = useProjects()
@@ -261,9 +298,13 @@ async function handleDelete() {
     showDeleteModal.value = false
     publicationToDelete.value = null
     if (activeDraftsCollection.value === 'DRAFT') {
-      fetchDrafts(projectId.value, { status: 'DRAFT', limit: 5 })
+      const res = await fetchPublicationsByProject(projectId.value, { status: 'DRAFT', limit: 5 }, { skipStore: true })
+      draftPublications.value = res.items
+      draftTotal.value = res.meta.total
     } else {
-      fetchReady(projectId.value, { status: 'READY', limit: 5 })
+      const res = await fetchPublicationsByProject(projectId.value, { status: 'READY', limit: 5 }, { skipStore: true })
+      readyPublications.value = res.items
+      readyTotal.value = res.meta.total
     }
   }
 }

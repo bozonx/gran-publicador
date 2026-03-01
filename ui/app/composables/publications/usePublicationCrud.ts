@@ -19,7 +19,7 @@ export function usePublicationCrud() {
 
   async function fetchPublications(
     filters: PublicationsFilter = {},
-    options: { append?: boolean } = {},
+    options: { append?: boolean, skipStore?: boolean } = {},
   ): Promise<PaginatedPublications> {
     const [, result] = await executeAction(
       async () => {
@@ -52,17 +52,19 @@ export function usePublicationCrud() {
         const normalizedItems = data.items.map(normalizePublication);
         const normalizedData = { ...data, items: normalizedItems };
 
-        if (options.append) {
-          state.store.appendItems(normalizedItems);
-        } else {
-          state.store.setItems(normalizedItems);
-        }
+        if (!options.skipStore) {
+          if (options.append) {
+            state.store.appendItems(normalizedItems);
+          } else {
+            state.store.setItems(normalizedItems);
+          }
 
-        state.store.setTotalCount(data.meta.total);
-        state.store.setTotalUnfilteredCount(data.meta.totalUnfiltered || data.meta.total);
+          state.store.setTotalCount(data.meta.total);
+          state.store.setTotalUnfilteredCount(data.meta.totalUnfiltered || data.meta.total);
+        }
         return normalizedData;
       },
-      { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
+      { loadingRef: options.skipStore ? undefined : state.isLoading, errorRef: options.skipStore ? undefined : state.error, silentErrors: true }
     );
 
     if (!result) {
