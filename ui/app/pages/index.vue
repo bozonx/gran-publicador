@@ -88,33 +88,18 @@ const projectsByRole = computed(() => {
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         <!-- Scheduled Section -->
-        <div class="app-card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-heroicons-clock" class="w-5 h-5 text-sky-500" />
-              {{ t('publicationStatus.scheduled') }}
-              <CommonCountBadge :count="summary?.publications.scheduled.total || 0" />
-            </h3>
-            <UButton
-              v-if="(summary?.publications.scheduled.total || 0) > 0"
-              to="/publications?status=SCHEDULED&sortBy=byScheduled"
-              variant="ghost"
-              size="xs"
-              color="primary"
-              icon="i-heroicons-arrow-right"
-              trailing
-            >
-              {{ t('common.viewAll') }}
-            </UButton>
-          </div>
-
-          <div v-if="isLoading && !summary" class="flex justify-center py-4">
-            <UiLoadingSpinner size="sm" />
-          </div>
-          
-          <div v-else-if="summary?.publications.scheduled.groupedByProject.length" class="space-y-6">
+        <DashboardSection
+          :title="t('publicationStatus.scheduled')"
+          icon="i-heroicons-clock"
+          icon-class="text-sky-500"
+          :badge-count="summary?.publications.scheduled.total"
+          :is-loading="isLoading && !summary"
+          :is-empty="!summary?.publications.scheduled.groupedByProject.length"
+          view-all-link="/publications?status=SCHEDULED&sortBy=byScheduled"
+        >
+          <div class="space-y-6">
             <!-- Group by Project -->
-            <div v-for="group in summary.publications.scheduled.groupedByProject" :key="group.project.id">
+            <div v-for="group in summary?.publications.scheduled.groupedByProject" :key="group.project.id">
               <div class="flex items-center gap-2 mb-2 px-2">
                 <UIcon name="i-heroicons-briefcase" class="w-4 h-4 text-gray-400" />
                 <NuxtLink :to="`/projects/${group.project.id}`" class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-500 transition-colors">
@@ -133,29 +118,22 @@ const projectsByRole = computed(() => {
               </div>
             </div>
           </div>
-          
-          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-            {{ t('common.noData') }}
-          </div>
-        </div>
+        </DashboardSection>
 
         <!-- Problematic Section -->
-        <div class="app-card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <UIcon name="i-heroicons-exclamation-triangle" class="w-5 h-5 text-red-500" />
-              {{ t('publication.filter.showIssuesOnly') }}
-              <CommonCountBadge :count="summary?.publications.problems.total || 0" color="error" />
-            </h3>
-          </div>
-
-          <div v-if="isLoading && !summary" class="flex justify-center py-4">
-            <UiLoadingSpinner size="sm" />
-          </div>
-          
-          <div v-else-if="summary?.publications.problems.groupedByProject.length" class="space-y-6">
+        <DashboardSection
+          :title="t('publication.filter.showIssuesOnly')"
+          icon="i-heroicons-exclamation-triangle"
+          icon-class="text-red-500"
+          :badge-count="summary?.publications.problems.total"
+          badge-color="error"
+          :is-loading="isLoading && !summary"
+          :is-empty="!summary?.publications.problems.groupedByProject.length"
+          :empty-text="t('dashboard.noProblems')"
+        >
+          <div class="space-y-6">
              <!-- Group by Project -->
-            <div v-for="group in summary.publications.problems.groupedByProject" :key="group.project.id">
+            <div v-for="group in summary?.publications.problems.groupedByProject" :key="group.project.id">
               <div class="flex items-center gap-2 mb-2 px-2">
                 <UIcon name="i-heroicons-briefcase" class="w-4 h-4 text-gray-400" />
                 <NuxtLink :to="`/projects/${group.project.id}`" class="text-sm font-medium text-gray-900 dark:text-white hover:text-primary-500 transition-colors">
@@ -176,62 +154,43 @@ const projectsByRole = computed(() => {
               </div>
             </div>
           </div>
-          
-          <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-            {{ t('dashboard.noProblems') }}
-          </div>
-        </div>
+        </DashboardSection>
       </div>
 
       <!-- Published in the last 24h Section -->
-      <div class="app-card p-4 sm:p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500" />
-            {{ t('dashboard.published_last_24h') }}
-            <CommonCountBadge :count="summary?.publications.recentPublished.total || 0" color="success" />
-          </h3>
-          <UButton
-            v-if="(summary?.publications.recentPublished.total || 0) > 0"
-            to="/publications?status=PUBLISHED&sortBy=byPublished"
-            variant="ghost"
-            size="xs"
-            color="primary"
-            icon="i-heroicons-arrow-right"
-            trailing
-          >
-            {{ t('common.viewAll') }}
-          </UButton>
-        </div>
-
-        <div v-if="isLoading && !summary" class="flex justify-center py-4">
-          <UiLoadingSpinner size="sm" />
-        </div>
-
-        <div v-else-if="summary?.publications.recentPublished.items.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <DashboardSection
+        :title="t('dashboard.published_last_24h')"
+        icon="i-heroicons-check-circle"
+        icon-class="text-green-500"
+        :badge-count="summary?.publications.recentPublished.total"
+        badge-color="success"
+        :is-loading="isLoading && !summary"
+        :is-empty="!summary?.publications.recentPublished.items.length"
+        :empty-text="t('dashboard.no_published_last_24h')"
+        view-all-link="/publications?status=PUBLISHED&sortBy=byPublished"
+      >
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <PublicationsPublicationMiniItem
-            v-for="pub in summary.publications.recentPublished.items"
+            v-for="pub in summary?.publications.recentPublished.items"
             :key="pub.id"
             :publication="pub"
             show-date
             date-type="published"
           />
         </div>
-
-        <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-gray-200 dark:border-gray-700">
-          {{ t('dashboard.no_published_last_24h') }}
-        </div>
-      </div>
+      </DashboardSection>
 
       <!-- Projects and Channels Section -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
          <div class="lg:col-span-2 space-y-6">
-            <div class="app-card">
-              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  {{ t('project.titlePlural') }}
-                  <CommonCountBadge :count="totalProjects" :title="t('project.projectsCount')" />
-                </h2>
+            <DashboardSection
+              :title="t('project.titlePlural')"
+              :badge-count="totalProjects"
+              :is-loading="isLoading && !summary"
+              :is-empty="totalProjects === 0"
+              :ui="{ header: 'border-b border-gray-200 dark:border-gray-700 pb-4 -mx-6 px-6', card: 'p-0 sm:p-0' }"
+            >
+              <template #header-actions>
                 <UButton
                   variant="ghost"
                   size="xs"
@@ -241,12 +200,10 @@ const projectsByRole = computed(() => {
                 >
                   {{ t('project.createProject') }}
                 </UButton>
-              </div>
+              </template>
+
               <div class="p-4 sm:p-5">
-                <div v-if="isLoading && !summary" class="flex items-center justify-center py-4">
-                  <UiLoadingSpinner />
-                </div>
-                <div v-else-if="totalProjects === 0" class="text-center py-8">
+                <div v-if="totalProjects === 0" class="text-center py-8">
                   <UIcon name="i-heroicons-briefcase" class="w-10 h-10 mx-auto text-gray-400 dark:text-gray-500 mb-3" />
                   <p class="text-gray-500 dark:text-gray-400 mb-4">{{ t('project.noProjectsDescription') }}</p>
                   <UButton icon="i-heroicons-plus" size="sm" @click="openCreateModal">{{ t('project.createProject') }}</UButton>
@@ -267,7 +224,7 @@ const projectsByRole = computed(() => {
                   </div>
                 </div>
               </div>
-            </div>
+            </DashboardSection>
          </div>
 
          <!-- Widgets Sidebar -->

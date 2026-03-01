@@ -115,11 +115,6 @@ const hasMedia = computed(() => {
     return Array.isArray(currentPublication.value?.media) && currentPublication.value!.media.length > 0
 })
 
-const isContentOrMediaMissing = computed(() => {
-    // Only require content/media for non-DRAFT statuses
-    if (currentPublication.value?.status === 'DRAFT') return false
-    return isContentEmpty.value && !hasMedia.value
-})
 
 const isReallyEmpty = computed(() => isContentEmpty.value && !hasMedia.value)
 
@@ -263,22 +258,6 @@ async function handleArchiveToggle() {
     // No explicit refetch needed
 }
 
-const userSelectableStatuses = computed(() => getUserSelectableStatuses(t))
-
-const displayStatusOptions = computed(() => {
-    const options = [
-        { value: 'DRAFT', label: t('publicationStatus.draft') },
-        { value: 'READY', label: t('publicationStatus.ready') }
-    ]
-    if (currentPublication.value && !['DRAFT', 'READY'].includes(currentPublication.value.status)) {
-        options.push({
-            value: currentPublication.value.status,
-            label: statusOptions.value.find(s => s.value === currentPublication.value?.status)?.label || currentPublication.value.status,
-            isSystem: true
-        } as any)
-    }
-    return options
-})
 
 async function handleUpdateStatusOption(status: PublicationStatus) {
     if (!currentPublication.value || currentPublication.value.status === status) return
@@ -378,12 +357,6 @@ const moreActions = computed(() => [
 ])
 
 
-function formatDate(dateString: string | null | undefined): string {
-  if (!dateString) return '-'
-  const dObj = new Date(dateString)
-  if (isNaN(dObj.getTime())) return '-'
-  return dObj.toLocaleString()
-}
 
 async function handlePublishNow() {
   if (!currentPublication.value) return
@@ -598,297 +571,31 @@ async function executePublish(force: boolean, now: boolean = false) {
     </div>
 
     <div v-else-if="currentPublication" class="space-y-6 pb-12">
-        <!-- Archived Status Banner -->
-        <CommonArchivedBanner
-            v-if="currentPublication.archivedAt"
-            :title="t('publication.archived_notice')"
-            :description="t('publication.archived_info_banner')"
-            :entity-type="ArchiveEntityType.PUBLICATION"
-            :entity-id="currentPublication.id"
-            @restore="() => fetchPublication(publicationId)"
+        <!-- Publication Header (Status, Project, Schedule, Actions) -->
+        <PublicationsPublicationEditHeader
+          v-if="currentPublication"
+          :publication="currentPublication"
+          :project="currentProject"
+          :is-locked="isLocked"
+          :is-desynced="isDesynced"
+          :is-really-empty="isReallyEmpty"
+          :has-media-validation-errors="hasMediaValidationErrors"
+          :publication-problems="publicationProblems"
+          :project-templates="projectTemplates"
+          :template-options="templateOptions"
+          :channels="channels"
+          :language-options="languageOptions"
+          :type-options="typeOptions"
+          :is-publishing="isPublishing"
+          :can-publish="canPublishPublication(currentPublication)"
+          :status-options="statusOptions"
+          @update-status="handleUpdateStatusOption"
+          @open-template-modal="openTemplateModal"
+          @open-relations-modal="isRelationsModalOpen = true"
+          @open-schedule-modal="openScheduleModal"
+          @publish-now="handlePublishNow"
+          @refresh="() => fetchPublication(publicationId)"
         />
-
-        <!-- Problems Banner -->
-        <CommonProblemBanner
-          v-if="publicationProblems.length > 0"
-          :problems="publicationProblems"
-          entity-type="publication"
-          class="mb-6"
-        />
-
-        <!-- Content Empty Banner -->
-        <UAlert
-          v-if="isContentOrMediaMissing"
-          color="info"
-          variant="soft"
-          icon="i-heroicons-information-circle"
-          :title="t('publication.validation.contentOrMediaRequired')"
-          class="mb-6"
-        />
-
-        <!-- Desync Warning Banner -->
-        <UAlert
-          v-if="isDesynced"
-          color="warning"
-          variant="soft"
-          icon="i-heroicons-exclamation-triangle"
-          :title="t('publication.desynced_notice')"
-          :description="t('publication.desynced_description')"
-          class="mb-6"
-        />
-
-        <!-- Block 1: Publication Info & Actions (Non-collapsible) -->
-        <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 shadow-sm">
-            <div class="p-6">
-                <!-- Actions moved to collections row -->
-
-                <!-- Metadata Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 text-sm">
-                    <!-- Zone 1: Status, Project, Language and Type Column (40%) -->
-                    <div class="space-y-4 md:col-span-2">
-                        <!-- Status (Swapped with Project) -->
-                        <div>
-                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs flex items-center gap-1.5">
-                                {{ t('post.statusLabel') }}
-                                <UPopover :popper="{ placement: 'top' }">
-                                    <UIcon name="i-heroicons-information-circle" class="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-gray-600 dark:hover:text-gray-300 transition-colors" />
-                                    <template #content>
-                                        <div class="p-3 max-w-xs text-xs whitespace-pre-line">
-                                            {{ t('publication.changeStatusWarningReset') }}
-                                        </div>
-                                    </template>
-                                </UPopover>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <div class="inline-flex shadow-sm rounded-md overflow-hidden border border-gray-200 dark:border-gray-700">
-                                    <UButton
-                                        v-for="option in displayStatusOptions"
-                                        :key="option.value"
-                                        :label="option.label"
-                                        color="neutral"
-                                        variant="ghost"
-                                        :disabled="((option as any).isSystem && currentPublication?.status === option.value) || (option.value === 'READY' && isReallyEmpty)"
-                                        class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
-                                        :class="[
-                                            currentPublication?.status === option.value 
-                                                ? (getStatusClass(option.value as PublicationStatus) + ' opacity-100! shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] disabled:opacity-100! disabled:cursor-default') 
-                                                : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 opacity-100'
-                                        ]"
-                                        @click="handleUpdateStatusOption(option.value as PublicationStatus)"
-                                    >
-                                        <template v-if="currentPublication?.status === option.value" #leading>
-                                            <UIcon 
-                                                :name="getStatusIcon(option.value as PublicationStatus)" 
-                                                class="w-4 h-4" 
-                                                :class="{ 'animate-spin': option.value === 'PROCESSING' }"
-                                            />
-                                        </template>
-                                    </UButton>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Project and Template Row -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Project Selector -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('project.title') }}
-                                </div>
-                                <div v-if="currentPublication.projectId" class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-folder" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate">
-                                        {{ currentPublication.project?.name || t('publication.personal_draft') }}
-                                    </span>
-                                </div>
-                                <div v-else>
-                                    <span class="text-gray-400 italic">{{ t('publication.personal_draft') }}</span>
-                                </div>
-                            </div>
-
-                            <!-- Template -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('projectTemplates.title', 'Publication Template') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-squares-plus" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base truncate max-w-37.5">
-                                        {{ projectTemplates.find(tpl => tpl.id === currentPublication?.projectTemplateId)?.name || currentPublication?.projectTemplateId || '-' }}
-                                    </span>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
-                                        color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="openTemplateModal"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- News Source and Language Row -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- News Source -->
-                            <div>
-                                <div v-if="currentPublication.meta?.newsData?.url">
-                                    <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                        {{ t('news.source', 'News Source') }}
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <UIcon name="i-heroicons-arrow-top-right-on-square" class="w-5 h-5 text-gray-400" />
-                                        <a 
-                                            :href="currentPublication.meta.newsData.url" 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            class="text-info-600 dark:text-info-400 font-medium text-base truncate hover:underline"
-                                        >
-                                            {{ currentPublication.meta.newsData.source || 'Original News' }}
-                                        </a>
-                                    </div>
-                                </div>
-                                <div v-else class="text-gray-500 dark:text-gray-400 italic text-xs pt-4">
-                                    {{ t('publication.noNewsSource', 'No news source linked') }}
-                                </div>
-                            </div>
-
-                            <!-- Language -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('common.language') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-language" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ languageOptions.find((l: any) => l.value === currentPublication?.language)?.label || currentPublication?.language }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Type Row -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- Type -->
-                            <div>
-                                <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                    {{ t('post.postType') }}
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <UIcon name="i-heroicons-document-duplicate" class="w-5 h-5 text-gray-400" />
-                                    <span class="text-gray-900 dark:text-white font-medium text-base">
-                                        {{ typeOptions.find((t: any) => t.value === currentPublication?.postType)?.label || currentPublication?.postType }}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Relations -->
-                        <div>
-                            <div class="text-gray-500 dark:text-gray-400 mb-1 text-xs">
-                                {{ t('publication.relations.title') }}
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <UIcon name="i-heroicons-link" class="w-5 h-5 text-gray-400" />
-                                <template v-if="currentPublication?.relations?.length">
-                                    <UBadge
-                                        v-for="rel in currentPublication.relations"
-                                        :key="rel.id"
-                                        :color="rel.type === 'SERIES' ? 'primary' : 'info'"
-                                        variant="soft"
-                                        size="sm"
-                                    >
-                                        {{ rel.type === 'SERIES' ? t('publication.relations.typeSeries') : t('publication.relations.typeTranslation') }}
-                                        ({{ rel.items.length }})
-                                    </UBadge>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-pencil-square"
-                                        variant="ghost"
-                                        color="neutral"
-                                        size="xs"
-                                        class="ml-1 text-gray-400 hover:text-primary-500 transition-colors"
-                                        @click="isRelationsModalOpen = true"
-                                    />
-                                </template>
-                                <template v-else>
-                                    <UButton
-                                        v-if="!isLocked"
-                                        icon="i-heroicons-plus"
-                                        variant="soft"
-                                        color="primary"
-                                        size="xs"
-                                        :label="t('publication.relations.add')"
-                                        @click="isRelationsModalOpen = true"
-                                    />
-                                </template>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Zone 2: Channels & Scheduler (60%) -->
-                    <div class="md:col-span-3 flex flex-col gap-6">
-                        <!-- Channel Quick Access Block -->
-                        <PublicationsChannelQuickAccessBlock
-                          v-if="currentPublication"
-                          :publication="currentPublication"
-                          :channels="channels || []"
-                          :disabled="isLocked"
-                          @refresh="() => fetchPublication(publicationId)"
-                        />
-
-                        <div class="border-t border-gray-100 dark:border-gray-700/50 pt-2">
-                             <div class="text-gray-500 dark:text-gray-400 text-xs mb-1">
-                                {{ currentPublication.scheduledAt ? t('publication.status.willBePublishedAt') : t('publication.status.scheduling') }}
-                             </div>
-                             <div class="flex flex-col gap-2 items-start">
-                                 <div v-if="currentPublication.scheduledAt" class="text-gray-900 dark:text-white font-medium flex flex-col">
-                                      {{ formatDate(currentPublication.scheduledAt) }}
-                                 </div>
-
-                                 <div class="flex flex-row gap-2 mt-1">
-                                     <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (isReallyEmpty ? t('publication.validation.contentOrMediaRequired') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.scheduleLabel')))">
-                                        <UButton
-                                            :label="currentPublication.scheduledAt ? t('publication.changeSchedule') : t('publication.status.scheduleTime')"
-                                            icon="i-heroicons-calendar-days"
-                                            variant="soft"
-                                            size="xs"
-                                            color="primary"
-                                            :disabled="isReallyEmpty || hasMediaValidationErrors || !!currentPublication.archivedAt"
-                                            @click="openScheduleModal"
-                                        ></UButton>
-                                     </UTooltip>
-                                    
-                                    <UTooltip :text="currentPublication.archivedAt ? t('publication.archived_notice') : (!currentPublication.posts?.length ? t('publication.noPosts') : (!canPublishPublication(currentPublication) ? (currentPublication.status === 'DRAFT' ? t('publication.validation.draftBlocked') : (hasMediaValidationErrors ? t('publication.validation.fixMediaErrors') : t('publication.cannotPublish'))) : ''))">
-                                        <UButton
-                                            :label="t('publication.publishNow')"
-                                            icon="i-heroicons-paper-airplane"
-                                            variant="soft"
-                                            size="xs"
-                                            color="success"
-                                            :disabled="!canPublishPublication(currentPublication)"
-                                            :loading="isPublishing"
-                                            @click="handlePublishNow"
-                                        ></UButton>
-                                    </UTooltip>
-                                 </div>
-                             </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer: Creation Info -->
-                <div class="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50 flex justify-end items-center text-xs text-gray-400">
-                    <span class="mr-1">{{ t('post.createdAt') }}</span>
-                    <span>{{ formatDate(currentPublication.createdAt) }}</span>
-                    <template v-if="currentPublication.creator">
-                        <span class="mx-1">·</span>
-                        <span>{{ currentPublication.creator.fullName || currentPublication.creator.telegramUsername }}</span>
-                    </template>
-                </div>
-            </div>
-        </div>
 
 
 
