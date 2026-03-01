@@ -11,11 +11,21 @@ export function useProjects() {
   const api = useApi();
   const { user } = useAuth();
   const { t } = useI18n();
-  const toast = useToast();
+  const { executeAction } = useApiAction();
   const { archiveEntity, restoreEntity } = useArchive();
 
   const store = useProjectsStore();
   const { projects, currentProject, members, isLoading, error } = storeToRefs(store);
+
+  // Helper bindings for store state to be used with executeAction
+  const loadingBinding = computed({
+    get: () => isLoading.value,
+    set: (val) => store.setLoading(val)
+  });
+  const errorBinding = computed({
+    get: () => error.value,
+    set: (val) => store.setError(val)
+  });
 
   async function fetchProjects(
     arg?:
@@ -25,104 +35,58 @@ export function useProjects() {
           hasContentCollections?: boolean;
         },
   ): Promise<ProjectWithRole[]> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      const options = typeof arg === 'object' ? arg : { includeArchived: arg };
-      const params: Record<string, string | number | boolean | undefined> = { limit: PROJECTS_FETCH_LIMIT };
-      applyArchiveQueryFlags(params, { includeArchived: options.includeArchived });
-      if (options.hasContentCollections) {
-        params.hasContentCollections = true;
-      }
-      const data = await api.get<ProjectWithRole[]>('/projects', { params });
-      store.setProjects(data);
-      return data;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch projects';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return [];
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const options = typeof arg === 'object' ? arg : { includeArchived: arg };
+        const params: Record<string, string | number | boolean | undefined> = { limit: PROJECTS_FETCH_LIMIT };
+        applyArchiveQueryFlags(params, { includeArchived: options.includeArchived });
+        if (options.hasContentCollections) {
+          params.hasContentCollections = true;
+        }
+        const data = await api.get<ProjectWithRole[]>('/projects', { params });
+        store.setProjects(data);
+        return data;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: false }
+    );
+    return result || [];
   }
 
   async function fetchArchivedProjects(): Promise<ProjectWithRole[]> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      const data = await api.get<ProjectWithRole[]>('/projects/archived');
-      return data;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch archived projects';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return [];
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        return await api.get<ProjectWithRole[]>('/projects/archived');
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding }
+    );
+    return result || [];
   }
 
   async function fetchProject(projectId: string): Promise<ProjectWithRole | null> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      const data = await api.get<ProjectWithRole>(`/projects/${projectId}`);
-      store.setCurrentProject(data);
-      return data;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch project';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return null;
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const data = await api.get<ProjectWithRole>(`/projects/${projectId}`);
+        store.setCurrentProject(data);
+        return data;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding }
+    );
+    return result;
   }
 
   async function createProject(data: {
     name: string;
     note?: string;
   }): Promise<Project | null> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      const project = await api.post<Project>('/projects', data);
-      toast.add({
-        title: t('common.success'),
-        description: t('project.createSuccess'),
-        color: 'success',
-      });
-      await fetchProjects();
-      return project;
-    } catch (err: any) {
-      const message = err.message || 'Failed to create project';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return null;
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const project = await api.post<Project>('/projects', data);
+        await fetchProjects();
+        return project;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('project.createSuccess') }
+    );
+    return result;
   }
 
   async function updateProject(
@@ -130,153 +94,90 @@ export function useProjects() {
     data: Partial<Project>,
     options: { silent?: boolean } = {},
   ): Promise<Project | null> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      const updatedProject = await api.patch<Project>(`/projects/${projectId}`, data);
-      if (!options.silent) {
-        toast.add({
-          title: t('common.success'),
-          description: t('project.updateSuccess'),
-          color: 'success',
-        });
+    const [, result] = await executeAction(
+      async () => {
+        const updatedProject = await api.patch<Project>(`/projects/${projectId}`, data);
+        store.updateProject(projectId, updatedProject as ProjectWithRole);
+        return updatedProject;
+      },
+      { 
+        loadingRef: loadingBinding, 
+        errorRef: errorBinding,
+        successMessage: !options.silent ? t('project.updateSuccess') : undefined,
       }
-      store.updateProject(projectId, updatedProject as ProjectWithRole);
-      return updatedProject;
-    } catch (err: any) {
-      const isConflict =
-        err.statusCode === 409 || err.status === 409 || err.response?.status === 409;
-      const message = err.message || 'Failed to update project';
-      store.setError(message);
-
-      // Always show error for conflicts, even if silent save
-      if (!options.silent || isConflict) {
-        toast.add({
-          title: isConflict ? t('common.error') : t('common.error'),
-          description: message,
-          color: 'error',
-          duration: isConflict ? 10000 : 5000,
-        });
-      }
-
-      // If conflict, optionally refetch to get latest data
-      if (isConflict) {
-        fetchProject(projectId);
-      }
-
-      return null;
-    } finally {
-      store.setLoading(false);
+    );
+    
+    // Explicitly handle conflict refetch
+    // Not needed usually, but logic was inside catch
+    if (!result && error.value && error.value.includes('409')) {
+      fetchProject(projectId);
     }
+    
+    return result;
   }
 
   async function deleteProject(projectId: string): Promise<boolean> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      await api.delete(`/projects/${projectId}`);
-      toast.add({
-        title: t('common.success'),
-        description: t('project.deleteSuccess'),
-        color: 'success',
-      });
-      store.removeProject(projectId);
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to delete project';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      store.setLoading(false);
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.delete(`/projects/${projectId}`);
+        store.removeProject(projectId);
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('project.deleteSuccess') }
+    );
+    return !err;
   }
 
   async function archiveProject(projectId: string): Promise<Project | null> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      await archiveEntity(ArchiveEntityType.PROJECT, projectId);
-      // Refetch project to get updated state
-      const updatedProject = await fetchProject(projectId);
-
-      // Explicitly update the project in the list or remove it if we want it gone immediately
-      if (updatedProject) {
-        store.updateProject(projectId, updatedProject);
-      }
-
-      return store.currentProject;
-    } catch (err: any) {
-      // Error already handled by useArchive
-      return null;
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        await archiveEntity(ArchiveEntityType.PROJECT, projectId);
+        const updatedProject = await fetchProject(projectId);
+        if (updatedProject) {
+          store.updateProject(projectId, updatedProject);
+        }
+        return store.currentProject;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true } // useArchive already handles errors
+    );
+    return result;
   }
 
   async function unarchiveProject(projectId: string): Promise<Project | null> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      await restoreEntity(ArchiveEntityType.PROJECT, projectId);
-      const updatedProject = await fetchProject(projectId);
-
-      if (updatedProject) {
-        store.updateProject(projectId, updatedProject);
-      }
-
-      return store.currentProject;
-    } catch (err: any) {
-      return null;
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        await restoreEntity(ArchiveEntityType.PROJECT, projectId);
+        const updatedProject = await fetchProject(projectId);
+        if (updatedProject) {
+          store.updateProject(projectId, updatedProject);
+        }
+        return store.currentProject;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+    );
+    return result;
   }
 
   async function fetchMembers(projectId: string): Promise<ProjectMemberWithUser[]> {
-    store.setLoading(true);
-    try {
-      const data = await api.get<ProjectMemberWithUser[]>(`/projects/${projectId}/members`);
-      store.setMembers(data);
-      return data;
-    } catch (err: any) {
-      logger.error('[useProjects] fetchMembers error', err);
-      return [];
-    } finally {
-      store.setLoading(false);
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const data = await api.get<ProjectMemberWithUser[]>(`/projects/${projectId}/members`);
+        store.setMembers(data);
+        return data;
+      },
+      { loadingRef: loadingBinding, silentErrors: true }
+    );
+    return result || [];
   }
 
   async function addMember(projectId: string, username: string, roleId: string): Promise<boolean> {
-    store.setLoading(true);
-    try {
-      await api.post(`/projects/${projectId}/members`, { username, roleId });
-      toast.add({
-        title: t('common.success'),
-        description: t('projectMember.addSuccess'),
-        color: 'success',
-      });
-      await fetchMembers(projectId);
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to add member';
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      store.setLoading(false);
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.post(`/projects/${projectId}/members`, { username, roleId });
+        await fetchMembers(projectId);
+      },
+      { loadingRef: loadingBinding, successMessage: t('projectMember.addSuccess') }
+    );
+    return !err;
   }
 
   async function updateMemberRoleId(
@@ -284,51 +185,25 @@ export function useProjects() {
     userId: string,
     roleId: string,
   ): Promise<boolean> {
-    store.setLoading(true);
-    try {
-      await api.patch(`/projects/${projectId}/members/${userId}`, { roleId });
-      toast.add({
-        title: t('common.success'),
-        description: t('projectMember.updateSuccess'),
-        color: 'success',
-      });
-      await fetchMembers(projectId);
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to update member role';
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      store.setLoading(false);
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.patch(`/projects/${projectId}/members/${userId}`, { roleId });
+        await fetchMembers(projectId);
+      },
+      { loadingRef: loadingBinding, successMessage: t('projectMember.updateSuccess') }
+    );
+    return !err;
   }
 
   async function removeMember(projectId: string, userId: string): Promise<boolean> {
-    store.setLoading(true);
-    try {
-      await api.delete(`/projects/${projectId}/members/${userId}`);
-      toast.add({
-        title: t('common.success'),
-        description: t('projectMember.removeSuccess'),
-        color: 'success',
-      });
-      await fetchMembers(projectId);
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to remove member';
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      store.setLoading(false);
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.delete(`/projects/${projectId}/members/${userId}`);
+        await fetchMembers(projectId);
+      },
+      { loadingRef: loadingBinding, successMessage: t('projectMember.removeSuccess') }
+    );
+    return !err;
   }
 
   function canEdit(project: ProjectWithRole): boolean {
@@ -468,30 +343,18 @@ export function useProjects() {
     projectId: string,
     data: { targetUsername: string; projectName: string; clearCredentials: boolean },
   ): Promise<boolean> {
-    store.setLoading(true);
-    store.setError(null);
-
-    try {
-      await api.post(`/projects/${projectId}/transfer`, data);
-      toast.add({
-        title: t('common.success'),
-        description: t('project.transferSuccess', 'Project transferred successfully'),
-        color: 'success',
-      });
-      await fetchProjects();
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to transfer project';
-      store.setError(message);
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      store.setLoading(false);
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.post(`/projects/${projectId}/transfer`, data);
+        await fetchProjects();
+      },
+      { 
+        loadingRef: loadingBinding, 
+        errorRef: errorBinding,
+        successMessage: t('project.transferSuccess', 'Project transferred successfully') 
+      }
+    );
+    return !err;
   }
 
   async function updateProjectOrder(order: string[]): Promise<boolean> {

@@ -138,31 +138,31 @@ const getProjectTooltip = (project: ProjectWithRole) => {
           <template #default="{ open }">
             <div 
               class="group flex items-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              :class="{ 'bg-gray-50 dark:bg-gray-800/50': open || route.path.includes(`/projects/${project.id}`) }"
+              :class="{ 'bg-gray-50 dark:bg-gray-800/50': open }"
             >
               <UTooltip :text="getProjectTooltip(project)" :popper="{ placement: 'right' }" class="flex-1 min-w-0">
                 <NuxtLink 
                   :to="`/projects/${project.id}`"
                   class="flex items-center gap-2.5 px-3 py-2 flex-1 min-w-0"
+                  @click.stop
                 >
                   <div class="w-2 h-2 rounded-full shrink-0" :class="getIndicatorColor(project)" />
                   <span class="truncate text-sm font-medium text-gray-700 dark:text-gray-200">{{ project.name }}</span>
                 </NuxtLink>
               </UTooltip>
 
-              <UCollapsibleTrigger as-child>
-                <UButton
-                  variant="ghost"
-                  color="neutral"
-                  icon="i-heroicons-chevron-right"
-                  size="xs"
-                  class="p-1 mr-1 transition-transform duration-200"
-                  :class="{ 'rotate-90': open }"
-                  @click="!projectChannels[project.id] && fetchProjectChannels(project.id)"
-                />
-              </UCollapsibleTrigger>
+              <UButton
+                variant="ghost"
+                color="neutral"
+                icon="i-heroicons-chevron-right"
+                size="xs"
+                class="p-1 mr-1 transition-transform duration-200"
+                :class="{ 'rotate-90': open }"
+                @click="!projectChannels[project.id] && fetchProjectChannels(project.id)"
+              />
             </div>
           </template>
+
 
           <template #content>
             <div class="pl-7 pr-2 py-2 flex flex-col gap-2 border-l border-gray-100 dark:border-gray-800 ml-4 mb-1">
@@ -191,6 +191,7 @@ const getProjectTooltip = (project: ProjectWithRole) => {
           </template>
         </UCollapsible>
       </template>
+
     </div>
 
     <!-- Bottom Items -->

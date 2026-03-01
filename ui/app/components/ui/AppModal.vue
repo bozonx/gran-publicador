@@ -66,51 +66,29 @@ function handleClose(close?: () => void) {
     v-model:open="isOpen"
     :dismissible="!props.preventClose"
     :title="props.title || 'Modal'"
-    :description="props.description || (props.title || 'Modal')"
+    :description="props.description"
     :ui="modalUi"
   >
-    <template #content="{ close }">
-      <div 
-        class="bg-white dark:bg-gray-900 shadow-xl overflow-hidden sm:rounded-2xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] min-h-0 w-full"
-        :class="modalUi.content"
-      >
-        <!-- Header -->
-        <div v-if="props.title || $slots.header || props.closeButton" class="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between shrink-0" :class="headerClass">
-          <div class="min-w-0 flex-1">
-            <slot name="header">
-              <DialogTitle v-if="props.title" as="h3" class="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                {{ props.title }}
-              </DialogTitle>
-              <DialogDescription :class="[props.description ? 'mt-1 text-sm text-gray-500 dark:text-gray-400' : 'sr-only']">
-                {{ props.description || props.title || 'Modal' }}
-              </DialogDescription>
-            </slot>
-          </div>
-          
-          <UButton
-            v-if="props.closeButton"
-            color="neutral"
-            variant="ghost"
-            icon="i-heroicons-x-mark"
-            class="-mr-2 ml-4"
-            size="md"
-            :aria-label="t('common.close')"
-            @click="handleClose(close)"
-          />
-        </div>
+    <!-- Custom header slot if provided -->
+    <template v-if="$slots.header" #header>
+      <slot name="header" />
+    </template>
 
-        <!-- Body -->
-        <div class="px-6 py-6 w-full overflow-y-auto flex-auto custom-scrollbar" :class="bodyClass">
-          <slot />
-        </div>
+    <!-- Body content -->
+    <template #body>
+      <div class="custom-scrollbar" :class="bodyClass">
+        <slot />
+      </div>
+    </template>
 
-        <!-- Footer -->
-        <div v-if="$slots.footer" class="px-6 py-4 bg-gray-50/50 dark:bg-gray-800/20 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3 shrink-0" :class="footerClass">
-          <slot name="footer" />
-        </div>
+    <!-- Footer content -->
+    <template v-if="$slots.footer" #footer>
+      <div class="flex justify-end gap-3 w-full" :class="footerClass">
+        <slot name="footer" />
       </div>
     </template>
   </UModal>
+
 </template>
 
 <style scoped>

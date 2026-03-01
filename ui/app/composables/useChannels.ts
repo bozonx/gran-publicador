@@ -32,7 +32,7 @@ export type {
 export function useChannels() {
   const api = useApi();
   const { t } = useI18n();
-  const toast = useToast();
+  const { executeAction } = useApiAction();
   const { archiveEntity, restoreEntity } = useArchive();
 
   const channels = ref<ChannelWithProject[]>([]);
@@ -75,191 +75,117 @@ export function useChannels() {
     },
     options: { append?: boolean } = {},
   ): Promise<ChannelWithProject[]> {
-    isFetchingList.value = true;
-    error.value = null;
+    const [, result] = await executeAction(
+      async () => {
+        const params: Record<string, string | number | boolean | undefined> = { ...filters };
 
-    try {
-      const params: Record<string, string | number | boolean | undefined> = { ...filters };
+        applyArchiveQueryFlags(params, {
+          includeArchived: filters?.includeArchived,
+          archivedOnly: filters?.archivedOnly,
+        });
 
-      applyArchiveQueryFlags(params, {
-        includeArchived: filters?.includeArchived,
-        archivedOnly: filters?.archivedOnly,
-      });
+        const response = await api.get<{
+          items: ChannelWithProject[];
+          meta: { total: number; limit: number; offset: number; totalUnfiltered?: number };
+        }>('/channels', { params });
 
-      const response = await api.get<{
-        items: ChannelWithProject[];
-        meta: { total: number; limit: number; offset: number; totalUnfiltered?: number };
-      }>('/channels', { params });
+        if (options.append) {
+          channels.value = [...channels.value, ...response.items];
+        } else {
+          channels.value = response.items;
+        }
 
-      if (options.append) {
-        channels.value = [...channels.value, ...response.items];
-      } else {
-        channels.value = response.items;
-      }
+        totalCount.value = response.meta.total;
+        totalUnfilteredCount.value = response.meta.totalUnfiltered ?? response.meta.total;
 
-      totalCount.value = response.meta.total;
-      totalUnfilteredCount.value = response.meta.totalUnfiltered ?? response.meta.total;
-
-      return response.items;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch channels';
-      error.value = message;
-      console.error('Error fetching channels:', err);
-      return [];
-    } finally {
-      isFetchingList.value = false;
-    }
+        return response.items;
+      },
+      { loadingRef: isFetchingList, errorRef: error, silentErrors: true }
+    );
+    return result || [];
   }
 
   async function fetchArchivedChannels(projectId: string): Promise<ChannelWithProject[]> {
-    isFetchingList.value = true;
-    error.value = null;
-
-    try {
-      const params: any = { projectId };
-      const data = await api.get<ChannelWithProject[]>('/channels/archived', { params });
-      return data;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch archived channels';
-      error.value = message;
-      console.error('Error fetching archived channels:', err);
-      return [];
-    } finally {
-      isFetchingList.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const params: any = { projectId };
+        return await api.get<ChannelWithProject[]>('/channels/archived', { params });
+      },
+      { loadingRef: isFetchingList, errorRef: error, silentErrors: true }
+    );
+    return result || [];
   }
 
   async function fetchChannel(channelId: string): Promise<ChannelWithProject | null> {
-    isFetchingChannel.value = true;
-    error.value = null;
-
-    try {
-      const data = await api.get<ChannelWithProject>(`/channels/${channelId}`);
-      currentChannel.value = data;
-      return data;
-    } catch (err: any) {
-      const message = err.message || 'Failed to fetch channel';
-      error.value = message;
-      return null;
-    } finally {
-      isFetchingChannel.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const data = await api.get<ChannelWithProject>(`/channels/${channelId}`);
+        currentChannel.value = data;
+        return data;
+      },
+      { loadingRef: isFetchingChannel, errorRef: error, silentErrors: true }
+    );
+    return result;
   }
 
   async function createChannel(data: ChannelCreateInput): Promise<Channel | null> {
-    isSaving.value = true;
-    error.value = null;
-
-    try {
-      const channel = await api.post<Channel>('/channels', data);
-      toast.add({
-        title: t('common.success'),
-        description: t('channel.createSuccess'),
-        color: 'success',
-      });
-      if (data.projectId) {
-        await fetchChannels({ projectId: data.projectId });
-      }
-      eventBus.emit('channel:created', channel);
-      return channel;
-    } catch (err: any) {
-      const message = err.message || 'Failed to create channel';
-      error.value = message;
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return null;
-    } finally {
-      isSaving.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        const channel = await api.post<Channel>('/channels', data);
+        if (data.projectId) {
+          await fetchChannels({ projectId: data.projectId });
+        }
+        eventBus.emit('channel:created', channel);
+        return channel;
+      },
+      { loadingRef: isSaving, errorRef: error, successMessage: t('channel.createSuccess') }
+    );
+    return result;
   }
 
   async function updateChannel(
     channelId: string,
     data: ChannelUpdateInput,
   ): Promise<Channel | null> {
-    isSaving.value = true;
-    error.value = null;
-
-    try {
-      const updatedChannel = await api.patch<Channel>(`/channels/${channelId}`, data);
-      toast.add({
-        title: t('common.success'),
-        description: t('channel.updateSuccess'),
-        color: 'success',
-      });
-      return updatedChannel;
-    } catch (err: any) {
-      const message = err.message || 'Failed to update channel';
-      error.value = message;
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return null;
-    } finally {
-      isSaving.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        return await api.patch<Channel>(`/channels/${channelId}`, data);
+      },
+      { loadingRef: isSaving, errorRef: error, successMessage: t('channel.updateSuccess') }
+    );
+    return result;
   }
 
   async function deleteChannel(channelId: string): Promise<boolean> {
-    isDeleting.value = true;
-    error.value = null;
-
-    try {
-      await api.delete(`/channels/${channelId}`);
-      toast.add({
-        title: t('common.success'),
-        description: t('channel.deleteSuccess'),
-        color: 'success',
-      });
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to delete channel';
-      error.value = message;
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      isDeleting.value = false;
-    }
+    const [err] = await executeAction(
+      async () => {
+        await api.delete(`/channels/${channelId}`);
+      },
+      { loadingRef: isDeleting, errorRef: error, successMessage: t('channel.deleteSuccess') }
+    );
+    return !err;
   }
 
   async function archiveChannel(channelId: string): Promise<Channel | null> {
-    isSaving.value = true;
-    error.value = null;
-
-    try {
-      await archiveEntity(ArchiveEntityType.CHANNEL, channelId);
-      // Refresh
-      const current = await fetchChannel(channelId);
-      return current;
-    } catch (err: any) {
-      return null;
-    } finally {
-      isSaving.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        await archiveEntity(ArchiveEntityType.CHANNEL, channelId);
+        return await fetchChannel(channelId);
+      },
+      { loadingRef: isSaving, errorRef: error, silentErrors: true }
+    );
+    return result;
   }
 
   async function unarchiveChannel(channelId: string): Promise<Channel | null> {
-    isSaving.value = true;
-    error.value = null;
-
-    try {
-      await restoreEntity(ArchiveEntityType.CHANNEL, channelId);
-      const current = await fetchChannel(channelId);
-      return current;
-    } catch (err: any) {
-      return null;
-    } finally {
-      isSaving.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => {
+        await restoreEntity(ArchiveEntityType.CHANNEL, channelId);
+        return await fetchChannel(channelId);
+      },
+      { loadingRef: isSaving, errorRef: error, silentErrors: true }
+    );
+    return result;
   }
 
   async function toggleChannelActive(channelId: string): Promise<boolean> {
