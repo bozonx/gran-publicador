@@ -15,6 +15,8 @@ import { PermissionKey } from '../../common/types/permissions.types.js';
 import { ChannelsMapper } from './channels.mapper.js';
 import { BaseCrudService } from '../../common/services/base-crud.service.js';
 import { ChannelIssuesPattern } from './utils/channel-issues.util.js';
+import { ChannelPreferencesUtil } from './utils/channel-preferences.util.js';
+import { ChannelFiltersUtil } from './utils/channel-filters.util.js';
 
 @Injectable()
 export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
@@ -34,48 +36,11 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
     return normalizeLocale(code, { defaultLocale: 'en-US' });
   }
 
-  private getJsonObject(value: unknown): Record<string, unknown> {
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-    return value as Record<string, unknown>;
-  }
-
-  private getChannelPreferences(value: unknown): {
-    disableNotification?: boolean;
-    protectContent?: boolean;
-    staleChannelsDays?: number;
-    templates?: Array<{
-      projectTemplateId: string;
-      excluded?: boolean;
-      overrides?: Record<string, unknown>;
-    }>;
-  } {
-    const prefs = this.getJsonObject(value);
-    const templates = prefs.templates;
-
-    return {
-      disableNotification:
-        typeof prefs.disableNotification === 'boolean' ? prefs.disableNotification : undefined,
-      protectContent: typeof prefs.protectContent === 'boolean' ? prefs.protectContent : undefined,
-      staleChannelsDays:
-        typeof prefs.staleChannelsDays === 'number' ? prefs.staleChannelsDays : undefined,
-      templates: Array.isArray(templates)
-        ? templates
-            .map(t => this.getJsonObject(t))
-            .filter(t => typeof t.projectTemplateId === 'string')
-            .map(t => ({
-              projectTemplateId: t.projectTemplateId as string,
-              excluded: typeof t.excluded === 'boolean' ? t.excluded : undefined,
-              overrides: this.getJsonObject(t.overrides),
-            }))
-        : undefined,
-    };
-  }
-
   private async validateChannelTemplateReferences(
     projectId: string,
     preferences: unknown,
   ): Promise<void> {
-    const templates = this.getChannelPreferences(preferences).templates;
+    const templates = ChannelPreferencesUtil.parse(preferences).templates;
     if (!templates || templates.length === 0) return;
 
     // Validate uniqueness by projectTemplateId (single adaptation per template)
@@ -359,14 +324,7 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
       select: { isAdmin: true },
     });
 
-    const where: any = {};
-    if (filters.archivedOnly) {
-      where.OR = [{ archivedAt: { not: null } }, { project: { archivedAt: { not: null } } }];
-    } else if (!filters.includeArchived) {
-      where.archivedAt = null;
-      where.project = { archivedAt: null };
-    }
-
+    let userAllowedProjectIds: string[] = [];
     if (!user?.isAdmin) {
       const projectWhere: any = {
         OR: [{ ownerId: userId }, { members: { some: { userId } } }],
@@ -382,90 +340,18 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
         where: projectWhere,
         select: { id: true },
       });
-      const userAllowedProjectIds = userProjects.map(p => p.id);
-
-      if (userAllowedProjectIds.length === 0) return { items: [], total: 0, totalUnfiltered: 0 };
-
-      if (filters.projectIds && filters.projectIds.length > 0) {
-        const allowedIds = filters.projectIds.filter(id => userAllowedProjectIds.includes(id));
-        if (allowedIds.length === 0) return { items: [], total: 0, totalUnfiltered: 0 };
-        where.projectId = { in: allowedIds };
-      } else {
-        where.projectId = { in: userAllowedProjectIds };
-      }
-    } else {
-      // Admin can see all, but filter if projectIds provided
-      if (filters.projectIds && filters.projectIds.length > 0) {
-        where.projectId = { in: filters.projectIds };
-      }
-
-      // If ownership filter is set for admin, we need to respect it relative to their own user ID
-      if (filters.ownership) {
-        if (filters.ownership === 'own') {
-          // Projects owned by admin
-          where.project = { ...where.project, ownerId: userId };
-        } else if (filters.ownership === 'guest') {
-          // Projects where admin is a member but not owner
-          where.project = {
-            ...where.project,
-            ownerId: { not: userId },
-            members: { some: { userId } },
-          };
-        }
-      }
+      userAllowedProjectIds = userProjects.map(p => p.id);
+    }
+    
+    const where = ChannelFiltersUtil.buildWhereClause(filters, user as { isAdmin: boolean }, userAllowedProjectIds, userId);
+    
+    // Quick exit if it's impossible to match any projects
+    if ((where as any).id && (where as any).id.in && (where as any).id.in.length === 0) {
+      return { items: [], total: 0, totalUnfiltered: 0 };
     }
 
-    const andConditions: any[] = [];
-    if (filters.search) {
-      andConditions.push({
-        OR: [
-          { name: { contains: filters.search, mode: 'insensitive' } },
-          { channelIdentifier: { contains: filters.search, mode: 'insensitive' } },
-        ],
-      });
-    }
-
-    if (filters.socialMedia) where.socialMedia = filters.socialMedia;
-    if (filters.language) where.language = filters.language;
-
-    if (filters.issueType) {
-      if (filters.issueType === 'inactive') {
-        andConditions.push(ChannelIssuesPattern.getInactiveCondition());
-      } else if (filters.issueType === 'noCredentials') {
-        andConditions.push(ChannelIssuesPattern.getNoCredentialsCondition());
-      } else if (filters.issueType === 'failedPosts') {
-        andConditions.push(ChannelIssuesPattern.getFailedPostsCondition());
-      } else if (filters.issueType === 'stale') {
-        andConditions.push(ChannelIssuesPattern.getStaleCondition());
-      } else if (filters.issueType === 'problematic') {
-        andConditions.push(ChannelIssuesPattern.getProblematicCondition());
-      }
-    }
-
-    if (andConditions.length > 0) where.AND = andConditions;
-
-    const orderBy: any[] = [];
-    const sortField = filters.sortBy ?? 'alphabetical';
-    const sortOrder = filters.sortOrder ?? 'asc';
-    if (sortField === 'alphabetical') {
-      orderBy.push({ name: sortOrder }, { id: 'asc' });
-    } else if (sortField === 'socialMedia') {
-      orderBy.push({ socialMedia: sortOrder }, { name: 'asc' }, { id: 'asc' });
-    } else if (sortField === 'language') {
-      orderBy.push({ language: sortOrder }, { name: 'asc' }, { id: 'asc' });
-    } else if (sortField === 'postsCount') {
-      orderBy.push({ posts: { _count: sortOrder } }, { name: 'asc' }, { id: 'asc' });
-    } else {
-      orderBy.push({ name: sortOrder }, { id: 'asc' });
-    }
-
-    const unfilteredWhere: any = { archivedAt: null, project: { archivedAt: null } };
-    if (!user?.isAdmin) {
-      unfilteredWhere.projectId = where.projectId;
-      if (filters.ownership) {
-        unfilteredWhere.project = { ...unfilteredWhere.project, ...where.project };
-      }
-    }
+    const orderBy = ChannelFiltersUtil.buildOrderBy(filters);
+    const unfilteredWhere = ChannelFiltersUtil.buildUnfilteredWhere(filters, where, user as { isAdmin: boolean });
 
     const [channels, total, totalUnfiltered] = await Promise.all([
       this.prisma.channel.findMany({
