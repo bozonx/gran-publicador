@@ -12,52 +12,36 @@ export function useAuthorSignatures() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  const { executeAction } = useApiAction();
+
   async function fetchByProject(projectId: string): Promise<ProjectAuthorSignature[]> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.get<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures`);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch signatures';
-      return [];
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.get<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures`),
+      { loadingRef: isLoading, errorRef: error, silentErrors: true }
+    );
+    return result || [];
   }
 
   async function create(
     projectId: string,
     data: CreateAuthorSignatureInput,
   ): Promise<ProjectAuthorSignature | null> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.post<ProjectAuthorSignature>(
-        `/projects/${projectId}/author-signatures`,
-        data,
-      );
-    } catch (err: any) {
-      error.value = err.message || 'Failed to create signature';
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.post<ProjectAuthorSignature>(`/projects/${projectId}/author-signatures`, data),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return result;
   }
 
   async function update(
     id: string,
     data: UpdateAuthorSignatureInput,
   ): Promise<ProjectAuthorSignature | null> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to update signature';
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return result;
   }
 
   async function upsertVariant(
@@ -65,74 +49,43 @@ export function useAuthorSignatures() {
     language: string,
     data: UpsertVariantInput,
   ): Promise<ProjectAuthorSignatureVariant | null> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.put<ProjectAuthorSignatureVariant>(
-        `/author-signatures/${signatureId}/variants/${language}`,
-        data,
-      );
-    } catch (err: any) {
-      error.value = err.message || 'Failed to save variant';
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.put<ProjectAuthorSignatureVariant>(`/author-signatures/${signatureId}/variants/${language}`, data),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return result;
   }
 
   async function deleteVariant(signatureId: string, language: string): Promise<boolean> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      await api.delete(`/author-signatures/${signatureId}/variants/${language}`);
-      return true;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to delete variant';
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
+    const [err] = await executeAction(
+      async () => await api.delete(`/author-signatures/${signatureId}/variants/${language}`),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return !err;
   }
 
   async function reorder(projectId: string, data: { signatureIds: string[] }): Promise<ProjectAuthorSignature[]> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const items = await api.post<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures/reorder`, data);
-      return items;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to reorder signatures';
-      return [];
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.post<ProjectAuthorSignature[]>(`/projects/${projectId}/author-signatures/reorder`, data),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return result || [];
   }
 
   async function updateWithVariants(id: string, data: any): Promise<ProjectAuthorSignature | null> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to update signature';
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
+    const [, result] = await executeAction(
+      async () => await api.patch<ProjectAuthorSignature>(`/author-signatures/${id}`, data),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return result;
   }
 
   async function remove(id: string): Promise<boolean> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      await api.delete(`/author-signatures/${id}`);
-      return true;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to delete signature';
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
+    const [err] = await executeAction(
+      async () => await api.delete(`/author-signatures/${id}`),
+      { loadingRef: isLoading, errorRef: error }
+    );
+    return !err;
   }
 
   return {

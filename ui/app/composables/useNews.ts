@@ -9,8 +9,8 @@ export const useNews = () => {
   const api = useApi();
   const { user } = useAuth();
   const route = useRoute();
-  const toast = useToast();
   const { t } = useI18n();
+  const { executeAction } = useApiAction();
   const projectId = computed(() => route.params.id as string);
 
   const cursorPagination = useCursorPagination<NewsItem, SearchNewsParams & { pId: string }>({
@@ -47,16 +47,7 @@ export const useNews = () => {
           id: it.id || it._id || it.shortId,
         }));
         nextCursor = res.nextCursor;
-      } else if (Array.isArray(res)) {
-        items = res.map((it: any) => ({
-          ...it,
-          id: it.id || it._id || it.shortId,
-        }));
-        if (items.length >= NEWS_LIMIT) {
-           // We don't have a cursor in legacy array response, but we can't reliably guess next page here
-        }
       }
-
       return { items, nextCursor };
     }
   });
@@ -67,17 +58,10 @@ export const useNews = () => {
     isLoadMore = false,
   ) => {
     const pId = customProjectId || projectId.value;
-    try {
-      await cursorPagination.load({ ...params, pId }, isLoadMore);
-    } catch (err: any) {
-      logger.error('Failed to search news', err);
-      toast.add({
-        title: t('news.searchErrorTitle'),
-        description: err.message || 'Failed to search news',
-        color: 'error',
-        icon: 'i-heroicons-exclamation-triangle',
-      });
-    }
+    await executeAction(
+      async () => await cursorPagination.load({ ...params, pId }, isLoadMore),
+      { silentErrors: false }
+    );
   };
 
   const fetchNewsContent = async (
@@ -90,76 +74,74 @@ export const useNews = () => {
     const pId = customProjectId || projectId.value;
     if (!pId) throw new Error('Project ID is required');
 
-    try {
-      const res = await api.post<any>(`/projects/${pId}/news/${newsId}/content`, {
+    const [, res] = await executeAction(
+      async () => await api.post<any>(`/projects/${pId}/news/${newsId}/content`, {
         force,
         contentLength: item.contentLength ?? 0,
         title: item.title,
         description: item.description,
         locale,
-      });
-      return {
-        title: res.title || res.item?.title,
-        body: res.content || res.body || res.item?.content || res.item?.description,
-        image: res.image || res.mainImageUrl || res.item?.mainImageUrl || res.item?.mainVideoUrl,
-        date: res.date || res.savedAt || res.publishedAt || res.item?.date || res.item?.savedAt || res.item?._savedAt,
-        url: res.url || res.item?.url,
-        author: res.author || res.item?.publisher || res.item?._source,
-        description: res.description || res.item?.description,
-      };
-    } catch (err: any) {
-      logger.error('Failed to fetch news content', err);
-      throw err;
-    }
+      }),
+      { throwOnError: true }
+    );
+
+    if (!res) return null;
+
+    return {
+      title: res.title || res.item?.title,
+      body: res.content || res.body || res.item?.content || res.item?.description,
+      image: res.image || res.mainImageUrl || res.item?.mainImageUrl || res.item?.mainVideoUrl,
+      date: res.date || res.savedAt || res.publishedAt || res.item?.date || res.item?.savedAt || res.item?._savedAt,
+      url: res.url || res.item?.url,
+      author: res.author || res.item?.publisher || res.item?._source,
+      description: res.description || res.item?.description,
+    };
   };
 
   const getQueries = async (customProjectId?: string) => {
     const pId = customProjectId || projectId.value;
     if (!pId) return [];
-    return await api.get<any[]>(`/projects/${pId}/news-queries`);
+    const [, res] = await executeAction(async () => await api.get<any[]>(`/projects/${pId}/news-queries`), { silentErrors: true });
+    return res || [];
   };
 
   const createQuery = async (query: any, customProjectId?: string) => {
     const pId = customProjectId || projectId.value;
-    return await api.post(`/projects/${pId}/news-queries`, query);
+    const [, res] = await executeAction(async () => await api.post(`/projects/${pId}/news-queries`, query));
+    return res;
   };
 
   const updateQuery = async (id: string, query: any, customProjectId?: string) => {
     const pId = customProjectId || projectId.value;
-    return await api.patch(`/projects/${pId}/news-queries/${id}`, query);
+    const [, res] = await executeAction(async () => await api.patch(`/projects/${pId}/news-queries/${id}`, query));
+    return res;
   };
 
   const deleteQuery = async (id: string, customProjectId?: string) => {
     const pId = customProjectId || projectId.value;
-    return await api.delete(`/projects/${pId}/news-queries/${id}`);
+    const [err] = await executeAction(async () => await api.delete(`/projects/${pId}/news-queries/${id}`));
+    return !err;
   };
 
   const getDefaultQueries = async () => {
-    return await api.get<any[]>('/news-queries/default');
+    const [, res] = await executeAction(async () => await api.get<any[]>('/news-queries/default'), { silentErrors: true });
+    return res || [];
   };
 
   const updateNewsQueryOrder = async (order: string[]) => {
     if (!user.value) return false;
-    try {
+    const [err] = await executeAction(async () => {
       await api.patch('/users/me', { newsQueryOrder: order });
       if (user.value) user.value.newsQueryOrder = order;
-      return true;
-    } catch (err) {
-      logger.error('Failed to update news query order', err);
-      return false;
-    }
+    });
+    return !err;
   };
 
   const reorderQueries = async (ids: string[], customProjectId?: string) => {
     const pId = customProjectId || projectId.value;
     if (!pId) return false;
-    try {
-      await api.patch(`/projects/${pId}/news-queries/reorder`, { ids });
-      return true;
-    } catch (err) {
-      logger.error('Failed to reorder news queries', err);
-      return false;
-    }
+    const [err] = await executeAction(async () => await api.patch(`/projects/${pId}/news-queries/reorder`, { ids }));
+    return !err;
   };
 
   return {

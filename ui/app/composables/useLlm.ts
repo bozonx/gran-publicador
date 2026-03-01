@@ -73,7 +73,7 @@ export { LlmErrorType };
 
 export function useLlm() {
   const api = useApi();
-  const { post } = api;
+  const { executeAction } = useApiAction();
   const isGenerating = ref(false);
   const error = ref<LlmError | null>(null);
   const isAborted = ref(false);
@@ -86,158 +86,88 @@ export function useLlm() {
   function getErrorType(err: any): LlmErrorType {
     if (!err) return LlmErrorType.UNKNOWN;
 
-    // Abort errors
-    if (
-      String(err.message || '')
-        .toLowerCase()
-        .includes('aborted')
-    ) {
+    if (String(err.message || '').toLowerCase().includes('aborted')) {
       return LlmErrorType.ABORTED;
     }
 
-    // Network errors
     if (err.name === 'NetworkError' || err.message?.includes('network')) {
       return LlmErrorType.NETWORK;
     }
 
-    // Timeout errors
     if (err.name === 'TimeoutError' || err.message?.includes('timeout')) {
       return LlmErrorType.TIMEOUT;
     }
 
     const statusCode = err.status ?? err.statusCode;
-
-    // Rate limit (429)
-    if (statusCode === 429) {
-      return LlmErrorType.RATE_LIMIT;
-    }
-
-    // Gateway errors (502 Bad Gateway, 504 Gateway Timeout)
-    if (statusCode === 502 || statusCode === 504) {
-      return LlmErrorType.GATEWAY_ERROR;
-    }
-
-    // Other server errors (5xx)
-    if (statusCode >= 500) {
-      return LlmErrorType.SERVER;
-    }
+    if (statusCode === 429) return LlmErrorType.RATE_LIMIT;
+    if (statusCode === 502 || statusCode === 504) return LlmErrorType.GATEWAY_ERROR;
+    if (statusCode >= 500) return LlmErrorType.SERVER;
 
     return LlmErrorType.UNKNOWN;
   }
 
-  /**
-   * Checks if an error type is retryable.
-   */
-  function isRetryableError(errorType: LlmErrorType): boolean {
-    return [
-      LlmErrorType.NETWORK,
-      LlmErrorType.TIMEOUT,
-      LlmErrorType.GATEWAY_ERROR,
-      LlmErrorType.SERVER,
-    ].includes(errorType);
-  }
-
-  /**
-   * Generate content using LLM API.
-   * Now supports sending raw context data to backend for processing.
-   */
   async function generateContent(
     prompt: string,
     options?: GenerateLlmOptions,
   ): Promise<LlmResponse | null> {
-    isGenerating.value = true;
-    error.value = null;
     isAborted.value = false;
     activeController.value?.abort();
     activeController.value = api.createAbortController();
 
-    try {
-      const response = await post<LlmResponse>(
+    const [err, response] = await executeAction(
+      async () => await api.post<LlmResponse>(
         '/llm/generate',
-        {
-          prompt,
-          ...options,
-        },
-        { signal: activeController.value.signal },
-      );
+        { prompt, ...options },
+        { signal: activeController.value?.signal },
+      ),
+      { loadingRef: isGenerating, silentErrors: true }
+    );
 
-      return response;
-    } catch (err: any) {
+    if (err) {
       const errorType = getErrorType(err);
-      const msg = err.data?.message || err.message || 'Failed to generate content';
-
-      if (errorType === LlmErrorType.ABORTED) {
-        isAborted.value = true;
-      }
-
+      if (errorType === LlmErrorType.ABORTED) isAborted.value = true;
       error.value = {
         type: errorType,
-        message: msg,
+        message: (err as any).data?.message || err.message || 'Failed to generate content',
         originalError: err,
       };
-
-      console.error('LLM: Generation error:', err);
       return null;
-    } finally {
-      isGenerating.value = false;
-      activeController.value = null;
     }
+
+    return response;
   }
 
-  /**
-   * Estimates the number of tokens in a text.
-   * Simple heuristic: ~4 characters per token.
-   */
-  function estimateTokens(text: string): number {
-    if (!text) return 0;
-    return Math.ceil(text.length / 4);
-  }
-
-  /**
-   * Generate publication fields and per-channel post fields using LLM.
-   */
   async function generatePublicationFields(
     prompt: string,
     publicationLanguage: string,
     channels: ChannelInfoForLlm[],
     options?: GeneratePublicationFieldsOptions,
   ): Promise<LlmPublicationFieldsResult | null> {
-    isGenerating.value = true;
-    error.value = null;
     isAborted.value = false;
     activeController.value?.abort();
     activeController.value = api.createAbortController();
 
-    try {
-      const response = await post<LlmPublicationFieldsResult>(
+    const [err, response] = await executeAction(
+      async () => await api.post<LlmPublicationFieldsResult>(
         '/llm/generate-publication-fields',
-        {
-          prompt,
-          publicationLanguage,
-          channels,
-          ...options,
-        },
-        { signal: activeController.value.signal },
-      );
-      return response;
-    } catch (err: any) {
+        { prompt, publicationLanguage, channels, ...options },
+        { signal: activeController.value?.signal },
+      ),
+      { loadingRef: isGenerating, silentErrors: true }
+    );
+
+    if (err) {
       const errorType = getErrorType(err);
-      const msg = err.data?.message || err.message || 'Failed to generate publication fields';
-
-      if (errorType === LlmErrorType.ABORTED) {
-        isAborted.value = true;
-      }
-
+      if (errorType === LlmErrorType.ABORTED) isAborted.value = true;
       error.value = {
         type: errorType,
-        message: msg,
+        message: (err as any).data?.message || err.message || 'Failed to generate publication fields',
         originalError: err,
       };
       return null;
-    } finally {
-      isGenerating.value = false;
-      activeController.value = null;
     }
+
+    return response;
   }
 
   function stop() {
@@ -250,8 +180,13 @@ export function useLlm() {
     isAborted,
     generateContent,
     generatePublicationFields,
-    estimateTokens,
-    isRetryableError,
+    estimateTokens: (text: string) => (!text ? 0 : Math.ceil(text.length / 4)),
+    isRetryableError: (type: LlmErrorType) => ([
+      LlmErrorType.NETWORK, 
+      LlmErrorType.TIMEOUT, 
+      LlmErrorType.GATEWAY_ERROR, 
+      LlmErrorType.SERVER
+    ] as string[]).includes(type),
     stop,
   };
 }
