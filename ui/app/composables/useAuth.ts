@@ -11,6 +11,7 @@ import { useChannelsStore } from '~/stores/channels';
 import { usePublicationsStore } from '~/stores/publications';
 import { usePostsStore } from '~/stores/posts';
 import { useNewsStore } from '~/stores/news';
+import { useMediaStore } from '~/stores/media';
 import type { User, AuthResponse } from '~/types/user';
 import { logger } from '~/utils/logger';
 
@@ -98,6 +99,7 @@ export const useAuth = () => {
     usePublicationsStore().reset();
     usePostsStore().reset();
     useNewsStore().reset();
+    useMediaStore().reset();
     
     navigateTo('/auth/login');
   }

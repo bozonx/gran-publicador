@@ -1,35 +1,46 @@
-import { ref } from 'vue';
-import { useApi } from '../useApi';
+import { computed } from 'vue';
+import { useApi, useApiAction } from '#imports';
 import { useRuntimeConfig } from '#app';
+import { useMediaStore } from '~/stores/media';
 import type { MediaItem } from '~/types/media';
 
 export function useMediaUpload() {
   const api = useApi();
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  const { executeAction } = useApiAction();
+  const store = useMediaStore();
+
+  // Helper bindings for store state
+  const loadingBinding = computed({
+    get: () => store.isLoading,
+    set: (val) => store.setLoading(val)
+  });
+  const errorBinding = computed({
+    get: () => store.error,
+    set: (val) => store.setError(val)
+  });
 
   async function uploadMedia(
     file: File,
     onUploadProgress?: (progress: number) => void,
     optimize?: Record<string, any>,
     projectId?: string,
-  ): Promise<MediaItem> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const formData = new FormData();
-      if (projectId) formData.append('projectId', projectId);
-      if (optimize) formData.append('optimize', JSON.stringify(optimize));
-      formData.append('fileSize', String(file.size));
-      formData.append('file', file);
+  ): Promise<MediaItem | null> {
+    const [, result] = await executeAction(
+      async () => {
+        const formData = new FormData();
+        if (projectId) formData.append('projectId', projectId);
+        if (optimize) formData.append('optimize', JSON.stringify(optimize));
+        formData.append('fileSize', String(file.size));
+        formData.append('file', file);
 
-      return await api.post<MediaItem>('/media/upload', formData, { onUploadProgress });
-    } catch (err: any) {
-      error.value = err.message || 'Failed to upload media';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+        const media = await api.post<MediaItem>('/media/upload', formData, { onUploadProgress });
+        store.setItems([media, ...store.items]);
+        store.setTotalCount(store.totalCount + 1);
+        return media;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding }
+    );
+    return result;
   }
 
   async function uploadMediaStream(
@@ -40,8 +51,8 @@ export function useMediaUpload() {
     projectId?: string,
     onProgress?: (progress: number) => void,
   ): Promise<MediaItem> {
-    isLoading.value = true;
-    error.value = null;
+    store.setLoading(true);
+    store.setError(null);
     try {
       const config = useRuntimeConfig();
       const rawApiBase = (config.public.apiBase as string) || '';
@@ -65,7 +76,7 @@ export function useMediaUpload() {
         offset += chunk.byteLength;
       }
 
-      return new Promise<MediaItem>((resolve, reject) => {
+      const media = await new Promise<MediaItem>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.withCredentials = true;
         if (onProgress) {
@@ -95,11 +106,15 @@ export function useMediaUpload() {
         if (projectId) xhr.setRequestHeader('x-project-id', projectId);
         xhr.send(buffer.buffer);
       });
+
+      store.setItems([media, ...store.items]);
+      store.setTotalCount(store.totalCount + 1);
+      return media;
     } catch (err: any) {
-      error.value = err.message || 'Failed to upload media stream';
+      store.setError(err.message || 'Failed to upload media stream');
       throw err;
     } finally {
-      isLoading.value = false;
+      store.setLoading(false);
     }
   }
 
@@ -108,44 +123,43 @@ export function useMediaUpload() {
     file: File,
     optimize?: Record<string, any>,
     projectId?: string,
-  ): Promise<MediaItem> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      const formData = new FormData();
-      if (projectId) formData.append('projectId', projectId);
-      if (optimize) formData.append('optimize', JSON.stringify(optimize));
-      formData.append('fileSize', String(file.size));
-      formData.append('file', file);
-      return await api.post<MediaItem>(`/media/${id}/replace-file`, formData);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to replace media file';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+  ): Promise<MediaItem | null> {
+    const [, result] = await executeAction(
+      async () => {
+        const formData = new FormData();
+        if (projectId) formData.append('projectId', projectId);
+        if (optimize) formData.append('optimize', JSON.stringify(optimize));
+        formData.append('fileSize', String(file.size));
+        formData.append('file', file);
+        const media = await api.post<MediaItem>(`/media/${id}/replace-file`, formData);
+        store.updateMediaInList(id, media);
+        return media;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding }
+    );
+    return result;
   }
 
   async function uploadMediaFromUrl(
     url: string,
     filename?: string,
     optimize?: Record<string, any>,
-  ): Promise<MediaItem> {
-    isLoading.value = true;
-    error.value = null;
-    try {
-      return await api.post<MediaItem>('/media/upload-from-url', { url, filename, optimize });
-    } catch (err: any) {
-      error.value = err.message || 'Failed to upload media from URL';
-      throw err;
-    } finally {
-      isLoading.value = false;
-    }
+  ): Promise<MediaItem | null> {
+    const [, result] = await executeAction(
+      async () => {
+        const media = await api.post<MediaItem>('/media/upload-from-url', { url, filename, optimize });
+        store.setItems([media, ...store.items]);
+        store.setTotalCount(store.totalCount + 1);
+        return media;
+      },
+      { loadingRef: loadingBinding, errorRef: errorBinding }
+    );
+    return result;
   }
 
   return {
-    isLoading,
-    error,
+    isLoading: computed(() => store.isLoading),
+    error: computed(() => store.error),
     uploadMedia,
     uploadMediaStream,
     replaceMediaFile,
