@@ -12,6 +12,7 @@ import { usePublicationsStore } from '~/stores/publications';
 import { usePostsStore } from '~/stores/posts';
 import { useNewsStore } from '~/stores/news';
 import { useMediaStore } from '~/stores/media';
+import { useTemplatesStore } from '~/stores/templates';
 import type { User, AuthResponse } from '~/types/user';
 import { logger } from '~/utils/logger';
 
@@ -100,6 +101,7 @@ export const useAuth = () => {
     usePostsStore().reset();
     useNewsStore().reset();
     useMediaStore().reset();
+    useTemplatesStore().reset();
     
     navigateTo('/auth/login');
   }

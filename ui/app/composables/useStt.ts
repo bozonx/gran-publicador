@@ -1,11 +1,20 @@
 import { ref, watch, onUnmounted } from 'vue';
 import { io } from 'socket.io-client';
+import { storeToRefs } from 'pinia';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useSttStore } from '../stores/stt';
 import type { SttSocket } from '../stores/stt';
 
 export function useStt() {
   const sttStore = useSttStore();
+  const { 
+    transcription, 
+    isTranscribing, 
+    isRecording: storeIsRecording, 
+    recordingDuration: storeRecordingDuration, 
+    error 
+  } = storeToRefs(sttStore);
+
   const {
     isRecording,
     recordingDuration,
@@ -19,9 +28,12 @@ export function useStt() {
     onDataAvailable: handleDataAvailable,
   });
 
-  const transcription = ref('');
-  const isTranscribing = ref(false);
-  const error = ref<string | null>(null);
+  // Sync recorder state to store
+  watch(isRecording, (val) => sttStore.setIsRecording(val));
+  watch(recordingDuration, (val) => sttStore.setRecordingDuration(val));
+  watch(recorderError, (val) => {
+    if (val) sttStore.setError('recorderError');
+  });
 
   let socket: SttSocket | null = null;
 
@@ -46,9 +58,8 @@ export function useStt() {
   };
 
   const stopAllActivityOnError = () => {
-    // Optimistic UI reset: stop() may take a tick while MediaRecorder emits 'stop'
-    isTranscribing.value = false;
-    isRecording.value = false;
+    sttStore.setIsTranscribing(false);
+    sttStore.setIsRecording(false);
 
     activeWaitCleanup?.();
     activeWaitCleanup = null;
@@ -64,20 +75,20 @@ export function useStt() {
 
   const handleSocketTranscriptionError = (data?: { message: string }) => {
     console.error('STT Error received:', data?.message);
-    error.value = 'transcriptionError';
+    sttStore.setError('transcriptionError');
     stopAllActivityOnError();
   };
 
   const handleSocketError = (err: any) => {
     console.error('STT Socket error:', err);
-    error.value = 'socketConnectionError';
+    sttStore.setError('socketConnectionError');
     stopAllActivityOnError();
   };
 
   const handleSocketDisconnect = () => {
-    if (!isRecording.value && !isTranscribing.value) return;
+    if (!storeIsRecording.value && !isTranscribing.value) return;
     console.warn('STT Socket disconnected');
-    error.value = 'connectionLost';
+    sttStore.setError('connectionLost');
     stopAllActivityOnError();
   };
 
@@ -149,7 +160,7 @@ export function useStt() {
         });
       } catch (err) {
         console.error('STT socket connection failed:', err);
-        error.value = 'socketConnectionError';
+        sttStore.setError('socketConnectionError');
         // Clean up broken socket so next attempt creates a fresh one
         detachSocketListeners();
         newSocket.disconnect();
@@ -163,8 +174,8 @@ export function useStt() {
   }
 
   async function start(language?: string) {
-    error.value = null;
-    transcription.value = '';
+    sttStore.setError(null);
+    sttStore.setTranscription('');
 
     const permitted = await requestPermission();
     if (!permitted) return false;
@@ -191,11 +202,11 @@ export function useStt() {
       await stopRecording();
 
       if (!socket || !socket.connected) {
-        isTranscribing.value = false;
+        sttStore.setIsTranscribing(false);
         return '';
       }
 
-      isTranscribing.value = true;
+      sttStore.setIsTranscribing(true);
 
       // Prepare listeners BEFORE sending transcribe-end to avoid missing fast error/result events
       const waitPromise = waitForTranscription();
@@ -208,7 +219,7 @@ export function useStt() {
       socket.emit('transcribe-end');
       return await waitPromise;
     } finally {
-      isTranscribing.value = false;
+      sttStore.setIsTranscribing(false);
     }
   }
 
@@ -220,9 +231,9 @@ export function useStt() {
       if (socket && socket.connected) {
         socket.emit('transcribe-cancel');
       }
-      error.value = 'cancelled';
+      sttStore.setError('cancelled');
     } finally {
-      isTranscribing.value = false;
+      sttStore.setIsTranscribing(false);
     }
   }
 
@@ -230,14 +241,14 @@ export function useStt() {
    * One-shot transcription for a full blob (compatibility with LlmGeneratorModal)
    */
   async function transcribeAudio(blob: Blob, language?: string): Promise<string> {
-    error.value = null;
-    transcription.value = '';
+    sttStore.setError(null);
+    sttStore.setTranscription('');
 
     const connectedSocket = await ensureConnected();
     if (!connectedSocket) return '';
 
     try {
-      isTranscribing.value = true;
+      sttStore.setIsTranscribing(true);
 
       // Prepare listeners BEFORE sending transcribe-end to avoid missing fast error/result events
       const waitPromise = waitForTranscription();
@@ -254,7 +265,7 @@ export function useStt() {
 
       return await waitPromise;
     } finally {
-      isTranscribing.value = false;
+      sttStore.setIsTranscribing(false);
     }
   }
 
@@ -277,7 +288,7 @@ export function useStt() {
       const handleResult = (data: { text: string }) => {
         cleanup();
         activeWaitCleanup = null;
-        transcription.value = data.text;
+        sttStore.setTranscription(data.text);
         resolve(data.text);
       };
 
@@ -285,7 +296,7 @@ export function useStt() {
         console.error('STT Error received while waiting:', data?.message);
         cleanup();
         activeWaitCleanup = null;
-        error.value = 'transcriptionError';
+        sttStore.setError('transcriptionError');
         stopAllActivityOnError();
         resolve('');
       };
@@ -294,7 +305,7 @@ export function useStt() {
         console.warn('Socket disconnected while waiting for transcription');
         cleanup();
         activeWaitCleanup = null;
-        error.value = 'connectionLost';
+        sttStore.setError('connectionLost');
         stopAllActivityOnError();
         resolve('');
       };
@@ -308,7 +319,7 @@ export function useStt() {
         console.error('Transcription timed out');
         cleanup();
         activeWaitCleanup = null;
-        error.value = 'timeout';
+        sttStore.setError('timeout');
         resolve('');
       }, 600000);
     });
@@ -331,8 +342,8 @@ export function useStt() {
   );
 
   return {
-    isRecording,
-    recordingDuration,
+    isRecording: storeIsRecording,
+    recordingDuration: storeRecordingDuration,
     isTranscribing,
     transcription,
     error,
