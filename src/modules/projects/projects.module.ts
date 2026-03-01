@@ -9,11 +9,12 @@ import { ProjectsController } from './projects.controller.js';
 import { ProjectsService } from './projects.service.js';
 
 import { ProjectStatsService } from './project-stats.service.js';
+import { NewsClientService } from './news-client.service.js';
 
 @Module({
   imports: [PermissionsModule, PrismaModule, ApiTokensModule, RolesModule, NotificationsModule],
   controllers: [ProjectsController],
-  providers: [ProjectsService, ProjectStatsService],
-  exports: [ProjectsService, ProjectStatsService],
+  providers: [ProjectsService, ProjectStatsService, NewsClientService],
+  exports: [ProjectsService, ProjectStatsService, NewsClientService],
 })
 export class ProjectsModule {}
