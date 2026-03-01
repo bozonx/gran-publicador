@@ -1,7 +1,10 @@
-import { ref, computed } from 'vue';
-import { ArchiveEntityType } from '~/types/archive.types';
-import type { PostStatus, PostType, PublicationStatus, Post, PostWithRelations } from '~/types/posts';
-export type { Post, PostWithRelations };
+import { computed } from 'vue';
+import { useI18n } from '#imports';
+import { usePostState } from './posts/usePostState';
+import { usePostCrud } from './posts/usePostCrud';
+import { usePostFilters } from './posts/usePostFilters';
+import { usePostUi } from './posts/usePostUi';
+import { usePostPermissions } from './posts/usePostPermissions';
 import {
   getPostStatusOptions,
   getPostStatusDisplayName,
@@ -9,378 +12,47 @@ import {
   getPostStatusIcon,
   getPostTypeDisplayName,
 } from '~/utils/posts';
-import { logger } from '~/utils/logger';
-import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-
-
-export interface PostCreateInput {
-  channelId: string;
-  publicationId: string; // Required
-  tags?: string[] | null; // Override publication tags
-  status?: PostStatus | null;
-  scheduledAt?: string | null;
-  content?: string | null;
-  meta?: any; // Additional metadata
-  authorSignature?: string | null;
-  platformOptions?: any;
-}
-
-export interface PostUpdateInput {
-  tags?: string[] | null; // Update tags
-  status?: PostStatus; // Update status
-  scheduledAt?: string | null;
-  publishedAt?: string | null;
-  content?: string | null;
-  meta?: any; // Update metadata
-  authorSignature?: string | null;
-  platformOptions?: any;
-}
-
-export interface PostsFilter {
-  status?: PostStatus | null;
-  postType?: PostType | null;
-  createdBy?: string | null;
-  channelId?: string | null;
-  search?: string;
-  limit?: number;
-  offset?: number;
-  includeArchived?: boolean;
-  publicationStatus?: PublicationStatus | PublicationStatus[] | null;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
+export type { Post, PostWithRelations } from '~/types/posts';
+export type { PostCreateInput, PostUpdateInput } from './posts/usePostCrud';
+export type { PostsFilter } from './posts/usePostState';
 
 export function usePosts() {
-  const api = useApi();
-  const { user } = useAuth();
   const { t } = useI18n();
-  const toast = useToast();
-  const { archiveEntity, restoreEntity } = useArchive();
+  const state = usePostState();
+  const crud = usePostCrud();
+  const filters = usePostFilters();
+  const ui = usePostUi();
+  const perms = usePostPermissions();
 
-  const posts = ref<PostWithRelations[]>([]);
-  const currentPost = ref<PostWithRelations | null>(null);
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
-  const filter = ref<PostsFilter>({});
-  const totalCount = ref(0);
-
-  async function fetchPostsByProject(
-    projectId: string,
-    options: Partial<PostsFilter> & { append?: boolean } = {},
-  ): Promise<PostWithRelations[]> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const params: Record<string, string | number | boolean | string[] | undefined> = { ...options } as any;
-      delete (params as any).append;
-
-      if (filter.value.channelId) {
-        params.channelId = filter.value.channelId;
-      } else {
-        params.projectId = projectId;
-      }
-
-      if (filter.value.status) params.status = filter.value.status;
-      if (filter.value.postType) params.postType = filter.value.postType;
-      if (filter.value.search) params.search = filter.value.search;
-      if (filter.value.createdBy) params.createdBy = filter.value.createdBy;
-      const limit = filter.value.limit ?? pagination.value.limit;
-      const offset =
-        typeof filter.value.offset === 'number'
-          ? filter.value.offset
-          : (pagination.value.page - 1) * limit;
-      params.limit = limit;
-      params.offset = Math.max(0, offset);
-      applyArchiveQueryFlags(params, {
-        includeArchived: filter.value.includeArchived,
-      });
-      if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
-
-      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>(
-        '/posts',
-        { params },
-      );
-
-      if (options.append) {
-        posts.value = [...posts.value, ...response.items];
-      } else {
-        posts.value = response.items;
-      }
-
-      totalCount.value = response.meta.total;
-      return response.items;
-    } catch (err: any) {
-      logger.error('[usePosts] fetchPostsByProject error', err);
-      if (!options.append) {
-        posts.value = [];
-      }
-      return [];
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function fetchUserPosts(
-    options: Partial<PostsFilter> & { append?: boolean } = {},
-  ): Promise<PostWithRelations[]> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const params: Record<string, string | number | boolean | string[] | undefined> = { ...options } as any;
-      delete (params as any).append;
-
-      if (filter.value.status) params.status = filter.value.status;
-      if (filter.value.postType) params.postType = filter.value.postType;
-      if (filter.value.search) params.search = filter.value.search;
-      if (filter.value.createdBy) params.createdBy = filter.value.createdBy;
-      const limit = filter.value.limit ?? pagination.value.limit;
-      const offset =
-        typeof filter.value.offset === 'number'
-          ? filter.value.offset
-          : (pagination.value.page - 1) * limit;
-      params.limit = limit;
-      params.offset = Math.max(0, offset);
-      if (filter.value.includeArchived) params.includeArchived = true;
-      if (filter.value.publicationStatus) params.publicationStatus = filter.value.publicationStatus;
-
-      const response = await api.get<{ items: PostWithRelations[]; meta: { total: number } }>(
-        '/posts',
-        { params },
-      );
-
-      if (options.append) {
-        posts.value = [...posts.value, ...response.items];
-      } else {
-        posts.value = response.items;
-      }
-
-      totalCount.value = response.meta.total;
-      return response.items;
-    } catch (err: any) {
-      logger.error('[usePosts] fetchUserPosts error', err);
-      if (!options.append) {
-        posts.value = [];
-      }
-      return [];
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function fetchPost(postId: string): Promise<PostWithRelations | null> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const data = await api.get<PostWithRelations>(`/posts/${postId}`);
-      currentPost.value = data;
-      return data;
-    } catch (err: any) {
-      logger.error('[usePosts] fetchPost error', err);
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function createPost(
-    data: PostCreateInput,
-    options?: { silent?: boolean },
-  ): Promise<Post | null> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const post = await api.post<Post>('/posts', data);
-
-      if (!options?.silent) {
-        toast.add({
-          title: t('common.success'),
-          description: t('post.createSuccess'),
-          color: 'success',
-        });
-      }
-      return post;
-    } catch (err: any) {
-      const message = err.message || 'Failed to create post';
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function updatePost(
-    postId: string,
-    data: PostUpdateInput,
-    options?: { silent?: boolean },
-  ): Promise<Post | null> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const post = await api.patch<Post>(`/posts/${postId}`, data);
-
-      if (!options?.silent) {
-        toast.add({
-          title: t('common.success'),
-          description: t('post.updateSuccess'),
-          color: 'success',
-        });
-      }
-      return post;
-    } catch (err: any) {
-      const message = err.message || 'Failed to update post';
-      if (!options?.silent) {
-        toast.add({
-          title: t('common.error'),
-          description: message,
-          color: 'error',
-        });
-      }
-      return null;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  async function deletePost(postId: string): Promise<boolean> {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      await api.delete(`/posts/${postId}`);
-      toast.add({
-        title: t('common.success'),
-        description: t('post.deleteSuccess'),
-        color: 'success',
-      });
-      return true;
-    } catch (err: any) {
-      const message = err.message || 'Failed to delete post';
-      toast.add({
-        title: t('common.error'),
-        description: message,
-        color: 'error',
-      });
-      return false;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // Pagination
-  const pagination = ref({
-    page: 1,
-    limit: 10,
-  });
-  const totalPages = computed(() => Math.ceil(totalCount.value / pagination.value.limit));
-
-  function setPage(page: number) {
-    pagination.value.page = page;
-    filter.value = {
-      ...filter.value,
-      limit: filter.value.limit ?? pagination.value.limit,
-      offset: Math.max(0, (page - 1) * (filter.value.limit ?? pagination.value.limit)),
-    };
-  }
-
-  // Filters
-  function setFilter(newFilter: Partial<PostsFilter>) {
-    filter.value = { ...filter.value, ...newFilter };
-    pagination.value.page = 1; // Reset to first page on filter change
-    filter.value.offset = 0;
-  }
-
-  function clearFilter() {
-    filter.value = {};
-    pagination.value.page = 1;
-  }
-
-  // Constants
-  const statusOptions = computed(() => getPostStatusOptions(t));
-  const typeOptions = computed(() => [] as Array<{ value: string; label: string }>);
-
-  function canDelete(post: PostWithRelations): boolean {
-    if (!user.value) return false;
-    // Allow deleting if user is author of the parent publication or if user is owner/admin of the project (logic can be refined)
-    return post.publication?.createdBy === user.value.id;
-  }
-
-  function canEdit(post: PostWithRelations): boolean {
-    // Same logic as delete for now
-    return canDelete(post);
-  }
-
-  function clearCurrentPost() {
-    currentPost.value = null;
-    error.value = null;
-  }
-
+  // Backward compatibility: map methods to original names
   return {
-    posts,
-    currentPost,
-    isLoading,
-    error,
-    filter,
-    totalCount,
-    pagination,
-    totalPages,
-    statusOptions,
-    typeOptions,
-    fetchPostsByProject,
-    fetchUserPosts,
-    fetchPost,
-    createPost,
-    updatePost,
-    deletePost,
-    setFilter,
-    clearFilter,
-    setPage,
+    ...state,
+    ...crud,
+    ...filters,
+    ...ui,
+    // Original names for status/type functions
     getStatusDisplayName: (status: string) => getPostStatusDisplayName(status, t),
     getTypeDisplayName: (type: string) => getPostTypeDisplayName(type, t),
     getStatusColor: getPostStatusColor,
     getStatusIcon: getPostStatusIcon,
-    canDelete,
-    canEdit,
-    clearCurrentPost,
+    // Original names for permission functions
+    canDelete: perms.canDeletePost,
+    canEdit: perms.canEditPost,
+    // Computed props
+    statusOptions: computed(() => getPostStatusOptions(t)),
+    typeOptions: computed(() => [] as Array<{ value: string; label: string }>),
+    totalPages: computed(() => Math.ceil(state.totalCount.value / state.pagination.value.limit)),
   };
 }
 
-// Utility functions to access publication data from post
-export function getPostTitle(post: PostWithRelations): string | null {
-  return post.publication?.title ?? null;
-}
-
-export function getPostContent(post: PostWithRelations): string {
-  return post.content ?? post.publication?.content ?? '';
-}
-
-export function getPostTags(post: PostWithRelations): string[] {
-  // Priority: post tags > publication tags
-  return post.tags ?? post.publication?.tags ?? [];
-}
-
-export function getPostDescription(post: PostWithRelations): string | null {
-  return post.publication?.description ?? null;
-}
-
-export function getPostType(post: PostWithRelations): string {
-  return post.publication?.postType ?? 'POST';
-}
-
-export function getPostLanguage(post: PostWithRelations): string {
-  return post.publication?.language ?? 'en-US';
-}
-
-export function getPostScheduledAt(post: PostWithRelations): string | null {
-  // Priority: post scheduledAt > publication scheduledAt
-  return post.scheduledAt ?? post.publication?.scheduledAt ?? null;
-}
+// Re-export utility functions as in original
+export { 
+  getPostTitle, 
+  getPostContent, 
+  getPostTags, 
+  getPostDescription, 
+  getPostType, 
+  getPostLanguage, 
+  getPostScheduledAt 
+} from './posts/usePostUi';

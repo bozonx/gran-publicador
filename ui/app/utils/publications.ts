@@ -15,30 +15,25 @@ export function getUserSelectableStatuses(t: (key: string) => string): StatusOpt
 }
 
 /**
+ * Internal mapping of status to semantic UI color and legacy Tailwind color
+ */
+const STATUS_UI_CONFIG: Record<string, { color: 'neutral' | 'warning' | 'info' | 'primary' | 'success' | 'error', tw: string, icon: string }> = {
+  DRAFT: { color: 'neutral', tw: 'neutral', icon: 'i-heroicons-pencil-square' },
+  READY: { color: 'warning', tw: 'amber', icon: 'i-heroicons-check' },
+  SCHEDULED: { color: 'info', tw: 'sky', icon: 'i-heroicons-clock' },
+  PROCESSING: { color: 'primary', tw: 'indigo', icon: 'i-heroicons-arrow-path' },
+  PUBLISHED: { color: 'success', tw: 'emerald', icon: 'i-heroicons-check-circle' },
+  PARTIAL: { color: 'error', tw: 'rose', icon: 'i-heroicons-exclamation-triangle' },
+  FAILED: { color: 'error', tw: 'rose', icon: 'i-heroicons-exclamation-circle' },
+  EXPIRED: { color: 'error', tw: 'rose', icon: 'i-heroicons-clock' },
+}
+
+/**
  * Get color for publication status based on Nuxt UI semantic colors
  */
 export function getStatusUiColor(status: string): 'neutral' | 'warning' | 'info' | 'primary' | 'success' | 'error' {
   if (!status) return 'neutral'
-  
-  const s = status.toUpperCase()
-  switch (s) {
-    case 'DRAFT':
-      return 'neutral'
-    case 'READY':
-      return 'warning'
-    case 'SCHEDULED':
-      return 'info'
-    case 'PROCESSING':
-      return 'primary'
-    case 'PUBLISHED':
-      return 'success'
-    case 'PARTIAL':
-    case 'FAILED':
-    case 'EXPIRED':
-      return 'error'
-    default:
-      return 'neutral'
-  }
+  return STATUS_UI_CONFIG[status.toUpperCase()]?.color || 'neutral'
 }
 
 /**
@@ -52,28 +47,12 @@ export function getStatusDisplayName(status: string, t: (key: string) => string)
 /**
  * Legacy/Custom Tailwind colors for specific UI elements
  */
-export function getStatusTailwindColor(status: PublicationStatus): string {
-  switch (status) {
-    case 'DRAFT':
-      return 'neutral'
-    case 'READY':
-      return 'amber'
-    case 'SCHEDULED':
-      return 'sky'
-    case 'PROCESSING':
-      return 'indigo'
-    case 'PUBLISHED':
-      return 'emerald'
-    case 'PARTIAL':
-    case 'FAILED':
-    case 'EXPIRED':
-      return 'rose'
-    default:
-      return 'neutral'
-  }
+export function getStatusTailwindColor(status: string): string {
+  if (!status) return 'neutral'
+  return STATUS_UI_CONFIG[status.toUpperCase()]?.tw || 'neutral'
 }
 
-export function getStatusClass(status: PublicationStatus): string {
+export function getStatusClass(status: string): string {
   const color = getStatusTailwindColor(status)
   
   switch (color) {
@@ -94,27 +73,9 @@ export function getStatusClass(status: PublicationStatus): string {
   }
 }
 
-export function getStatusIcon(status: PublicationStatus): string {
-  switch (status) {
-    case 'DRAFT':
-      return 'i-heroicons-pencil-square'
-    case 'READY':
-      return 'i-heroicons-check'
-    case 'SCHEDULED':
-      return 'i-heroicons-clock'
-    case 'PROCESSING':
-      return 'i-heroicons-arrow-path'
-    case 'PUBLISHED':
-      return 'i-heroicons-check-circle'
-    case 'PARTIAL':
-      return 'i-heroicons-exclamation-triangle'
-    case 'FAILED':
-      return 'i-heroicons-exclamation-circle'
-    case 'EXPIRED':
-      return 'i-heroicons-clock'
-    default:
-      return 'i-heroicons-check'
-  }
+export function getStatusIcon(status: string): string {
+  if (!status) return 'i-heroicons-check'
+  return STATUS_UI_CONFIG[status.toUpperCase()]?.icon || 'i-heroicons-check'
 }
 
 /**

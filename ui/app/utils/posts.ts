@@ -1,14 +1,23 @@
-export const POST_STATUS_COLORS: Record<string, 'neutral' | 'warning' | 'success' | 'error'> = {
-  pending: 'neutral',
-  published: 'success',
-  failed: 'error',
+const POST_STATUS_CONFIG: Record<string, { color: 'neutral' | 'warning' | 'success' | 'error', icon: string }> = {
+  PENDING: { color: 'neutral', icon: 'i-heroicons-clock' },
+  PUBLISHED: { color: 'success', icon: 'i-heroicons-check-circle' },
+  FAILED: { color: 'error', icon: 'i-heroicons-exclamation-circle' },
+};
+
+const POST_TYPE_CONFIG: Record<string, { color: 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral', icon: string }> = {
+  POST: { color: 'primary', icon: 'i-heroicons-chat-bubble-bottom-center-text' },
+  ARTICLE: { color: 'success', icon: 'i-heroicons-document-text' },
+  NEWS: { color: 'warning', icon: 'i-heroicons-newspaper' },
+  VIDEO: { color: 'error', icon: 'i-heroicons-video-camera' },
+  SHORT: { color: 'info', icon: 'i-heroicons-bolt' },
+  STORY: { color: 'neutral', icon: 'i-heroicons-camera' },
 };
 
 export function getPostStatusColor(
   status: string | undefined | null,
 ): 'neutral' | 'warning' | 'success' | 'error' {
   if (!status) return 'neutral';
-  return POST_STATUS_COLORS[status.toLowerCase()] || 'neutral';
+  return POST_STATUS_CONFIG[status.toUpperCase()]?.color || 'neutral';
 }
 
 export function getPostStatusOptions(t: (key: string) => string) {
@@ -37,58 +46,19 @@ export function getPostTypeDisplayName(
 
 export function getPostTypeIcon(type: string | undefined | null): string {
   if (!type) return 'i-heroicons-plus';
-  switch (type.toUpperCase()) {
-    case 'POST':
-      return 'i-heroicons-chat-bubble-bottom-center-text';
-    case 'ARTICLE':
-      return 'i-heroicons-document-text';
-    case 'NEWS':
-      return 'i-heroicons-newspaper';
-    case 'VIDEO':
-      return 'i-heroicons-video-camera';
-    case 'SHORT':
-      return 'i-heroicons-bolt';
-    case 'STORY':
-      return 'i-heroicons-camera';
-    default:
-      return 'i-heroicons-plus';
-  }
+  return POST_TYPE_CONFIG[type.toUpperCase()]?.icon || 'i-heroicons-plus';
 }
 
 export function getPostTypeColor(
   type: string | undefined | null,
 ): 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral' {
   if (!type) return 'primary';
-  switch (type.toUpperCase()) {
-    case 'POST':
-      return 'primary';
-    case 'ARTICLE':
-      return 'success';
-    case 'NEWS':
-      return 'warning';
-    case 'VIDEO':
-      return 'error';
-    case 'SHORT':
-      return 'info';
-    case 'STORY':
-      return 'neutral';
-    default:
-      return 'primary';
-  }
+  return POST_TYPE_CONFIG[type.toUpperCase()]?.color || 'primary';
 }
 
 export function getPostStatusIcon(status: string | undefined | null): string {
   if (!status) return 'i-heroicons-question-mark-circle';
-  switch (status.toUpperCase()) {
-    case 'PENDING':
-      return 'i-heroicons-clock';
-    case 'PUBLISHED':
-      return 'i-heroicons-check-circle';
-    case 'FAILED':
-      return 'i-heroicons-exclamation-circle';
-    default:
-      return 'i-heroicons-question-mark-circle';
-  }
+  return POST_STATUS_CONFIG[status.toUpperCase()]?.icon || 'i-heroicons-question-mark-circle';
 }
 
 export function getPostUrl(post: any): string | null {
