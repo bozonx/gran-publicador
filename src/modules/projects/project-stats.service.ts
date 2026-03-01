@@ -1,10 +1,15 @@
-import { PrismaService } from '../../prisma/prisma.service.js';
-import { PublicationStatus, PostStatus, Prisma } from '../../../generated/prisma/index.js';
-import { DEFAULT_STALE_CHANNELS_DAYS } from '../../../common/constants/global.constants.js';
-import { ChannelIssuesPattern } from '../../channels/utils/channel-issues.util.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { PublicationStatus, PostStatus, Prisma } from '../../generated/prisma/index.js';
+import { DEFAULT_STALE_CHANNELS_DAYS } from '../../common/constants/global.constants.js';
+import { ChannelIssuesPattern } from '../channels/utils/channel-issues.util.js';
 
-export class ProjectStatsUtil {
-  public static async getStatsForProjects(prisma: PrismaService, projectIds: string[]) {
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ProjectStatsService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  public async getStatsForProjects(projectIds: string[]) {
     if (projectIds.length === 0) return new Map();
 
     const dbUrl = process.env.DATABASE_URL || '';
@@ -18,7 +23,7 @@ export class ProjectStatsUtil {
       inactiveRaw,
       projectLanguages,
     ] = await Promise.all([
-      prisma.publication.groupBy({
+      this.prisma.publication.groupBy({
         by: ['projectId'],
         where: {
           projectId: { in: projectIds },
@@ -29,7 +34,7 @@ export class ProjectStatsUtil {
         },
         _count: { id: true },
       }),
-      prisma.post.groupBy({
+      this.prisma.post.groupBy({
         by: ['channelId'],
         where: {
           status: PostStatus.FAILED,
@@ -39,7 +44,7 @@ export class ProjectStatsUtil {
         _count: { id: true },
       }),
       isPostgres
-        ? prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
+        ? this.prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
             SELECT c.project_id as "projectId", COUNT(c.id) as "count" 
             FROM channels c 
             JOIN projects p ON c.project_id = p.id
@@ -52,7 +57,7 @@ export class ProjectStatsUtil {
             WHERE c.project_id IN (${Prisma.join(projectIds)}) AND c.archived_at IS NULL
               AND lp.last_published_at < NOW() - (COALESCE((c.preferences->>'staleChannelsDays')::integer, (p.preferences->>'staleChannelsDays')::integer, ${DEFAULT_STALE_CHANNELS_DAYS}) || ' days')::interval
             GROUP BY c.project_id`
-        : prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
+        : this.prisma.$queryRaw<Array<{ projectId: string; count: bigint }>>`
             SELECT c.project_id as projectId, COUNT(c.id) as count 
             FROM channels c 
             JOIN projects p ON c.project_id = p.id
@@ -65,32 +70,32 @@ export class ProjectStatsUtil {
             WHERE c.project_id IN (${Prisma.join(projectIds)}) AND c.archived_at IS NULL
               AND lp.last_published_at < DATETIME('now', '-' || CAST(COALESCE(json_extract(c.preferences, '$.staleChannelsDays'), json_extract(p.preferences, '$.staleChannelsDays'), ${DEFAULT_STALE_CHANNELS_DAYS}) AS TEXT) || ' days')
             GROUP BY c.project_id`,
-      prisma.channel.findMany({
+      this.prisma.channel.findMany({
         where: {
           projectId: { in: projectIds },
           archivedAt: null,
         },
         select: { id: true, projectId: true, credentials: true, socialMedia: true },
       }),
-      prisma.channel.groupBy({
+      this.prisma.channel.groupBy({
         by: ['projectId'],
         where: { projectId: { in: projectIds }, archivedAt: null, isActive: false },
         _count: { id: true },
       }),
-      prisma.channel.findMany({
+      this.prisma.channel.findMany({
         where: { projectId: { in: projectIds }, archivedAt: null },
         select: { id: true, projectId: true, language: true },
       }),
     ]);
 
     const problematicCountMap = Object.fromEntries(
-      problematicCounts.map(c => [c.projectId, c._count.id]),
+      problematicCounts.map((c: any) => [c.projectId, c._count.id]),
     );
 
     const channelProjectMap = new Map<string, string>();
     const languageMap = new Map<string, string[]>();
 
-    projectLanguages.forEach(l => {
+    projectLanguages.forEach((l: any) => {
       channelProjectMap.set(l.id, l.projectId);
       if (!languageMap.has(l.projectId)) languageMap.set(l.projectId, []);
       const langs = languageMap.get(l.projectId)!;
@@ -138,8 +143,8 @@ export class ProjectStatsUtil {
     return result;
   }
 
-  public static async getPublicationsSummary(prisma: PrismaService, projectId: string) {
-    const counts = await prisma.publication.groupBy({
+  public async getPublicationsSummary(projectId: string) {
+    const counts = await this.prisma.publication.groupBy({
       by: ['status'],
       where: { projectId, archivedAt: null },
       _count: { id: true },

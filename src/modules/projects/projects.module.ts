@@ -8,10 +8,12 @@ import { NotificationsModule } from '../notifications/notifications.module.js';
 import { ProjectsController } from './projects.controller.js';
 import { ProjectsService } from './projects.service.js';
 
+import { ProjectStatsService } from './project-stats.service.js';
+
 @Module({
   imports: [PermissionsModule, PrismaModule, ApiTokensModule, RolesModule, NotificationsModule],
   controllers: [ProjectsController],
-  providers: [ProjectsService],
-  exports: [ProjectsService],
+  providers: [ProjectsService, ProjectStatsService],
+  exports: [ProjectsService, ProjectStatsService],
 })
 export class ProjectsModule {}

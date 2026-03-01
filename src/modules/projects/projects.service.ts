@@ -39,7 +39,7 @@ import { I18nService } from 'nestjs-i18n';
 import { getPlatformConfig } from '@gran/shared/social-media-platforms';
 import { BaseCrudService } from '../../common/services/base-crud.service.js';
 import { ChannelIssuesPattern } from '../channels/utils/channel-issues.util.js';
-import { ProjectStatsUtil } from './utils/project-stats.util.js';
+import { ProjectStatsService } from './project-stats.service.js';
 
 @Injectable()
 export class ProjectsService extends BaseCrudService<Project | any> {
@@ -57,6 +57,7 @@ export class ProjectsService extends BaseCrudService<Project | any> {
     private roles: RolesService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
+    private readonly projectStats: ProjectStatsService,
   ) {
     super();
     this.httpConfig = this.configService.get<HttpConfig>('http')!;
@@ -181,7 +182,7 @@ export class ProjectsService extends BaseCrudService<Project | any> {
     const dbUrl = process.env.DATABASE_URL || '';
     const isPostgres = dbUrl.startsWith('postgres');
 
-    const statsMap = await ProjectStatsUtil.getStatsForProjects(this.prisma, projectIds);
+    const statsMap = await this.projectStats.getStatsForProjects(projectIds);
 
     return projects.map(project => {
       const userMember = project.members.length > 0 ? project.members[0] : null;
@@ -361,7 +362,7 @@ export class ProjectsService extends BaseCrudService<Project | any> {
         },
       }),
       this.prisma.channel.count({ where: { projectId, archivedAt: null, isActive: false } }),
-      ProjectStatsUtil.getPublicationsSummary(this.prisma, projectId),
+      this.projectStats.getPublicationsSummary(projectId),
       this.prisma.channel.groupBy({
         by: ['language'],
         where: { projectId, archivedAt: null },
