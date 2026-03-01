@@ -8,6 +8,9 @@ const props = defineProps<{
   projectId?: string | null
   templateOptions?: any[]
   normalizedPublicationMeta?: any
+  initialScheduledDate?: string
+  initialTargetProjectId?: string
+  initialTemplateId?: string
 }>()
 
 const emit = defineEmits<{
@@ -45,96 +48,47 @@ const isContentActionModalOpen = defineModel<boolean>('contentActionModal', { de
 const isPublishedWarningModalOpen = defineModel<boolean>('publishedWarningModal', { default: false })
 
 const archiveWarningMessage = ref('')
-const newScheduledDate = ref('')
-const isBulkScheduling = ref(false)
-const isDeleting = ref(false)
-const isCopyingToProject = ref(false)
-const isUpdatingTemplate = ref(false)
-const targetProjectId = ref<string | undefined>(undefined)
-const newTemplateId = ref<string | undefined>(undefined)
 const contentActionMode = ref<'copy'>('copy')
-
-// Handlers
-async function handleDelete() {
-    isDeleting.value = true
-    const success = await deletePublication(props.publication.id)
-    isDeleting.value = false
-    if (success) {
-        isDeleteModalOpen.value = false
-        emit('deleted', props.projectId)
-    }
-}
-
-async function handleBulkSchedule() {
-    if (!newScheduledDate.value) return
-    isBulkScheduling.value = true
-    try {
-        await updatePublication(props.publication.id, {
-            scheduledAt: new Date(newScheduledDate.value).toISOString()
-        })
-        toast.add({ title: t('common.success'), description: t('publication.scheduleUpdated'), color: 'success' })
-        isScheduleModalOpen.value = false
-        emit('refresh')
-    } catch (err: any) {
-        toast.add({ title: t('common.error'), description: t('common.saveError'), color: 'error' })
-    } finally {
-        isBulkScheduling.value = false
-    }
-}
-
-async function handleCopyProject() {
-    isCopyingToProject.value = true
-    try {
-        if (!targetProjectId.value) return
-        const result = await api.post<PublicationWithRelations>(`/publications/${props.publication.id}/copy`, { projectId: targetProjectId.value })
-        if (result && result.id) {
-            isCopyModalOpen.value = false
-            toast.add({
-              title: t('common.success'),
-              description: t('common.saveSuccess'),
-              color: 'success'
-            })
-            router.push(`/publications/${result.id}/edit`)
-            emit('refresh')
-        }
-    } finally {
-        isCopyingToProject.value = false
-    }
-}
-
-async function handleUpdateTemplate(templateId: string) {
-    isUpdatingTemplate.value = true
-    try {
-        await updatePublication(props.publication.id, { projectTemplateId: templateId })
-        isTemplateModalOpen.value = false
-        emit('refresh')
-    } finally {
-        isUpdatingTemplate.value = false
-    }
-}
 
 defineExpose({
     setArchiveWarning: (msg: string) => { archiveWarningMessage.value = msg },
     setContentActionMode: (mode: 'copy') => { contentActionMode.value = mode },
-    setNewScheduledDate: (date: string) => { newScheduledDate.value = date },
-    setTargetProjectId: (id?: string) => { targetProjectId.value = id },
-    setNewTemplateId: (id?: string) => { newTemplateId.value = id }
 })
 </script>
 
 <template>
   <div>
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
-      v-if="isDeleteModalOpen"
+    <PublicationsModalsPublicationDeleteModal
       v-model:open="isDeleteModalOpen"
-      :title="t('publication.deleteConfirm')"
-      :description="t('publication.deleteCascadeWarning')"
-      :confirm-text="t('common.delete')"
-      color="error"
-      icon="i-heroicons-exclamation-triangle"
-      :loading="isDeleting"
-      @confirm="handleDelete"
+      :publication-id="publication.id"
+      :project-id="projectId"
+      @deleted="(id) => $emit('deleted', id)"
+    />
+
+    <!-- Schedule Modal -->
+    <PublicationsModalsPublicationScheduleModal
+      v-model:open="isScheduleModalOpen"
+      :publication-id="publication.id"
+      :initial-date="initialScheduledDate || publication.scheduledAt || undefined"
+      @refresh="() => $emit('refresh')"
+    />
+
+    <!-- Copy Modal -->
+    <PublicationsModalsPublicationCopyProjectModal
+      v-model:open="isCopyModalOpen"
+      :publication-id="publication.id"
+      :initial-project-id="initialTargetProjectId"
+      @refresh="() => $emit('refresh')"
+    />
+
+    <!-- Template Modal -->
+    <PublicationsModalsPublicationTemplateModal
+      v-model:open="isTemplateModalOpen"
+      :publication-id="publication.id"
+      :template-options="templateOptions"
+      :initial-template-id="initialTemplateId || publication.projectTemplateId || undefined"
+      @refresh="() => $emit('refresh')"
     />
 
     <!-- Republish Confirmation Modal -->
@@ -172,44 +126,6 @@ defineExpose({
       icon="i-heroicons-information-circle"
       @confirm="isPublishedWarningModalOpen = false"
     />
-
-    <!-- Schedule Modal -->
-    <UiAppModal v-if="isScheduleModalOpen" v-model:open="isScheduleModalOpen" :title="t('publication.changeScheduleTitle')">
-      <p class="text-gray-500 dark:text-gray-400 mb-4">{{ t('publication.changeScheduleInfo') }}</p>
-      <UFormField :label="t('publication.newScheduleTime')" required>
-        <UInput v-model="newScheduledDate" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
-      </UFormField>
-      <template #footer>
-        <UButton color="neutral" variant="ghost" :label="t('common.cancel')" @click="isScheduleModalOpen = false" />
-        <UButton color="primary" :label="t('common.save')" :loading="isBulkScheduling" @click="handleBulkSchedule" />
-      </template>
-    </UiAppModal>
-
-    <!-- Project Copy Modal -->
-    <UiAppModal v-model:open="isCopyModalOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
-      <div class="space-y-4">
-        <UFormField :label="t('project.title')">
-          <CommonProjectSelect v-model="targetProjectId" class="w-full" />
-        </UFormField>
-      </div>
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isCopyModalOpen = false">{{ t('common.cancel') }}</UButton>
-        <UButton color="primary" :loading="isCopyingToProject" @click="handleCopyProject">{{ t('common.copy') }}</UButton>
-      </template>
-    </UiAppModal>
-
-    <!-- Template Change Modal -->
-    <UiAppModal v-model:open="isTemplateModalOpen" :title="t('projectTemplates.title')" :ui="{ content: 'sm:max-w-md' }">
-      <div class="space-y-4">
-        <UFormField :label="t('projectTemplates.title')">
-          <USelectMenu v-model="newTemplateId" :items="templateOptions || []" value-key="value" label-key="label" class="w-full" />
-        </UFormField>
-      </div>
-      <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isTemplateModalOpen = false">{{ t('common.cancel') }}</UButton>
-        <UButton color="primary" :loading="isUpdatingTemplate" :disabled="!newTemplateId" @click="handleUpdateTemplate(newTemplateId!)">{{ t('common.save') }}</UButton>
-      </template>
-    </UiAppModal>
 
     <!-- Other Modals keep their existing logic or simplified props -->
     <ModalsCreatePublicationModal

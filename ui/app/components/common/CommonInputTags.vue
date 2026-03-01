@@ -12,7 +12,7 @@ const props = withDefaults(defineProps<{
   color?: 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral'
   variant?: 'outline' | 'soft' | 'subtle' | 'ghost'
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-  class?: any
+  class?: string | string[] | Record<string, boolean>
   projectId?: string
   userId?: string
   scope?: 'personal' | 'project'
@@ -179,6 +179,15 @@ const tagStyles = computed(() => {
     }
   `
 })
+
+useHead({
+  style: [
+    {
+      id: `tags-styles-${uniqueId}`,
+      innerHTML: tagStyles
+    }
+  ]
+})
 </script>
 
 <template>
@@ -215,9 +224,7 @@ const tagStyles = computed(() => {
       {{ t('common.copy') }}
     </UButton>
 
-    <component :is="'style'" v-if="maxTags || recommendedTags">
-      {{ tagStyles }}
-    </component>
+
   </div>
 </template>
 

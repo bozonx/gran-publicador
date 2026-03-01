@@ -55,15 +55,15 @@ export function usePublications() {
   const toast = useToast();
   const { archiveEntity, restoreEntity } = useArchive();
 
-  const publications = ref<PublicationWithRelations[]>([]);
+  const publications = useState<PublicationWithRelations[]>('usePublications.publications', () => []);
   const currentPublication = useState<PublicationWithRelations | null>(
     'usePublications.currentPublication',
     () => null,
   );
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
-  const totalCount = ref(0);
-  const totalUnfilteredCount = ref(0);
+  const isLoading = useState<boolean>('usePublications.isLoading', () => false);
+  const error = useState<string | null>('usePublications.error', () => null);
+  const totalCount = useState<number>('usePublications.totalCount', () => 0);
+  const totalUnfilteredCount = useState<number>('usePublications.totalUnfilteredCount', () => 0);
 
   const statusOptions = computed(() => [
     { value: 'DRAFT', label: t('publicationStatus.draft') },
@@ -290,9 +290,9 @@ export function usePublications() {
     }
   }
 
-  async function copyPublication(id: string, targetProjectId: string): Promise<PublicationWithRelations> {
+  async function copyPublication(id: string, projectId: string): Promise<PublicationWithRelations> {
     try {
-      return await api.post<PublicationWithRelations>(`/publications/${id}/copy`, { targetProjectId });
+      return await api.post<PublicationWithRelations>(`/publications/${id}/copy`, { projectId });
     } catch (err: any) {
       logger.error('[usePublications] copyPublication error', err);
       throw err;
@@ -345,9 +345,9 @@ export function usePublications() {
     return problems;
   }
 
-  const currentPublicationPlatforms = computed(() => {
+  const currentPublicationPlatforms = computed<string[]>(() => {
     if (!currentPublication.value?.posts) return [];
-    const platforms = currentPublication.value.posts.map(p => p.channel?.socialMedia).filter(Boolean);
+    const platforms = currentPublication.value.posts.map(p => p.channel?.socialMedia).filter((p): p is string => Boolean(p));
     return [...new Set(platforms)];
   });
 

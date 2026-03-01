@@ -105,17 +105,7 @@ function handleDelete(e: Event) {
           </UBadge>
           
           <!-- Problem indicators -->
-          <UTooltip 
-            v-for="problem in problems" 
-            :key="problem.key"
-            :text="t(`problems.publication.${problem.key}`, problem.count ? { count: problem.count } : {})"
-          >
-            <UIcon 
-              :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : problem.key === 'publicationExpired' ? 'i-heroicons-clock' : 'i-heroicons-exclamation-triangle'" 
-              :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
-              class="w-4 h-4"
-            />
-          </UTooltip>
+          <PublicationsPublicationProblemIndicators :problems="problems" />
 
           <CommonAdminDebugInfo :data="publication" />
         </div>
@@ -220,28 +210,7 @@ function handleDelete(e: Event) {
         </div>
 
         <!-- Channel icons -->
-        <div v-if="publication.posts && publication.posts.length > 0" class="flex -space-x-1.5 overflow-hidden">
-          <div
-            v-for="post in publication.posts.slice(0, 5)"
-            :key="post.id"
-            class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-50 dark:bg-gray-700 flex items-center justify-center"
-          >
-            <CommonSocialIcon 
-              v-if="post.channel"
-              :platform="post.channel.socialMedia" 
-              :problem-level="getPostProblemLevel(post)"
-              size="sm"
-            />
-            <UIcon 
-              v-else
-              name="i-heroicons-question-mark-circle" 
-              class="w-3 h-3 text-gray-400" 
-            />
-          </div>
-          <div v-if="publication.posts.length > 5" class="h-5 w-5 rounded-full ring-2 ring-white dark:ring-gray-800 bg-100 dark:bg-gray-700 flex items-center justify-center text-[9px] text-gray-500 font-medium">
-            +{{ publication.posts.length - 5 }}
-          </div>
-        </div>
+        <PublicationsPublicationChannelIcons :posts="publication.posts || []" />
       </div>
 
       <!-- Tags if present -->
