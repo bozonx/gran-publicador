@@ -1,4 +1,6 @@
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useChannelsStore } from '~/stores/channels';
 import { eventBus } from '~/utils/events';
 import { ArchiveEntityType } from '~/types/archive.types';
 import {
@@ -12,9 +14,7 @@ import type {
   ChannelWithProject,
   ChannelCreateInput,
   ChannelUpdateInput,
-  ChannelsFilter,
 } from '~/types/channels';
-import { useI18n } from 'vue-i18n';
 import {
   getChannelProblems as getLocalProblems,
   getChannelProblemLevel as getLocalLevel,
@@ -23,37 +23,31 @@ import {
 } from '~/utils/channels';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
-export type {
-  Channel,
-  ChannelWithProject,
-  ChannelCreateInput,
-  ChannelUpdateInput,
-  ChannelsFilter,
-};
-
 export function useChannels() {
   const api = useApi();
   const { t } = useI18n();
   const { executeAction } = useApiAction();
   const { archiveEntity, restoreEntity } = useArchive();
 
-  const channels = ref<ChannelWithProject[]>([]);
-  const currentChannel = useState<ChannelWithProject | null>(
-    'useChannels.currentChannel',
-    () => null,
-  );
+  const store = useChannelsStore();
+  const { 
+    items: channels, 
+    currentChannel, 
+    totalCount, 
+    totalUnfilteredCount, 
+    isLoading, 
+    error 
+  } = storeToRefs(store);
 
-  const totalCount = ref(0);
-  const totalUnfilteredCount = ref(0);
-
-  // Loading states
-  const isLoading = ref(false); // Global legacy loading state
-  const isFetchingList = ref(false);
-  const isFetchingChannel = ref(false);
-  const isSaving = ref(false);
-  const isDeleting = ref(false);
-
-  const error = ref<string | null>(null);
+  // Helper bindings for store state
+  const loadingBinding = computed({
+    get: () => isLoading.value,
+    set: (val) => store.setLoading(val)
+  });
+  const errorBinding = computed({
+    get: () => error.value,
+    set: (val) => store.setError(val)
+  });
 
   const socialMediaOptions = computed(() => getSocialMediaOptions(t));
 
@@ -92,17 +86,17 @@ export function useChannels() {
         }>('/channels', { params });
 
         if (options.append) {
-          channels.value = [...channels.value, ...response.items];
+          store.setItems([...channels.value, ...response.items]);
         } else {
-          channels.value = response.items;
+          store.setItems(response.items);
         }
 
-        totalCount.value = response.meta.total;
-        totalUnfilteredCount.value = response.meta.totalUnfiltered ?? response.meta.total;
+        store.setTotalCount(response.meta.total);
+        store.setTotalUnfilteredCount(response.meta.totalUnfiltered ?? response.meta.total);
 
         return response.items;
       },
-      { loadingRef: isFetchingList, errorRef: error, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
     );
     return result || [];
   }
@@ -113,7 +107,7 @@ export function useChannels() {
         const params: any = { projectId };
         return await api.get<ChannelWithProject[]>('/channels/archived', { params });
       },
-      { loadingRef: isFetchingList, errorRef: error, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
     );
     return result || [];
   }
@@ -122,10 +116,10 @@ export function useChannels() {
     const [, result] = await executeAction(
       async () => {
         const data = await api.get<ChannelWithProject>(`/channels/${channelId}`);
-        currentChannel.value = data;
+        store.setCurrentChannel(data);
         return data;
       },
-      { loadingRef: isFetchingChannel, errorRef: error, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
     );
     return result;
   }
@@ -140,7 +134,7 @@ export function useChannels() {
         eventBus.emit('channel:created', channel);
         return channel;
       },
-      { loadingRef: isSaving, errorRef: error, successMessage: t('channel.createSuccess') }
+      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.createSuccess') }
     );
     return result;
   }
@@ -151,9 +145,11 @@ export function useChannels() {
   ): Promise<Channel | null> {
     const [, result] = await executeAction(
       async () => {
-        return await api.patch<Channel>(`/channels/${channelId}`, data);
+        const updated = await api.patch<Channel>(`/channels/${channelId}`, data);
+        store.updateChannelInList(channelId, updated as Partial<ChannelWithProject>);
+        return updated;
       },
-      { loadingRef: isSaving, errorRef: error, successMessage: t('channel.updateSuccess') }
+      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.updateSuccess') }
     );
     return result;
   }
@@ -162,8 +158,9 @@ export function useChannels() {
     const [err] = await executeAction(
       async () => {
         await api.delete(`/channels/${channelId}`);
+        store.setItems(channels.value.filter(c => c.id !== channelId));
       },
-      { loadingRef: isDeleting, errorRef: error, successMessage: t('channel.deleteSuccess') }
+      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.deleteSuccess') }
     );
     return !err;
   }
@@ -174,7 +171,7 @@ export function useChannels() {
         await archiveEntity(ArchiveEntityType.CHANNEL, channelId);
         return await fetchChannel(channelId);
       },
-      { loadingRef: isSaving, errorRef: error, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
     );
     return result;
   }
@@ -185,7 +182,7 @@ export function useChannels() {
         await restoreEntity(ArchiveEntityType.CHANNEL, channelId);
         return await fetchChannel(channelId);
       },
-      { loadingRef: isSaving, errorRef: error, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
     );
     return result;
   }
@@ -200,19 +197,7 @@ export function useChannels() {
     const newValue = !currentIsActive;
 
     const result = await updateChannel(channelId, { isActive: newValue });
-
-    if (result) {
-      // Update in list
-      if (channel) {
-        channel.isActive = result.isActive;
-      }
-      // Update current channel reference
-      if (isCurrent && currentChannel.value) {
-        currentChannel.value = { ...currentChannel.value, isActive: result.isActive };
-      }
-      return true;
-    }
-    return false;
+    return !!result;
   }
 
   function getSocialMediaColor(socialMedia: SocialMedia): string {
@@ -264,11 +249,7 @@ export function useChannels() {
     currentChannel,
     totalCount,
     totalUnfilteredCount,
-    isLoading, // Legacy support
-    isFetchingList,
-    isFetchingChannel,
-    isSaving,
-    isDeleting,
+    isLoading,
     error,
     socialMediaOptions,
     fetchChannels,

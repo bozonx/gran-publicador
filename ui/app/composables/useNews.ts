@@ -1,4 +1,6 @@
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { useNewsStore } from '~/stores/news';
 import { logger } from '~/utils/logger';
 import type { NewsItem, SearchNewsParams } from '~/types/news';
 import { useCursorPagination } from './useCursorPagination';
@@ -13,10 +15,13 @@ export const useNews = () => {
   const { executeAction } = useApiAction();
   const projectId = computed(() => route.params.id as string);
 
+  const store = useNewsStore();
+  const { items: news, isLoading, error, hasMore, cursor } = storeToRefs(store);
+
   const cursorPagination = useCursorPagination<NewsItem, SearchNewsParams & { pId: string }>({
     limit: NEWS_LIMIT,
     initialParams: { q: '', pId: projectId.value || '' },
-    fetchFn: async (params, cursor) => {
+    fetchFn: async (params, cursorVal) => {
       const { pId, ...rest } = params;
       if (!pId) throw new Error('Project ID is required');
 
@@ -25,7 +30,7 @@ export const useNews = () => {
         mode: rest.mode === 'all' ? 'hybrid' : rest.mode,
         sourceTags: Array.isArray(rest.sourceTags) ? rest.sourceTags.join(',') : rest.sourceTags,
         sources: Array.isArray(rest.sources) ? rest.sources.join(',') : rest.sources,
-        cursor,
+        cursor: cursorVal,
         limit: NEWS_LIMIT,
       };
 
@@ -52,16 +57,30 @@ export const useNews = () => {
     }
   });
 
+  // Proxy cursor pagination state to store (optional, but keep it for now)
+  // Actually, let's just use the pagination's items and status
+  
   const searchNews = async (
     params: SearchNewsParams,
     customProjectId?: string,
     isLoadMore = false,
   ) => {
     const pId = customProjectId || projectId.value;
-    await executeAction(
+    const [, result] = await executeAction(
       async () => await cursorPagination.load({ ...params, pId }, isLoadMore),
       { silentErrors: false }
     );
+    
+    // Sync with store
+    if (result) {
+      if (isLoadMore) {
+        store.appendItems(cursorPagination.items.value);
+      } else {
+        store.setItems(cursorPagination.items.value);
+      }
+      store.setHasMore(cursorPagination.hasMore.value);
+      store.setCursor(cursorPagination.cursor.value);
+    }
   };
 
   const fetchNewsContent = async (
@@ -145,10 +164,10 @@ export const useNews = () => {
   };
 
   return {
-    news: cursorPagination.items,
-    isLoading: cursorPagination.isLoading,
-    error: cursorPagination.error,
-    hasMore: cursorPagination.hasMore,
+    news,
+    isLoading: computed(() => cursorPagination.isLoading.value || isLoading.value),
+    error: computed(() => cursorPagination.error.value || error.value),
+    hasMore,
     searchNews,
     fetchNewsContent,
     getQueries,

@@ -1,5 +1,6 @@
-import { useState } from '#imports';
-import type { PostWithRelations, PostStatus, PostType, PublicationStatus } from '~/types/posts';
+import { storeToRefs } from 'pinia';
+import { usePostsStore } from '~/stores/posts';
+import type { PostStatus, PostType, PublicationStatus } from '~/types/posts';
 
 export interface PostsFilter {
   status?: PostStatus | null;
@@ -16,16 +17,16 @@ export interface PostsFilter {
 }
 
 export function usePostState() {
-  const posts = useState<PostWithRelations[]>('usePosts.posts', () => []);
-  const currentPost = useState<PostWithRelations | null>('usePosts.currentPost', () => null);
-  const isLoading = useState<boolean>('usePosts.isLoading', () => false);
-  const error = useState<string | null>('usePosts.error', () => null);
-  const totalCount = useState<number>('usePosts.totalCount', () => 0);
-  const filter = useState<PostsFilter>('usePosts.filter', () => ({}));
-  const pagination = useState<{ page: number; limit: number }>('usePosts.pagination', () => ({
-    page: 1,
-    limit: 10,
-  }));
+  const store = usePostsStore();
+  const { 
+    items: posts, 
+    currentPost, 
+    isLoading, 
+    error, 
+    totalCount, 
+    filter, 
+    pagination 
+  } = storeToRefs(store);
 
   return {
     posts,
@@ -35,5 +36,7 @@ export function usePostState() {
     totalCount,
     filter,
     pagination,
+    // Add store reference for setters
+    store
   };
 }

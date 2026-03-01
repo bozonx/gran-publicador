@@ -7,6 +7,10 @@ import { useDashboardStore } from '~/stores/dashboard';
 import { useUsersStore } from '~/stores/users';
 import { useProjectsStore } from '~/stores/projects';
 import { useSttStore } from '~/stores/stt';
+import { useChannelsStore } from '~/stores/channels';
+import { usePublicationsStore } from '~/stores/publications';
+import { usePostsStore } from '~/stores/posts';
+import { useNewsStore } from '~/stores/news';
 import type { User, AuthResponse } from '~/types/user';
 import { logger } from '~/utils/logger';
 
@@ -90,6 +94,10 @@ export const useAuth = () => {
     useUsersStore().reset();
     useProjectsStore().reset();
     useSttStore().reset();
+    useChannelsStore().reset();
+    usePublicationsStore().reset();
+    usePostsStore().reset();
+    useNewsStore().reset();
     
     navigateTo('/auth/login');
   }

@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useProjectsStore } from '~/stores/projects';
-import type { Project, ProjectWithRole, ProjectMemberWithUser } from '~/stores/projects';
+import type { Project, ProjectWithRole, ProjectMemberWithUser } from '~/types/projects';
 import { ArchiveEntityType } from '~/types/archive.types';
 import { logger } from '~/utils/logger';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';

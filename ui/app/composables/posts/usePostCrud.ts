@@ -64,12 +64,12 @@ export function usePostCrud() {
         );
 
         if (options.append) {
-          state.posts.value = [...state.posts.value, ...response.items];
+          state.store.appendItems(response.items);
         } else {
-          state.posts.value = response.items;
+          state.store.setItems(response.items);
         }
 
-        state.totalCount.value = response.meta.total;
+        state.store.setTotalCount(response.meta.total);
         return response.items;
       },
       { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
@@ -97,7 +97,7 @@ export function usePostCrud() {
     const [, result] = await executeAction(
       async () => {
         const data = await api.get<PostWithRelations>(`/posts/${postId}`);
-        state.currentPost.value = data;
+        state.store.setCurrentPost(data);
         return data;
       },
       { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
@@ -130,14 +130,7 @@ export function usePostCrud() {
     const [, result] = await executeAction(
       async () => {
         const post = await api.patch<Post>(`/posts/${postId}`, data);
-        // Update in list if exists
-        const index = state.posts.value.findIndex(p => p.id === postId);
-        if (index !== -1) {
-          state.posts.value[index] = { ...state.posts.value[index], ...post };
-        }
-        if (state.currentPost.value?.id === postId) {
-          state.currentPost.value = { ...state.currentPost.value, ...post };
-        }
+        state.store.updatePostInList(postId, post as Partial<PostWithRelations>);
         return post;
       },
       { 
@@ -153,9 +146,9 @@ export function usePostCrud() {
     const [err] = await executeAction(
       async () => {
         await api.delete(`/posts/${postId}`);
-        state.posts.value = state.posts.value.filter(p => p.id !== postId);
+        state.store.setItems(state.posts.value.filter(p => p.id !== postId));
         if (state.currentPost.value?.id === postId) {
-          state.currentPost.value = null;
+          state.store.setCurrentPost(null);
         }
       },
       { loadingRef: state.isLoading, errorRef: state.error, successMessage: t('post.deleteSuccess') }

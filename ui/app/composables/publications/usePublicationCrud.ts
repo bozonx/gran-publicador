@@ -53,13 +53,13 @@ export function usePublicationCrud() {
         const normalizedData = { ...data, items: normalizedItems };
 
         if (options.append) {
-          state.publications.value = [...state.publications.value, ...normalizedItems];
+          state.store.appendItems(normalizedItems);
         } else {
-          state.publications.value = normalizedItems;
+          state.store.setItems(normalizedItems);
         }
 
-        state.totalCount.value = data.meta.total;
-        state.totalUnfilteredCount.value = data.meta.totalUnfiltered || data.meta.total;
+        state.store.setTotalCount(data.meta.total);
+        state.store.setTotalUnfilteredCount(data.meta.totalUnfiltered || data.meta.total);
         return normalizedData;
       },
       { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
@@ -67,8 +67,8 @@ export function usePublicationCrud() {
 
     if (!result) {
       if (!options.append) {
-        state.publications.value = [];
-        state.totalCount.value = 0;
+        state.store.setItems([]);
+        state.store.setTotalCount(0);
       }
       return {
         items: [],
@@ -89,14 +89,14 @@ export function usePublicationCrud() {
 
   async function fetchPublication(id: string): Promise<PublicationWithRelations | null> {
     if (state.currentPublication.value?.id !== id) {
-      state.currentPublication.value = null;
+      state.store.setCurrentPublication(null);
     }
 
     const [, result] = await executeAction(
       async () => {
         const data = await api.get<PublicationWithRelations>(`/publications/${id}`);
         const normalized = normalizePublication(data);
-        state.currentPublication.value = normalized;
+        state.store.setCurrentPublication(normalized);
         return normalized;
       },
       { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
@@ -121,7 +121,7 @@ export function usePublicationCrud() {
       async () => {
         const res = await api.post<PublicationWithRelations>('/publications', data);
         const normalized = normalizePublication(res);
-        state.publications.value.unshift(normalized);
+        state.store.setItems([normalized, ...state.publications.value]);
         return normalized;
       },
       { loadingRef: state.isLoading, successMessage: t('publication.createSuccess', 'Publication created successfully'), throwOnError: true }
@@ -134,9 +134,7 @@ export function usePublicationCrud() {
       async () => {
         const res = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
         const normalized = normalizePublication(res);
-        const index = state.publications.value.findIndex(p => p.id === id);
-        if (index !== -1) state.publications.value[index] = normalized;
-        if (state.currentPublication.value?.id === id) state.currentPublication.value = normalized;
+        state.store.updatePublicationInList(id, normalized);
         return normalized;
       },
       { loadingRef: state.isLoading, silentErrors: options.silent, throwOnError: true }
@@ -148,8 +146,8 @@ export function usePublicationCrud() {
     const [err] = await executeAction(
       async () => {
         await api.delete(`/publications/${id}`);
-        state.publications.value = state.publications.value.filter(p => p.id !== id);
-        if (state.currentPublication.value?.id === id) state.currentPublication.value = null;
+        state.store.setItems(state.publications.value.filter(p => p.id !== id));
+        if (state.currentPublication.value?.id === id) state.store.setCurrentPublication(null);
       },
       { loadingRef: state.isLoading, successMessage: t('common.success') }
     );
