@@ -68,9 +68,44 @@ export function getChannelProblems(channel: any) {
 }
 
 export function getChannelProblemLevel(channel: any): 'critical' | 'warning' | null {
-  if (!channel) return null;
-  const problems = getChannelProblems(channel);
-  if (problems.some(p => p.type === 'critical')) return 'critical';
-  if (problems.some(p => p.type === 'warning')) return 'warning';
-  return null;
+  if (!channel) return null
+  const problems = getChannelProblems(channel)
+  if (problems.some(p => p.type === 'critical')) return 'critical'
+  if (problems.some(p => p.type === 'warning')) return 'warning'
+  return null
+}
+
+export function canEditChannel(channel: any): boolean {
+  if (!channel) return false
+  return channel.role === 'owner' || channel.role === 'admin' || channel.role === 'editor'
+}
+
+export function canDeleteChannel(channel: any): boolean {
+  if (!channel) return false
+  return channel.role === 'owner' || channel.role === 'admin'
+}
+
+/**
+ * Checks if a channel is generally ready for social media posting/publishing.
+ * This includes status checks and basic credential presence.
+ */
+export function isChannelReadyForPublishing(channel: any): boolean {
+  if (!channel) return false
+
+  // 1. Check if channel is active and not archived
+  if (!channel.isActive || channel.archivedAt || channel.project?.archivedAt) {
+    return false
+  }
+
+  // 2. Check if channel has an identifier (e.g. chat_id, account name)
+  if (!channel.channelIdentifier) {
+    return false
+  }
+
+  // 3. Check for credentials
+  if (isChannelCredentialsEmpty(channel.credentials, channel.socialMedia)) {
+    return false
+  }
+
+  return true
 }

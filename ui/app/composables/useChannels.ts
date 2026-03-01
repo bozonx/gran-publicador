@@ -18,6 +18,8 @@ import { useI18n } from 'vue-i18n';
 import {
   getChannelProblems as getLocalProblems,
   getChannelProblemLevel as getLocalLevel,
+  canEditChannel,
+  canDeleteChannel,
 } from '~/utils/channels';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 
@@ -226,15 +228,11 @@ export function useChannels() {
   }
 
   function canEdit(channelObj: ChannelWithProject | null): boolean {
-    if (!channelObj) return false;
-    return (
-      channelObj.role === 'owner' || channelObj.role === 'admin' || channelObj.role === 'editor'
-    );
+    return canEditChannel(channelObj);
   }
 
   function canDelete(channelObj: ChannelWithProject | null): boolean {
-    if (!channelObj) return false;
-    return channelObj.role === 'owner' || channelObj.role === 'admin';
+    return canDeleteChannel(channelObj);
   }
 
   /**

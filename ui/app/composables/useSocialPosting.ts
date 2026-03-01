@@ -1,6 +1,7 @@
 import { ref } from 'vue';
 import type { PublicationStatus, PostStatus } from '~/types/posts';
 import { isTextContentEmpty } from '~/utils/text';
+import { isChannelReadyForPublishing } from '~/utils/channels';
 
 interface PublishResponse {
   success: boolean;
@@ -158,19 +159,12 @@ export const useSocialPosting = () => {
     return true;
   };
 
+
   /**
    * Check if channel is ready for publishing
    */
   const canPublishToChannel = (channel: any): boolean => {
-    if (!channel) return false;
-
-    // Check if channel is active and not archived
-    if (!channel.isActive || channel.archivedAt || channel.project?.archivedAt) return false;
-
-    // Check if channel has identifier
-    if (!channel.channelIdentifier) return false;
-
-    return !!channel.credentials;
+    return isChannelReadyForPublishing(channel);
   };
 
   return {
