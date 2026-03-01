@@ -25,6 +25,9 @@ importers:
       '@fastify/multipart':
         specifier: ^9.4.0
         version: 9.4.0
+      '@grammyjs/ratelimiter':
+        specifier: ^1.2.1
+        version: 1.2.1
       '@gran/shared':
         specifier: workspace:*
         version: link:packages/shared
@@ -100,6 +103,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.3.1
+      eld:
+        specifier: ^2.0.2
+        version: 2.0.2
       fastify:
         specifier: ^5.7.0
         version: 5.7.4
@@ -1311,6 +1317,9 @@ packages:
 
   '@floating-ui/vue@1.1.10':
     resolution: {integrity: sha512-vdf8f6rHnFPPLRsmL4p12wYl+Ux4mOJOkjzKEMYVnwdf7UFdvBtHlLvQyx8iKG5vhPRbDRgZxdtpmyigDPjzYg==}
+
+  '@grammyjs/ratelimiter@1.2.1':
+    resolution: {integrity: sha512-4bmVUBCBnIb2epbDiBLCvvnVjaYg7kDCPR1Ptt6gqoxm5vlD8BjainYv+yjF6221hu2KUv8QAckumDI+6xyGsQ==}
 
   '@grammyjs/types@3.24.0':
     resolution: {integrity: sha512-qQIEs4lN5WqUdr4aT8MeU6UFpMbGYAvcvYSW1A4OO1PABGJQHz/KLON6qvpf+5RxaNDQBxiY2k2otIhg/AG7RQ==}
@@ -10245,6 +10254,8 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@grammyjs/ratelimiter@1.2.1': {}
 
   '@grammyjs/types@3.24.0': {}
 

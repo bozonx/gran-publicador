@@ -1,6 +1,9 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Bot } from 'grammy';
+import { Bot, GrammyError, HttpError } from 'grammy';
+import { limit, Limiter } from '@grammyjs/ratelimiter';
+import { MemoryStore } from '@grammyjs/ratelimiter/storages';
+import { I18nService } from 'nestjs-i18n';
 import { AppConfig } from '../../config/app.config.js';
 import { TelegramBotUpdate } from './telegram-bot.update.js';
 
@@ -14,6 +17,7 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly telegramBotUpdate: TelegramBotUpdate,
+    private readonly i18n: I18nService,
   ) {}
 
   public async onModuleInit(): Promise<void> {
@@ -53,6 +57,19 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
   private registerHandlers(): void {
     if (!this.bot) return;
 
+    // Add rate limiter (3 requests per second per user)
+    const rateLimiter = new Limiter()
+      .useStorage(new MemoryStore())
+      .fixedWindow({ limit: 3, timeFrame: 1000 })
+      .limitFor('user')
+      .withKeyPrefix('bot-ratelimit')
+      .onThrottled(ctx => {
+        const lang = ctx.from?.language_code;
+        return ctx.reply(String(this.i18n.t('telegram.error_ratelimit', { lang }))).catch(() => {});
+      });
+
+    this.bot.use(limit(rateLimiter));
+
     this.bot.command('start', ctx => this.telegramBotUpdate.onStart(ctx));
     this.bot.command('help', ctx => this.telegramBotUpdate.onHelp(ctx));
     this.bot.on('message', ctx => this.telegramBotUpdate.onMessage(ctx));
@@ -68,16 +85,30 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
       });
 
     // Global error handler
-    this.bot.catch(err => {
+    this.bot.catch(async err => {
       if (this.isDestroying) return;
 
       const ctx = err.ctx;
       this.logger.error(`Error in bot middleware for update ${String(ctx.update.update_id)}:`);
       const e = err.error;
-      if (e instanceof Error) {
+
+      // Log detailed error
+      if (e instanceof GrammyError) {
+        this.logger.error(`Error in request: ${e.description}`);
+      } else if (e instanceof HttpError) {
+        this.logger.error(`Could not contact Telegram: ${String(e)}`);
+      } else if (e instanceof Error) {
         this.logger.error(e.message, e.stack);
       } else {
         this.logger.error(`Unknown error: ${String(e)}`);
+      }
+
+      // Provide feedback to the user
+      try {
+        const lang = ctx.from?.language_code;
+        await ctx.reply(String(this.i18n.t('telegram.error_internal', { lang })));
+      } catch (replyErr) {
+        this.logger.error(`Failed to send error feedback to user: ${String(replyErr)}`);
       }
     });
   }
