@@ -56,25 +56,36 @@ const toast = useToast()
 const { user } = useAuth()
 
 // 2. Publication state & logic
-const { updatePublication, createPublication, createPostsFromPublication, statusOptions, publications, fetchPublicationsByProject } = usePublications()
+const { updatePublication, createPublication, statusOptions } = usePublications()
 const { projects, fetchProjects } = useProjects()
-const { channels, fetchChannels } = useChannels()
-const { typeOptions } = usePosts()
+
+import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
+import { toRef } from 'vue'
+
+const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
+const languageParam = route.query.language as string | undefined
+const state = usePublicationFormState(props.publication, languageParam)
+
+const {
+  channels,
+  templateOptions,
+  signatureOptions,
+} = usePublicationDependencies({
+  projectId: currentProjectId as any,
+  language: toRef(state, 'language'),
+  postType: toRef(state, 'postType'),
+})
+
 const { schema } = usePublicationFormValidation(t)
 const { validateForChannels, validateForExistingPosts } = usePublicationValidator()
-const { fetchByProject: fetchSignatures } = useAuthorSignatures()
-const { templates: projectTemplates, fetchProjectTemplates } = useProjectTemplates()
-const projectSignatures = ref<ProjectAuthorSignature[]>([])
-
-const languageParam = route.query.language as string | undefined
-const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
-const state = usePublicationFormState(props.publication, languageParam)
 
 const formActionsRef = ref<{ showSuccess: () => void; showError: () => void } | null>(null)
 const showAdvancedFields = ref(false)
-const showValidationWarning = ref(false)
-const pendingSubmitData = ref<PublicationFormData | null>(null)
+
 const isLoading = ref(false)
+
+const isEditMode = computed(() => !!props.publication?.id)
+const isLocked = computed(() => state.status === 'READY')
 
 const selectedPlatforms = computed(() => {
   const map = new Map(channels.value.map(ch => [ch.id, ch.socialMedia]))
@@ -95,7 +106,7 @@ const tagLimits = computed(() => {
   let recommendedCount = Infinity
 
   for (const p of selectedPlatforms.value) {
-    const pConfig = SOCIAL_MEDIA_PLATFORMS[p]
+    const pConfig = SOCIAL_MEDIA_PLATFORMS[p as keyof typeof SOCIAL_MEDIA_PLATFORMS]
     if (pConfig?.tags?.supported) {
       if (pConfig.tags.maxCount < maxCount) maxCount = pConfig.tags.maxCount
       if (pConfig.tags.recommendedCount < recommendedCount) recommendedCount = pConfig.tags.recommendedCount
@@ -108,9 +119,6 @@ const tagLimits = computed(() => {
   }
 })
 
-const isEditMode = computed(() => !!props.publication?.id)
-const isLocked = computed(() => state.status === 'READY')
-
 // Automatically select the first supported postType if none is selected (for new publications)
 watch(postTypeOptions, (options) => {
   const firstOption = options[0]
@@ -118,66 +126,6 @@ watch(postTypeOptions, (options) => {
     state.postType = firstOption.value as any
   }
 }, { immediate: true })
-
-
-
-watch(
-  currentProjectId,
-  async (newId, oldId, onInvalidate) => {
-    let cancelled = false
-    onInvalidate(() => {
-      cancelled = true
-    })
-
-    if (!newId) return
-
-    const [, , fetchedSigs] = (await Promise.all([
-      fetchChannels({ projectId: newId }),
-      fetchPublicationsByProject(newId, { limit: 50 }),
-      fetchSignatures(newId),
-      fetchProjectTemplates(newId),
-    ])) as [unknown, unknown, ProjectAuthorSignature[], unknown]
-
-    if (cancelled) return
-
-    projectSignatures.value = fetchedSigs
-  },
-)
-
-// Filter templates by publication language and post type
-const filteredProjectTemplates = computed(() => {
-  return projectTemplates.value.filter(tpl => {
-    const langMatch = !tpl.language || tpl.language === state.language
-    const typeMatch = !tpl.postType || tpl.postType === state.postType
-    return langMatch && typeMatch
-  })
-})
-
-
-// Signature selector options
-const signatureOptions = computed(() => {
-  const userLang = user.value?.language || 'en-US'
-  const userId = user.value?.id
-  
-  // Filter by current user
-  const userSigs = projectSignatures.value.filter(sig => sig.userId === userId)
-  
-  return userSigs.map(sig => {
-    const variant = sig.variants.find(v => v.language === userLang) || sig.variants[0]
-    return {
-      value: sig.id,
-      label: variant?.content || sig.id,
-    }
-  })
-})
-
-// Template selector options
-const templateOptions = computed(() => {
-  return filteredProjectTemplates.value.map(tpl => ({
-    value: tpl.id,
-    label: tpl.name,
-  }))
-})
 
 
 const hasMedia = computed(() => Array.isArray(props.publication?.media) && props.publication!.media.length > 0)
@@ -245,17 +193,6 @@ const resetToOriginal = () => dirtyState?.resetToOriginal()
 // Initial load
 onMounted(async () => {
   if (!currentProjectId.value) return
-
-  const projectId = currentProjectId.value
-  const [, , fetchedSigs] = (await Promise.all([
-    fetchChannels({ projectId }),
-    fetchPublicationsByProject(projectId, { limit: 50 }),
-    fetchSignatures(projectId),
-    fetchProjectTemplates(projectId),
-  ])) as [unknown, unknown, ProjectAuthorSignature[], unknown]
-
-  projectSignatures.value = fetchedSigs
-
 
   if (projects.value.length === 0) {
     await fetchProjects()
@@ -351,78 +288,27 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
   await performSubmit(event.data as PublicationFormData)
 }
 
-/**
- * Perform actual submission (called directly or after warning confirmation)
- */
-async function performSubmit(data: PublicationFormData) {
-  try {
-    const commonData = {
-      title: data.title || null,
-      description: data.description || null,
-      content: isTextContentEmpty(data.content) ? null : (data.content || null),
-      authorComment: data.authorComment || null,
-      note: data.note || null,
-      tags: data.tags,
-      postType: data.postType,
-      meta: data.meta || {},
-      postDate: data.postDate ? new Date(data.postDate).toISOString() : undefined,
-      scheduledAt: data.scheduledAt ? new Date(data.scheduledAt).toISOString() : undefined,
-    }
+import { usePublicationFormSubmit } from '~/composables/usePublicationFormSubmit'
 
-    let publicationId = props.publication?.id
-
-    const isReadOnly = state.status === 'READY' || state.status === 'SCHEDULED'
-    
-    // If read-only, we must filter out fields that are not allowed to be modified
-    // to avoid backend validation errors (server rejects modifications to title, content etc in READY state)
-    let payload = { ...commonData }
-    
-    if (isReadOnly) {
-       // Create a new payload with only allowed keys that are present in commonData
-       const filteredPayload: any = {}
-       
-       // Explicitly copy allowed keys
-       if (payload.note !== undefined) filteredPayload.note = payload.note
-       if (payload.scheduledAt !== undefined) filteredPayload.scheduledAt = payload.scheduledAt
-       
-       payload = filteredPayload
-    }
-
-    if (isEditMode.value && publicationId) {
-      await updatePublication(publicationId, {
-        ...payload,
-        projectTemplateId: isReadOnly ? undefined : (data.projectTemplateId || null),
-        // Status is managed by separate actions in edit mode, don't send it back 
-        // to avoid validation errors for system-managed statuses (e.g. PUBLISHED)
-        status: undefined,
-      }, { silent: props.autosave })
-    } else {
-      const createData = {
-        ...commonData,
-        projectId: currentProjectId.value!,
-        language: data.language,
-        status: data.status === 'SCHEDULED' && state.channelIds.length === 0 ? 'DRAFT' : data.status,
-        projectTemplateId: data.projectTemplateId || null,
-      }
-
-      const pub = await createPublication(createData)
-      if (!pub) throw new Error('Failed to create publication')
-      publicationId = pub.id
-    }
-
-    formActionsRef.value?.showSuccess()
-    emit('success', publicationId)
-    saveOriginalState()
-  } catch (error: any) {
-    console.error('Publication save error:', error)
-    formActionsRef.value?.showError()
-    toast.add({
-      title: t('common.error'),
-      description: t('common.saveError'),
-      color: 'error'
-    })
+const {
+  showValidationWarning,
+  pendingSubmitData,
+  performSubmit
+} = usePublicationFormSubmit(
+  currentProjectId,
+  {
+    isEditMode: isEditMode.value,
+    publicationId: props.publication?.id,
+    autosave: props.autosave,
+  },
+  state,
+  emit,
+  {
+    saveOriginalState: () => saveOriginalState(),
+    showSuccess: () => formActionsRef.value?.showSuccess(),
+    showError: () => formActionsRef.value?.showError(),
   }
-}
+)
 
 function handleValidationWarningConfirm() {
   if (pendingSubmitData.value) {
@@ -434,6 +320,7 @@ function handleValidationWarningConfirm() {
 function handleValidationWarningCancel() {
   pendingSubmitData.value = null
 }
+
 
 function handleError(event: any) {
     const advancedFields = ['description', 'authorComment', 'note', 'postDate', 'meta']
