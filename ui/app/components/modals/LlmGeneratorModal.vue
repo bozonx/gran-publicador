@@ -8,7 +8,7 @@ import LlmContextPicker from '~/components/llm/LlmContextPicker.vue'
 import LlmChatMessages from '~/components/llm/LlmChatMessages.vue'
 import LlmChatInput from '~/components/llm/LlmChatInput.vue'
 import LlmFieldsForm from '~/components/llm/LlmFieldsForm.vue'
-import type { MediaItem } from '~/composables/useMedia'
+import type { MediaItem } from '~/types/media'
 import type { LlmPublicationFieldsResult, LlmPublicationFieldsPostResult, ChannelInfoForLlm } from '~/composables/useLlm'
 import { LlmErrorType } from '~/composables/useLlm'
 import {

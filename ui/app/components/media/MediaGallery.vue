@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus'
-import type { CreateMediaInput } from '~/composables/useMedia'
-import { useMedia, getMediaFileUrl, getPublicMediaUrl } from '~/composables/useMedia'
+import type { CreateMediaInput } from '~/types/media'
+import { useMedia } from '~/composables/useMedia'
+import { getMediaFileUrl, getPublicMediaUrl } from '~/utils/media'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'

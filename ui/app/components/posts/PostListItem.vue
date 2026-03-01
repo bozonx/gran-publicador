@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { PostWithRelations } from '~/composables/usePosts'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
-import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { useMedia } from '~/composables/useMedia'
+import { getMediaLinksThumbDataLoose } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{

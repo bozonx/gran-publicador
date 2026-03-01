@@ -3,7 +3,7 @@ import { FORM_SPACING } from '~/utils/design-tokens'
 import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
-import type { MediaItem } from '~/composables/useMedia'
+import type { MediaItem } from '~/types/media'
 import { LlmErrorType } from '~/composables/useLlm'
 import {
   getAggregatedMaxTextLength,

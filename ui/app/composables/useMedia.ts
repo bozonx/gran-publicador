@@ -3,7 +3,6 @@ import { useMediaActions } from './media/useMediaActions';
 import { useMediaUpload } from './media/useMediaUpload';
 
 export type { MediaItem, CreateMediaInput, MediaItemLike, MediaThumbData } from '~/types/media';
-export { getMediaFileUrl, getPublicMediaUrl, getThumbnailUrl, getMediaThumbData } from '~/utils/media';
 
 export function useMedia() {
   const actions = useMediaActions();

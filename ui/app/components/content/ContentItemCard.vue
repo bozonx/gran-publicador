@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaLinksThumbDataLoose, type MediaItemLike } from '~/composables/useMedia'
+import type { MediaItemLike } from '~/types/media'
+import { getMediaLinksThumbDataLoose } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 import { useLanguages } from '~/composables/useLanguages'
 

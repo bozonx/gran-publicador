@@ -43,17 +43,8 @@ export function defaultIsEqual<T>(a: T, b: T): boolean {
 }
 
 export function deepCloneOrNull<T>(obj: T): T | null {
-  if (typeof structuredClone === 'function') {
-    try {
-      return structuredClone(toRaw(obj));
-    } catch (error) {
-      if (!autosaveCloneWarnedStructuredClone) {
-         autosaveCloneWarnedStructuredClone = true;
-         logger.warn('Failed to structuredClone autosave state; falling back to JSON clone', error);
-      }
-    }
-  }
-
+  // We avoid structuredClone here because it often fails on Vue reactive Proxies.
+  // JSON based clone is reliable for state that is intended for API storage (form data).
   try {
     return JSON.parse(JSON.stringify(toRaw(obj)));
   } catch (jsonCloneError) {

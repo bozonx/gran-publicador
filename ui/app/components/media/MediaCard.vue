@@ -1,185 +1,23 @@
 <script setup lang="ts">
-import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
-import { useAuthStore } from '~/stores/auth'
-import CommonThumb from '~/components/common/Thumb.vue'
+import { getMediaFileUrl, getThumbnailUrl } from '~/utils/media'
 
-interface MediaItem {
-  id: string
-  type: string
-  storageType: string
-  storagePath: string
-  filename?: string
-  mimeType?: string
-  sizeBytes?: number | string
-  updatedAt?: string
-  meta?: Record<string, any>
-}
-
-interface Props {
-  media: MediaItem
-  clickable?: boolean
-  showOverlay?: boolean
-  size?: 'sm' | 'md' | 'lg'
-  hasSpoiler?: boolean
-  alt?: string
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  clickable: true,
-  showOverlay: true,
-  size: 'md',
-  hasSpoiler: false,
-})
-
-const emit = defineEmits<{
-  (e: 'click', media: MediaItem): void
+const props = defineProps<{
+  media: any
+  token?: string
 }>()
-
-const { t } = useI18n()
-const authStore = useAuthStore()
-const imageError = ref(false)
-
-const shouldShowPreview = computed(() => {
-  if (imageError.value) return false
-  
-  const type = (props.media.type || '').toUpperCase()
-  const storageType = (props.media.storageType || '').toUpperCase()
-  
-  if (type === 'IMAGE') return true
-
-  // For other types, we only show preview if it's from Telegram and has an explicit thumbnail
-  if (storageType === 'TELEGRAM') {
-    const hasThumbnail = !!props.media.meta?.telegram?.thumbnailFileId
-    return (type === 'VIDEO' || type === 'DOCUMENT' || type === 'AUDIO') && hasThumbnail
-  }
-
-  return false
-})
-
-const previewUrl = computed(() => {
-  if (!shouldShowPreview.value) return null
-
-  const version = props.media.updatedAt
-
-  if (props.media.type === 'IMAGE') {
-    if (props.media.storageType === 'STORAGE') {
-      return getThumbnailUrl(props.media.id, 400, 400, undefined, version)
-    }
-    return getMediaFileUrl(props.media.id, undefined, version)
-  }
-
-  return getThumbnailUrl(props.media.id, 400, 400, undefined, version)
-})
-
-const previewSrcset = computed(() => {
-  if (!shouldShowPreview.value) return null
-  if (props.media.type !== 'IMAGE') return null
-  if (props.media.storageType !== 'STORAGE') return null
-
-  const version = props.media.updatedAt
-  return `${getThumbnailUrl(props.media.id, 400, 400, undefined, version)} 1x, ${getThumbnailUrl(props.media.id, 800, 800, undefined, version)} 2x`
-})
-
-const sizeClasses = computed(() => {
-  const sizes = {
-    sm: 'w-24 h-24',
-    md: 'w-48 h-48',
-    lg: 'w-64 h-64',
-  }
-  return sizes[props.size]
-})
-
-function getMediaIcon(type: string) {
-  const icons: Record<string, string> = {
-    IMAGE: 'i-heroicons-photo',
-    VIDEO: 'i-heroicons-video-camera',
-    AUDIO: 'i-heroicons-musical-note',
-    DOCUMENT: 'i-heroicons-document',
-  }
-  return icons[type] || 'i-heroicons-document'
-}
-
-function formatSizeMB(bytes?: number | string): string {
-  if (!bytes) return '0 MB'
-  const b = typeof bytes === 'string' ? parseInt(bytes, 10) : bytes
-  return (b / (1024 * 1024)).toFixed(2) + ' MB'
-}
-
-function handleImageError() {
-  imageError.value = true
-}
-
-function handleClick() {
-  if (props.clickable) {
-    emit('click', props.media)
-  }
-}
-
-function handleDragStart(event: DragEvent) {
-  try {
-    const url = getMediaFileUrl(props.media.id, undefined, props.media.updatedAt, true)
-    const absoluteUrl = new URL(url, window.location.origin).href
-    const mime = props.media.mimeType || 'application/octet-stream'
-    const filename = props.media.filename || 'file'
-
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = 'copy'
-    }
-    event.dataTransfer?.setData('DownloadURL', `${mime}:${filename}:${absoluteUrl}`)
-    event.dataTransfer?.setData('text/uri-list', `${absoluteUrl}\r\n`)
-    event.dataTransfer?.setData('text/plain', absoluteUrl)
-  } catch (error) {
-    console.error('Failed to set DownloadURL', error)
-  }
-}
 </script>
 
 <template>
-  <CommonThumb
-    :box-class="sizeClasses"
-    :src="shouldShowPreview ? (previewUrl || null) : null"
-    :srcset="shouldShowPreview ? (previewSrcset || null) : null"
-    :alt="alt || media.filename || 'Media'"
-    :clickable="clickable"
-    :size="size"
-    :img-class="hasSpoiler ? 'blur-xl scale-110' : undefined"
-    :error="imageError"
-    :placeholder-icon="getMediaIcon(media.type)"
-    :placeholder-text="size !== 'sm' ? (media.filename || 'Untitled') : ''"
-    :error-text="t('media.loadError', 'File unavailable')"
-    :is-video="media.type === 'VIDEO'"
-    draggable="true"
-    @click="handleClick"
-    @error="handleImageError"
-    @dragstart="handleDragStart"
-  >
-    <template v-if="hasSpoiler" #overlay>
-      <div class="absolute inset-0 flex items-center justify-center bg-black/20">
-        <UIcon
-          name="i-heroicons-eye-slash"
-          :class="[
-            'text-white drop-shadow-md',
-            size === 'sm' ? 'w-6 h-6' : size === 'md' ? 'w-10 h-10' : 'w-14 h-14',
-          ]"
-        />
-      </div>
-    </template>
-
-    <template v-if="showOverlay && media.type === 'IMAGE' && !imageError" #bottom>
-      <p class="text-xs text-white truncate">
-        {{ media.storageType }} • {{ formatSizeMB(media.sizeBytes) }}
-      </p>
-    </template>
-
-    <template #actions>
-      <slot name="actions" />
-    </template>
-
-    <template #overlay>
-      <div class="absolute top-1 right-1 z-20">
-        <CommonAdminDebugInfo :data="media" placement="bottom-end" />
-      </div>
-      <slot name="overlay" />
-    </template>
-  </CommonThumb>
+  <div class="relative group aspect-square overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+    <img
+      v-if="media.type === 'IMAGE'"
+      :src="getThumbnailUrl(media.id, 400, 400, token)"
+      class="h-full w-full object-cover transition-transform group-hover:scale-105"
+      draggable="false"
+    />
+    <div v-else class="flex h-full w-full items-center justify-center">
+      <UIcon :name="getMediaIcon(media.type)" class="h-10 w-10 text-gray-400" />
+    </div>
+    <div class="absolute inset-0 bg-black/5 opacity-0 transition-opacity group-hover:opacity-100" />
+  </div>
 </template>

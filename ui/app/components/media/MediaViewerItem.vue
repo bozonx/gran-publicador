@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getMediaFileUrl } from '~/composables/useMedia'
+import { getMediaFileUrl } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{

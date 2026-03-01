@@ -2,7 +2,7 @@
 import type { PublicationWithRelations } from '~/types/publications'
 import { stripHtmlAndSpecialChars } from '~/utils/text'
 import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { getMediaLinksThumbDataLoose } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 
 const props = defineProps<{

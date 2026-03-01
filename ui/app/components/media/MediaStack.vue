@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaFileUrl, getThumbnailUrl } from '~/composables/useMedia'
+import { getMediaFileUrl, getThumbnailUrl } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 
 interface MediaItem {
