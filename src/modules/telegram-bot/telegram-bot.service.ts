@@ -1,8 +1,7 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Bot, GrammyError, HttpError } from 'grammy';
-import { limit, Limiter } from '@grammyjs/ratelimiter';
-import { MemoryStore } from '@grammyjs/ratelimiter/storages';
+import { limit } from '@grammyjs/ratelimiter';
 import { I18nService } from 'nestjs-i18n';
 import { AppConfig } from '../../config/app.config.js';
 import { TelegramBotUpdate } from './telegram-bot.update.js';
@@ -58,17 +57,18 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     if (!this.bot) return;
 
     // Add rate limiter (3 requests per second per user)
-    const rateLimiter = new Limiter()
-      .useStorage(new MemoryStore())
-      .fixedWindow({ limit: 3, timeFrame: 1000 })
-      .limitFor('user')
-      .withKeyPrefix('bot-ratelimit')
-      .onThrottled(ctx => {
-        const lang = ctx.from?.language_code;
-        return ctx.reply(String(this.i18n.t('telegram.error_ratelimit', { lang }))).catch(() => {});
-      });
-
-    this.bot.use(limit(rateLimiter));
+    this.bot.use(
+      limit({
+        timeFrame: 1000,
+        limit: 3,
+        onLimitExceeded: ctx => {
+          const lang = ctx.from?.language_code;
+          void ctx
+            .reply(String(this.i18n.t('telegram.error_ratelimit', { lang })))
+            .catch(() => undefined);
+        },
+      }),
+    );
 
     this.bot.command('start', ctx => this.telegramBotUpdate.onStart(ctx));
     this.bot.command('help', ctx => this.telegramBotUpdate.onHelp(ctx));
