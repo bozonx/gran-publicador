@@ -1,36 +1,10 @@
-import type { Database } from '~/types/database.types';
+import { defineStore } from 'pinia';
+import { ref, computed, shallowRef } from 'vue';
+import type { UserWithStats, UsersFilter, UsersPaginationOptions } from '~/types/user';
 
-type User = Database['public']['Tables']['users']['Row'];
-
-export interface UserWithStats extends User {
-  projectsCount?: number;
-  postsCount?: number;
-  publicationsCount?: number; // Added: count from backend
-  telegramId?: string; // Added: string representation of bigint from backend
-  isBanned?: boolean;
-  banReason?: string | null;
-  fullName?: string | null;
-  telegramUsername?: string | null;
-  // Added camelCase properties to match backend DTO
-  isAdmin?: boolean | null;
-  isSuperAdmin?: boolean | null;
-  createdAt?: string | null;
-  avatarUrl?: string | null;
-  language?: string | null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  preferences?: Record<string, any> | null;
-}
-
-export interface UsersFilter {
-  is_admin?: boolean | null;
-  search?: string;
-}
-
-export interface UsersPaginationOptions {
-  page: number;
-  limit: number;
-}
-
+/**
+ * Users store using Dumb Store pattern.
+ */
 export const useUsersStore = defineStore('users', () => {
   const users = shallowRef<UserWithStats[]>([]);
   const currentUser = shallowRef<UserWithStats | null>(null);
@@ -76,6 +50,16 @@ export const useUsersStore = defineStore('users', () => {
     totalCount.value = count;
   }
 
+  function reset() {
+    users.value = [];
+    currentUser.value = null;
+    isLoading.value = false;
+    error.value = null;
+    filter.value = {};
+    pagination.value = { page: 1, limit: 20 };
+    totalCount.value = 0;
+  }
+
   return {
     users,
     currentUser,
@@ -93,5 +77,6 @@ export const useUsersStore = defineStore('users', () => {
     clearFilter,
     setPage,
     setTotalCount,
+    reset,
   };
 });

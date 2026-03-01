@@ -1,92 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import type { Role } from '~/types/roles.types';
-import type { Channel } from '~/types/channels';
+import { ref, shallowRef } from 'vue';
+import type { ProjectWithRole, ProjectMemberWithUser } from '~/types/projects';
 
-export interface Project {
-  id: string;
-  name: string;
-  note: string | null;
-  ownerId: string;
-  archivedAt?: string | null;
-  createdAt: string;
-  updatedAt: string;
-  preferences?: {
-    staleChannelsDays?: number;
-    mediaOptimization?: MediaOptimizationPreferences;
-    [key: string]: any;
-  };
-  version?: number;
-}
-
-export interface ProjectUpdateInput {
-  name?: string;
-  note?: string | null;
-  preferences?: {
-    mediaOptimization?: MediaOptimizationPreferences;
-    [key: string]: any;
-  };
-  version?: number;
-}
-
-export interface MediaOptimizationPreferences {
-  stripMetadata: boolean;
-  autoOrient: boolean;
-  flatten: string;
-  lossless: boolean;
-}
-
-export interface ProjectMember {
-  id: string;
-  projectId: string;
-  userId: string;
-  role: Role;
-  createdAt: string;
-}
-
-export interface ProjectWithOwner extends Project {
-  owner?: {
-    id: string;
-    fullName: string | null;
-    telegramUsername: string | null;
-  } | null;
-}
-
-export interface ProjectWithRole extends ProjectWithOwner {
-  role?: string;
-  memberCount?: number;
-  channelCount?: number;
-  channels?: Channel[]; // For components that expect embedded channels
-  publicationsCount?: number;
-  failedPostsCount?: number;
-  staleChannelsCount?: number;
-  problemPublicationsCount?: number;
-  noCredentialsChannelsCount?: number;
-  inactiveChannelsCount?: number;
-  lastPublicationAt?: string | null;
-  lastPublicationId?: string | null;
-  languages?: string[];
-  publicationsSummary?: {
-    DRAFT: number;
-    READY: number;
-    SCHEDULED: number;
-    PUBLISHED: number;
-    ISSUES: number;
-  };
-}
-
-export interface ProjectMemberWithUser extends ProjectMember {
-  user: {
-    id: string;
-    fullName: string | null;
-    telegramUsername: string | null;
-    email: string | null;
-    avatarUrl: string | null;
-  };
-}
-
+/**
+ * Projects store using Dumb Store pattern.
+ */
 export const useProjectsStore = defineStore('projects', () => {
-  const projects = ref<ProjectWithRole[]>([]);
+  const projects = shallowRef<ProjectWithRole[]>([]);
   const currentProject = ref<ProjectWithRole | null>(null);
   const members = ref<ProjectMemberWithUser[]>([]);
   const isLoading = ref(false);
@@ -117,9 +37,11 @@ export const useProjectsStore = defineStore('projects', () => {
   }
 
   function updateProject(projectId: string, data: Partial<ProjectWithRole>) {
-    const index = projects.value.findIndex(b => b.id === projectId);
+    const pList = [...projects.value];
+    const index = pList.findIndex(b => b.id === projectId);
     if (index !== -1) {
-      projects.value[index] = { ...projects.value[index], ...data } as ProjectWithRole;
+      pList[index] = { ...pList[index], ...data } as ProjectWithRole;
+      projects.value = pList;
     }
     if (currentProject.value?.id === projectId) {
       currentProject.value = { ...currentProject.value, ...data } as ProjectWithRole;
@@ -131,6 +53,14 @@ export const useProjectsStore = defineStore('projects', () => {
     if (currentProject.value?.id === projectId) {
       currentProject.value = null;
     }
+  }
+
+  function reset() {
+    projects.value = [];
+    currentProject.value = null;
+    members.value = [];
+    isLoading.value = false;
+    error.value = null;
   }
 
   return {
@@ -147,5 +77,6 @@ export const useProjectsStore = defineStore('projects', () => {
     addProject,
     updateProject,
     removeProject,
+    reset,
   };
 });

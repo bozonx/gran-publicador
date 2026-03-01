@@ -1,6 +1,5 @@
-import { useApi, useApiAction, useI18n, useToast } from '#imports';
 import { useUserState } from './useUserState';
-import type { UserWithStats } from '~/stores/users';
+import type { UserWithStats } from '~/types/user';
 import { computed } from 'vue';
 
 export function useUserCrud() {

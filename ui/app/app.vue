@@ -19,23 +19,22 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth';
-import { useNotificationsStore } from '~/stores/notifications';
 
 const route = useRoute();
 const authStore = useAuthStore();
-const notificationsStore = useNotificationsStore();
+const { connectWebSocket, disconnectWebSocket } = useNotifications();
 
 // Watch for login/logout to manage WebSocket connection
 watch(() => authStore.isLoggedIn, (isLoggedIn) => {
   if (isLoggedIn) {
-    notificationsStore.connectWebSocket();
+    connectWebSocket();
   } else {
-    notificationsStore.disconnectWebSocket();
+    disconnectWebSocket();
   }
 }, { immediate: true });
 
 onBeforeUnmount(() => {
-  notificationsStore.disconnectWebSocket();
+  disconnectWebSocket();
 });
 </script>
 

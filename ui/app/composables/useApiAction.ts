@@ -11,8 +11,7 @@ export interface ApiActionOptions {
 }
 
 export function useApiAction() {
-  const toast = useToast()
-  const { t } = useI18n()
+  const nuxtApp = useNuxtApp()
 
   const executeAction = async <T>(
     action: () => Promise<T>,
@@ -21,12 +20,20 @@ export function useApiAction() {
     if (options.loadingRef) options.loadingRef.value = true
     if (options.errorRef) options.errorRef.value = null
 
+    // Lazy access to toast and i18n to support plugins/middleware where hooks might fail
+    const t = (key: string, fb?: string): string => {
+      if (nuxtApp.$i18n) return nuxtApp.$i18n.t(key)
+      return fb || key
+    }
+    
+    const toast = nuxtApp.$toast as any
+
     try {
       const result = await action()
       
-      if (options.successMessage) {
+      if (options.successMessage && toast) {
         toast.add({
-          title: t('common.success'),
+          title: t('common.success', 'Success'),
           description: options.successMessage,
           color: 'success'
         })
@@ -39,9 +46,9 @@ export function useApiAction() {
       
       if (options.errorRef) options.errorRef.value = message
       
-      if (!options.silentErrors) {
+      if (!options.silentErrors && toast) {
         toast.add({
-          title: t('common.error'),
+          title: t('common.error', 'Error'),
           description: message,
           color: 'error'
         })

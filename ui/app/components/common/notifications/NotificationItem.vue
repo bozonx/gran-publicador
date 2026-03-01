@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { type Notification, NotificationType, useNotificationsStore } from '~/stores/notifications';
+import { type Notification, NotificationType } from '~/types/notifications';
 
 const props = defineProps<{
   notification: Notification;
@@ -7,8 +7,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['click']);
 
-const { locale, t } = useI18n();
-const notificationsStore = useNotificationsStore();
+const { t } = useI18n();
+const { markAsRead } = useNotifications();
 const router = useRouter();
 
 const relativeTime = useTimeAgo(new Date(props.notification.createdAt));
@@ -24,7 +24,7 @@ const { stop } = useIntersectionObserver(
       if (!timeoutId) {
         timeoutId = setTimeout(async () => {
           if (!props.notification.readAt) {
-            await notificationsStore.markAsRead(props.notification.id);
+            await markAsRead(props.notification.id);
           }
           stop();
         }, 2000);
@@ -78,7 +78,7 @@ const iconColor = computed(() => {
 
 async function handleClick(isLinkClick = false) {
   if (!props.notification.readAt) {
-    await notificationsStore.markAsRead(props.notification.id);
+    await markAsRead(props.notification.id);
   }
   
   if (isLinkClick) {

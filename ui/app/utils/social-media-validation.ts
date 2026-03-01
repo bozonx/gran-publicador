@@ -9,26 +9,7 @@ import {
   PostType,
   SocialMedia,
 } from '@gran/shared/social-media-platforms'
-
-export interface SocialMediaValidationRules {
-  maxTextLength: number
-  maxCaptionLength: number
-  maxMediaCount: number
-  minMediaCount?: number
-  allowedMediaTypes?: MediaType[]
-  allowedGalleryMediaTypes?: MediaType[]
-  maxMediaCountForGallery?: number
-}
-
-export interface ValidationError {
-  field: string
-  message: string
-}
-
-export interface ValidationResult {
-  isValid: boolean
-  errors: ValidationError[]
-}
+import type { SocialMediaValidationRules, ValidationError, ValidationResult } from '~/types/validation'
 
 /**
  * Strip HTML tags from content for length calculation

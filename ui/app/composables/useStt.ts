@@ -1,4 +1,5 @@
 import { ref, watch, onUnmounted } from 'vue';
+import { io } from 'socket.io-client';
 import { useVoiceRecorder } from './useVoiceRecorder';
 import { useSttStore } from '../stores/stt';
 import type { SttSocket } from '../stores/stt';
@@ -102,24 +103,46 @@ export function useStt() {
   }
 
   async function ensureConnected(): Promise<SttSocket | null> {
-    const connectedSocket = sttStore.connect();
-    if (!connectedSocket) {
-      error.value = 'socketConnectionError';
-      return null;
+    if (sttStore.socket) {
+      socket = sttStore.socket;
+      attachSocketListeners();
+      return socket;
     }
 
-    socket = connectedSocket;
+    const config = useRuntimeConfig();
+    const apiBase = config.public.apiBase || '';
+    let wsUrl = '';
+
+    if (apiBase.startsWith('http')) {
+      const url = new URL(apiBase);
+      wsUrl = url.origin;
+    } else {
+      wsUrl = window.location.origin;
+    }
+
+    const newSocket = io(`${wsUrl}/stt`, {
+      withCredentials: true,
+      transports: ['websocket'],
+    }) as unknown as SttSocket;
+
+    newSocket.on('connect_error', (err: any) => {
+      console.error('STT WebSocket connection error', err);
+      // Don't set error here, let the promise rejection handle it
+    });
+
+    socket = newSocket;
+    sttStore.setSocket(newSocket);
     attachSocketListeners();
 
-    if (!connectedSocket.connected) {
+    if (!newSocket.connected) {
       try {
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Socket connection timeout')), 5000);
-          connectedSocket.once('connect', () => {
+          newSocket.once('connect', () => {
             clearTimeout(timeout);
             resolve();
           });
-          connectedSocket.once('connect_error', err => {
+          newSocket.once('connect_error', (err: any) => {
             clearTimeout(timeout);
             reject(err);
           });
@@ -129,13 +152,14 @@ export function useStt() {
         error.value = 'socketConnectionError';
         // Clean up broken socket so next attempt creates a fresh one
         detachSocketListeners();
-        sttStore.disconnect();
+        newSocket.disconnect();
+        sttStore.setSocket(null);
         socket = null;
         return null;
       }
     }
 
-    return connectedSocket;
+    return newSocket;
   }
 
   async function start(language?: string) {

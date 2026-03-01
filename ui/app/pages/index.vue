@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDashboardStore } from '~/stores/dashboard'
+import { useDashboard } from '~/composables/useDashboard'
 import type { PublicationWithRelations } from '~/composables/usePublications'
 
 definePageMeta({
@@ -9,7 +9,7 @@ definePageMeta({
 const { t } = useI18n()
 const { displayName } = useAuth()
 const router = useRouter()
-const dashboardStore = useDashboardStore()
+const { summary, isLoading, error, fetchSummary } = useDashboard()
 
 const isCreateModalOpen = ref(false)
 function openCreateModal() {
@@ -22,12 +22,8 @@ function handleProjectCreated(projectId: string) {
 
 // Fetch data on mount
 onMounted(async () => {
-  await dashboardStore.fetchSummary()
+  await fetchSummary()
 })
-
-const isLoading = computed(() => dashboardStore.isLoading)
-const summary = computed(() => dashboardStore.summary)
-const error = computed(() => dashboardStore.error)
 
 // Projects grouped by role (kept from original)
 const totalProjects = computed(() => summary.value?.projects.length || 0)
@@ -67,14 +63,14 @@ const projectsByRole = computed(() => {
     <UAlert
       v-if="error"
       icon="i-heroicons-exclamation-circle"
-      color="red"
+      color="error"
       variant="soft"
       :title="t('dashboard.summary_error', 'Failed to load dashboard data')"
       :description="error"
       class="mb-6"
     >
       <template #footer>
-        <UButton size="xs" color="red" variant="ghost" @click="dashboardStore.fetchSummary()">
+        <UButton size="xs" color="error" variant="ghost" @click="fetchSummary()">
           {{ t('common.retry') }}
         </UButton>
       </template>
@@ -85,7 +81,7 @@ const projectsByRole = computed(() => {
       <DashboardRecentContentWidget 
         :items="summary?.recentContent || []" 
         :is-loading="isLoading"
-        @refresh="dashboardStore.fetchSummary()"
+        @refresh="fetchSummary()"
       />
 
       <!-- Scheduled and Problems Columns -->

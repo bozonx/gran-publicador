@@ -1,34 +1,34 @@
 <script setup lang="ts">
 import { DEFAULT_PAGE_SIZE } from '~/constants'
-import { useNotificationsStore } from '~/stores/notifications'
+import { useNotifications } from '~/composables/useNotifications'
 
 definePageMeta({
   middleware: 'auth',
 })
 
 const { t } = useI18n()
-const notificationsStore = useNotificationsStore()
+const { items, unreadCount, totalCount, isLoading, fetchNotifications, markAllAsRead: markAllNotifsRead } = useNotifications()
 
 const limit = ref(DEFAULT_PAGE_SIZE)
 const offset = ref(0)
 
 const hasMoreData = computed(() => {
-  return notificationsStore.items.length < notificationsStore.totalCount
+  return items.value.length < totalCount.value
 })
 
 async function loadNotifications(append = false) {
   if (!append) offset.value = 0
-  await notificationsStore.fetchNotifications(limit.value, offset.value, append)
+  await fetchNotifications(limit.value, offset.value, append)
 }
 
 async function loadMore() {
-  if (notificationsStore.isLoading || !hasMoreData.value) return
+  if (isLoading.value || !hasMoreData.value) return
   offset.value += limit.value
   await loadNotifications(true)
 }
 
 async function markAllAsRead() {
-  await notificationsStore.markAllAsRead()
+  await markAllNotifsRead()
 }
 
 onMounted(() => {
@@ -52,7 +52,7 @@ onMounted(() => {
 
     <!-- Notification List -->
     <UCard :ui="{ body: 'p-0' }" class="overflow-hidden">
-      <template v-if="notificationsStore.unreadCount > 0" #header>
+      <template v-if="unreadCount > 0" #header>
         <div class="flex justify-end">
           <UButton
             variant="soft"
@@ -66,15 +66,15 @@ onMounted(() => {
         </div>
       </template>
 
-      <div v-if="notificationsStore.items.length > 0 || notificationsStore.isLoading">
+      <div v-if="items.length > 0 || isLoading">
         <CommonInfiniteList
-          :is-loading="notificationsStore.isLoading"
+          :is-loading="isLoading"
           :has-more="hasMoreData"
-          :item-count="notificationsStore.items.length"
+          :item-count="items.length"
           @load-more="loadMore"
         >
           <CommonNotificationsNotificationItem
-            v-for="item in notificationsStore.items"
+            v-for="item in items"
             :key="item.id"
             :notification="item"
             class="first:rounded-t-lg last:rounded-b-lg last:border-b-0"

@@ -6,11 +6,9 @@ import {
   getValidationRules,
   getTextLength,
   validateMediaTypes,
-  type ValidationError,
-  type ValidationResult,
 } from '~/utils/social-media-validation'
+import type { ValidationError, ValidationResult } from '~/types/validation'
 
-export type { SocialMediaValidationRules, ValidationError, ValidationResult } from '~/utils/social-media-validation'
 
 /**
  * Composable for social media post validation

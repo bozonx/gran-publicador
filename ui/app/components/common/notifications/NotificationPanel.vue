@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { useNotificationsStore } from '~/stores/notifications';
-
-const notificationsStore = useNotificationsStore();
 const { t } = useI18n();
+const { items, unreadCount, isLoading, markAllAsRead: apiMarkAllRead } = useNotifications();
 
 const emit = defineEmits(['close']);
 
-const recentNotifications = computed(() => notificationsStore.items.slice(0, 5));
+const recentNotifications = computed(() => items.value.slice(0, 5));
 
 async function markAllAsRead() {
-  await notificationsStore.markAllAsRead();
+  await apiMarkAllRead();
 }
 
 function handleNotificationClick() {
@@ -26,7 +24,7 @@ function handleNotificationClick() {
         {{ t('notifications.title') }}
       </h3>
       <UButton
-        v-if="notificationsStore.unreadCount > 0"
+        v-if="unreadCount > 0"
         variant="ghost"
         size="xs"
         class="text-blue-500 hover:text-blue-600"
@@ -46,7 +44,7 @@ function handleNotificationClick() {
           @click="handleNotificationClick"
         />
       </div>
-      <div v-else-if="notificationsStore.isLoading" class="p-8 flex flex-col items-center justify-center text-gray-500">
+      <div v-else-if="isLoading" class="p-8 flex flex-col items-center justify-center text-gray-500">
         <UiLoadingSpinner size="md" :label="t('common.loading')" centered />
       </div>
       <div v-else class="p-12 flex flex-col items-center justify-center text-center">
