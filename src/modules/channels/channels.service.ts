@@ -13,14 +13,22 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateChannelDto, UpdateChannelDto, ChannelResponseDto } from './dto/index.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { ChannelsMapper } from './channels.mapper.js';
+import { BaseCrudService } from '../../common/services/base-crud.service.js';
+import { ChannelIssuesPattern } from './utils/channel-issues.util.js';
 
 @Injectable()
-export class ChannelsService {
+export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
+  protected get modelDelegate() {
+    return this.prisma.channel as any;
+  }
+
   constructor(
     private prisma: PrismaService,
     private permissions: PermissionsService,
     private mapper: ChannelsMapper,
-  ) {}
+  ) {
+    super();
+  }
 
   private normalizeLanguage(code?: string | null): string {
     return normalizeLocale(code, { defaultLocale: 'en-US' });
@@ -241,23 +249,10 @@ export class ChannelsService {
     };
 
     if (data.version !== undefined) {
-      updateData.version = { increment: 1 };
-      const { count } = await this.prisma.channel.updateMany({
-        where: { id, version: data.version },
-        data: updateData,
-      });
-      if (count === 0) {
-        throw new ConflictException(
-          'Channel data was modified in another tab. Please refresh the page.',
-        );
-      }
-      return this.prisma.channel.findUnique({ where: { id } });
+      updateData.version = data.version; // Pass down the user's version to updateWithVersion instead of manually resolving here
     }
 
-    return await this.prisma.channel.update({
-      where: { id },
-      data: updateData,
-    });
+    return this.updateWithVersion(id, data.version, updateData);
   }
 
   public async remove(channelOrId: string | ChannelResponseDto, userId: string) {
@@ -313,7 +308,7 @@ export class ChannelsService {
     });
   }
 
-  public async archive(id: string, userId: string) {
+  public async archive(id: string, userId: string): Promise<any> {
     const channel = await this.findOne(id, userId);
     await this.permissions.checkPermission(
       channel.projectId,
@@ -321,13 +316,10 @@ export class ChannelsService {
       PermissionKey.CHANNELS_UPDATE,
     );
 
-    return this.prisma.channel.update({
-      where: { id },
-      data: { archivedAt: new Date(), archivedBy: userId },
-    });
+    return this.archiveRecord(id, userId);
   }
 
-  public async unarchive(id: string, userId: string) {
+  public async unarchive(id: string, userId: string): Promise<any> {
     const channel = await this.findOne(id, userId, true);
     await this.permissions.checkPermission(
       channel.projectId,
@@ -335,10 +327,7 @@ export class ChannelsService {
       PermissionKey.CHANNELS_UPDATE,
     );
 
-    return this.prisma.channel.update({
-      where: { id },
-      data: { archivedAt: null, archivedBy: null },
-    });
+    return this.unarchiveRecord(id, userId);
   }
 
   /**
@@ -439,43 +428,18 @@ export class ChannelsService {
     if (filters.socialMedia) where.socialMedia = filters.socialMedia;
     if (filters.language) where.language = filters.language;
 
-    if (filters.issueType === 'inactive') where.isActive = false;
-    else if (filters.issueType === 'noCredentials') {
-      andConditions.push({
-        OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }],
-      });
-    } else if (filters.issueType === 'failedPosts') {
-      where.posts = { some: { status: 'FAILED' } };
-    } else if (filters.issueType === 'stale') {
-      const staleDate = new Date();
-      staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
-      andConditions.push({
-        AND: [
-          { posts: { some: { status: 'PUBLISHED' } } },
-          { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } },
-        ],
-      });
-    } else if (filters.issueType === 'problematic') {
-      const staleDate = new Date();
-      staleDate.setDate(staleDate.getDate() - DEFAULT_STALE_CHANNELS_DAYS);
-
-      const problemConditions: any[] = [
-        // Inactive
-        { isActive: false },
-        // No credentials
-        { OR: [{ credentials: { equals: {} } }, { credentials: { equals: Prisma.AnyNull } }] },
-        // Failed posts
-        { posts: { some: { status: 'FAILED' } } },
-        // Stale
-        {
-          AND: [
-            { posts: { some: { status: 'PUBLISHED' } } },
-            { posts: { none: { status: 'PUBLISHED', publishedAt: { gt: staleDate } } } },
-          ],
-        },
-      ];
-
-      andConditions.push({ OR: problemConditions });
+    if (filters.issueType) {
+      if (filters.issueType === 'inactive') {
+        andConditions.push(ChannelIssuesPattern.getInactiveCondition());
+      } else if (filters.issueType === 'noCredentials') {
+        andConditions.push(ChannelIssuesPattern.getNoCredentialsCondition());
+      } else if (filters.issueType === 'failedPosts') {
+        andConditions.push(ChannelIssuesPattern.getFailedPostsCondition());
+      } else if (filters.issueType === 'stale') {
+        andConditions.push(ChannelIssuesPattern.getStaleCondition());
+      } else if (filters.issueType === 'problematic') {
+        andConditions.push(ChannelIssuesPattern.getProblematicCondition());
+      }
     }
 
     if (andConditions.length > 0) where.AND = andConditions;

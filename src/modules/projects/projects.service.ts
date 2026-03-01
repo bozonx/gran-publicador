@@ -37,9 +37,15 @@ import { RolesService } from '../roles/roles.service.js';
 import { PermissionKey } from '../../common/types/permissions.types.js';
 import { I18nService } from 'nestjs-i18n';
 import { getPlatformConfig } from '@gran/shared/social-media-platforms';
+import { BaseCrudService } from '../../common/services/base-crud.service.js';
+import { ChannelIssuesPattern } from '../channels/utils/channel-issues.util.js';
 
 @Injectable()
-export class ProjectsService {
+export class ProjectsService extends BaseCrudService<Project | any> {
+  protected get modelDelegate() {
+    return this.prisma.project as any;
+  }
+
   private readonly logger = new Logger(ProjectsService.name);
   private readonly httpConfig: HttpConfig;
 
@@ -51,6 +57,7 @@ export class ProjectsService {
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
   ) {
+    super();
     this.httpConfig = this.configService.get<HttpConfig>('http')!;
   }
 
@@ -62,28 +69,7 @@ export class ProjectsService {
     };
   }
 
-  private hasNoCredentials(creds: any, socialMedia?: string): boolean {
-    if (!creds || typeof creds !== 'object') return true;
 
-    if (socialMedia) {
-      const config = getPlatformConfig(socialMedia as any);
-      const requiredFields = config?.credentials?.filter(f => f.required) ?? [];
-      if (requiredFields.length > 0) {
-        for (const f of requiredFields) {
-          const value = creds[f.key];
-          if (!value || String(value).trim().length === 0) {
-            return true;
-          }
-        }
-      }
-    }
-
-    // Default/Legacy check: Is it an empty object or has only empty values?
-    const values = Object.values(creds);
-    if (values.length === 0) return true;
-
-    return values.every((v: any) => !v || String(v).trim().length === 0);
-  }
 
   public async create(userId: string, data: CreateProjectDto): Promise<Project> {
     return this.prisma.$transaction(
@@ -301,7 +287,7 @@ export class ProjectsService {
     // Manually count credential problems
     // Manually count credential problems
     noCredentialsRaw.forEach((row: any) => {
-      if (this.hasNoCredentials(row.credentials, row.socialMedia)) {
+      if (!ChannelIssuesPattern.hasAccurateCredentialsLogic(row.credentials, row.socialMedia)) {
         noCredentialsMap.set(row.projectId, (noCredentialsMap.get(row.projectId) || 0) + 1);
       }
     });
@@ -505,7 +491,7 @@ export class ProjectsService {
     const nowMs = Date.now();
 
     for (const channel of channels) {
-      if (this.hasNoCredentials(channel.credentials as any, channel.socialMedia)) {
+      if (!ChannelIssuesPattern.hasAccurateCredentialsLogic(channel.credentials as any, channel.socialMedia)) {
         noCredentialsChannelsCount++;
       }
 
@@ -589,26 +575,10 @@ export class ProjectsService {
     };
 
     if (data.version !== undefined) {
-      updateData.version = { increment: 1 };
-
-      const { count } = await this.prisma.project.updateMany({
-        where: { id: projectId, version: data.version },
-        data: updateData,
-      });
-
-      if (count === 0) {
-        throw new ConflictException(
-          'Project data was modified in another tab. Please refresh the page.',
-        );
-      }
-
-      return this.prisma.project.findUnique({ where: { id: projectId } });
+      updateData.version = data.version;
     }
 
-    return await this.prisma.project.update({
-      where: { id: projectId },
-      data: updateData,
-    });
+    return this.updateWithVersion(projectId, data.version, updateData);
   }
 
   public async remove(projectId: string, userId: string) {
@@ -623,28 +593,22 @@ export class ProjectsService {
     return this.prisma.project.delete({ where: { id: projectId } });
   }
 
-  public async archive(projectId: string, userId: string) {
+  public async archive(projectId: string, userId: string): Promise<any> {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
 
-    return this.prisma.project.update({
-      where: { id: projectId },
-      data: { archivedAt: new Date(), archivedBy: userId },
-    });
+    return this.archiveRecord(projectId, userId);
   }
 
-  public async unarchive(projectId: string, userId: string) {
+  public async unarchive(projectId: string, userId: string): Promise<any> {
     await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
 
-    return this.prisma.project.update({
-      where: { id: projectId },
-      data: { archivedAt: null, archivedBy: null },
-    });
+    return this.unarchiveRecord(projectId, userId);
   }
 
   public async findMembers(projectId: string, userId: string) {
