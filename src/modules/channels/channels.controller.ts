@@ -13,6 +13,9 @@ import {
 import { IsBoolean, IsObject, IsOptional } from 'class-validator';
 
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { PermissionGuard } from '../../common/guards/permission.guard.js';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import type { PaginatedResponse } from '../../common/dto/pagination-response.dto.js';
@@ -39,7 +42,7 @@ class UpsertChannelTemplateVariationBodyDto {
  * Controller for managing channels within projects.
  */
 @Controller('channels')
-@UseGuards(JwtOrApiTokenGuard)
+@UseGuards(JwtOrApiTokenGuard, PermissionGuard)
 export class ChannelsController {
   private readonly MAX_LIMIT = 1000;
 
@@ -50,6 +53,7 @@ export class ChannelsController {
   ) {}
 
   @Post()
+  @RequirePermission(PermissionKey.CHANNELS_CREATE)
   public async create(
     @Request() req: UnifiedAuthRequest,
     @Body() createChannelDto: CreateChannelDto,
@@ -62,6 +66,7 @@ export class ChannelsController {
   }
 
   @Get()
+  // Uses global access control rather than simple permissions since it loops all projects
   public async findAll(
     @Request() req: UnifiedAuthRequest,
     @Query() query: FindChannelsQueryDto,
@@ -136,6 +141,7 @@ export class ChannelsController {
   }
 
   @Get(':id')
+  @RequirePermission(PermissionKey.CHANNELS_READ)
   public async findOne(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
@@ -145,6 +151,7 @@ export class ChannelsController {
   }
 
   @Patch(':id')
+  @RequirePermission(PermissionKey.CHANNELS_UPDATE)
   public async update(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
@@ -158,6 +165,7 @@ export class ChannelsController {
   }
 
   @Patch(':id/template-variations/:projectTemplateId')
+  @RequirePermission(PermissionKey.CHANNELS_UPDATE)
   public async upsertTemplateVariation(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
@@ -180,6 +188,7 @@ export class ChannelsController {
   }
 
   @Delete(':id')
+  @RequirePermission(PermissionKey.CHANNELS_DELETE)
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 
@@ -192,6 +201,7 @@ export class ChannelsController {
    * Test channel connection and credentials.
    */
   @Post(':id/test')
+  @RequirePermission(PermissionKey.CHANNELS_READ)
   public async test(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     const channel = await this.channelsService.findOne(id, req.user.userId, true);
 

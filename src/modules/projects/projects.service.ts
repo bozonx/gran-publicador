@@ -425,8 +425,6 @@ export class ProjectsService extends BaseCrudService<Project | any> {
 // Logic handled by ProjectStatsUtil
 
   public async update(projectId: string, userId: string, data: UpdateProjectDto) {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-
     const updateData: any = {
       ...data,
       preferences: data.preferences ? (data.preferences as any) : undefined,
@@ -440,11 +438,6 @@ export class ProjectsService extends BaseCrudService<Project | any> {
   }
 
   public async remove(projectId: string, userId: string) {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE); // Requires at least update permission, though ideally should be DELETE if added
-
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-
     // We allow either the owner OR someone with PROJECT_UPDATE permission to delete
     // The permission check above already validates this
 
@@ -452,20 +445,12 @@ export class ProjectsService extends BaseCrudService<Project | any> {
   }
 
   public async archive(projectId: string, userId: string): Promise<any> {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-
+    const project = await this.findOneOrThrow(projectId, 'Project not found');
     return this.archiveRecord(projectId, userId);
   }
 
   public async unarchive(projectId: string, userId: string): Promise<any> {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException('Project not found');
-
+    const project = await this.findOneOrThrow(projectId, 'Project not found');
     return this.unarchiveRecord(projectId, userId);
   }
 
@@ -502,8 +487,6 @@ export class ProjectsService extends BaseCrudService<Project | any> {
   }
 
   public async addMember(projectId: string, userId: string, data: AddMemberDto) {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-
     let userToAdd;
 
     // Check if input is a Telegram ID (numeric)
@@ -578,8 +561,6 @@ export class ProjectsService extends BaseCrudService<Project | any> {
     memberUserId: string,
     data: UpdateMemberDto,
   ) {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
-
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
     });
@@ -599,7 +580,6 @@ export class ProjectsService extends BaseCrudService<Project | any> {
     this.logger.log(
       `removeMember: projectId=${projectId}, actor=${userId}, target=${memberUserId}`,
     );
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.PROJECT_UPDATE);
 
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },

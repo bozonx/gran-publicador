@@ -76,12 +76,6 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
     variation: { excluded?: boolean; overrides?: Record<string, unknown> };
   }) {
     const channel = await this.findOne(params.channelId, params.userId, true);
-    await this.permissions.checkPermission(
-      channel.projectId,
-      params.userId,
-      PermissionKey.CHANNELS_UPDATE,
-    );
-
     if (params.variation.excluded === undefined && params.variation.overrides === undefined) {
       throw new BadRequestException('No variation fields provided');
     }
@@ -118,7 +112,6 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
     projectId: string,
     data: Omit<CreateChannelDto, 'projectId'>,
   ) {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.CHANNELS_CREATE);
 
     if (data.preferences) {
       await this.validateChannelTemplateReferences(projectId, data.preferences);
@@ -147,7 +140,6 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
     userId: string,
     options: { allowArchived?: boolean; isActive?: boolean; limit?: number } = {},
   ): Promise<ChannelResponseDto[]> {
-    await this.permissions.checkPermission(projectId, userId, PermissionKey.CHANNELS_READ);
 
     const publishedPostFilter = { status: 'PUBLISHED' as const };
 
@@ -192,12 +184,6 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
       typeof channelOrId === 'string' ? await this.findOne(channelOrId, userId, true) : channelOrId;
     const id = channel.id;
 
-    await this.permissions.checkPermission(
-      channel.projectId,
-      userId,
-      PermissionKey.CHANNELS_UPDATE,
-    );
-
     if (data.preferences) {
       await this.validateChannelTemplateReferences(channel.projectId, data.preferences);
     }
@@ -224,12 +210,6 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
     const channel =
       typeof channelOrId === 'string' ? await this.findOne(channelOrId, userId, true) : channelOrId;
     const id = channel.id;
-
-    await this.permissions.checkPermission(
-      channel.projectId,
-      userId,
-      PermissionKey.CHANNELS_DELETE,
-    );
 
     return this.prisma.$transaction(async tx => {
       // 1. Find all publications associated with this channel
@@ -275,22 +255,12 @@ export class ChannelsService extends BaseCrudService<ChannelResponseDto | any> {
 
   public async archive(id: string, userId: string): Promise<any> {
     const channel = await this.findOne(id, userId);
-    await this.permissions.checkPermission(
-      channel.projectId,
-      userId,
-      PermissionKey.CHANNELS_UPDATE,
-    );
 
     return this.archiveRecord(id, userId);
   }
 
   public async unarchive(id: string, userId: string): Promise<any> {
     const channel = await this.findOne(id, userId, true);
-    await this.permissions.checkPermission(
-      channel.projectId,
-      userId,
-      PermissionKey.CHANNELS_UPDATE,
-    );
 
     return this.unarchiveRecord(id, userId);
   }

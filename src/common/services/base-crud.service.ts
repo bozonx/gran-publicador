@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 
 export interface PrismaDelegate {
   findUnique(args: Record<string, unknown>): Promise<unknown>;
@@ -13,6 +13,20 @@ export interface PrismaDelegate {
 @Injectable()
 export abstract class BaseCrudService<T> {
   protected abstract get modelDelegate(): PrismaDelegate;
+
+  /**
+   * Finds a record by ID and throws a NotFoundException if it does not exist.
+   */
+  protected async findOneOrThrow(id: string, errorMessage = 'Record not found', options?: Record<string, unknown>): Promise<T> {
+    const found = await this.modelDelegate.findUnique({
+      where: { id },
+      ...options,
+    });
+    if (!found) {
+      throw new NotFoundException(errorMessage);
+    }
+    return found as T;
+  }
 
   /**
    * Updates a record using optimistic locking (versioning) if version is provided,

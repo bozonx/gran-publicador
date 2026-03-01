@@ -17,6 +17,9 @@ import {
 } from '@nestjs/common';
 
 import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
+import { PermissionGuard } from '../../common/guards/permission.guard.js';
+import { RequirePermission } from '../../common/decorators/require-permission.decorator.js';
+import { PermissionKey } from '../../common/types/permissions.types.js';
 import { ApiTokenScopeService } from '../../common/services/api-token-scope.service.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 import {
@@ -36,7 +39,7 @@ import { ProjectsService } from './projects.service.js';
  * Handles creation, retrieval, updating, and deletion of projects.
  */
 @Controller('projects')
-@UseGuards(JwtOrApiTokenGuard)
+@UseGuards(JwtOrApiTokenGuard, PermissionGuard)
 export class ProjectsController {
   private readonly logger = new Logger(ProjectsController.name);
 
@@ -97,6 +100,7 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @RequirePermission(PermissionKey.PROJECT_UPDATE)
   public async update(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
@@ -108,6 +112,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @RequirePermission(PermissionKey.PROJECT_UPDATE) // Delete requires the same level as update
   public async remove(@Request() req: UnifiedAuthRequest, @Param('id') id: string) {
     this.apiTokenScope.validateProjectScopeOrThrow(req, id);
 
@@ -122,6 +127,7 @@ export class ProjectsController {
   }
 
   @Post(':id/members')
+  @RequirePermission(PermissionKey.PROJECT_UPDATE)
   public async addMember(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
@@ -133,6 +139,7 @@ export class ProjectsController {
   }
 
   @Patch(':id/members/:userId')
+  @RequirePermission(PermissionKey.PROJECT_UPDATE)
   public async updateMemberRole(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
@@ -150,6 +157,7 @@ export class ProjectsController {
   }
 
   @Delete(':id/members/:userId')
+  @RequirePermission(PermissionKey.PROJECT_UPDATE)
   public async removeMember(
     @Request() req: UnifiedAuthRequest,
     @Param('id') id: string,
