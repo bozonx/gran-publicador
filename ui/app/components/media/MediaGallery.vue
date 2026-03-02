@@ -533,7 +533,7 @@ const mediaValidation = computed(() => {
           </div>
 
           <!-- Optimization settings in extended mode -->
-          <div v-if="showExtendedOptions" class="border-t border-gray-200 dark:border-gray-700 pt-6">
+          <div v-if="showExtendedOptions" :class="FORM_SPACING.sectionDivider">
             <FormsProjectMediaOptimizationBlock 
               v-model="optimizationSettings"
             />

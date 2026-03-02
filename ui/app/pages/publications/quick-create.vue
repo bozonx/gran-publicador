@@ -123,7 +123,7 @@ const prefilledMediaIds = computed(() => {
       </div>
 
       <!-- Form Column -->
-      <div class="app-card p-6">
+      <div :class="FORM_STYLES.wrapper">
         <PublicationCreateForm
           :prefilled-title="contentItem.title"
           :prefilled-content="contentItem.text"

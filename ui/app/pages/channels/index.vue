@@ -288,7 +288,7 @@ const showPagination = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div :class="FORM_SPACING.section">
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>

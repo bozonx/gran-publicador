@@ -50,7 +50,7 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div :class="FORM_SPACING.section">
     <div>
       <h4 class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2">
         {{ t('settings.mediaOptimization.imagesDefaults', 'Image Upload Defaults') }}
@@ -58,7 +58,7 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
     </div>
 
     <div class="space-y-6 animate-fade-in pl-4 border-l border-gray-100 dark:border-gray-800 ml-1">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
       <!-- Flags Group -->
       <div class="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-100 dark:border-gray-800 pt-4">
 

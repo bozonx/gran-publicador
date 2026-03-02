@@ -181,7 +181,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
       </div>
 
       <!-- Language & Score -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ t('news.language') }}
@@ -218,7 +218,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
       </div>
 
       <!-- Sources & Source Tags -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
         <div class="w-full">
           <label class="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ t('news.sources') }}
@@ -240,7 +240,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
       </div>
 
       <!-- Date Range -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ t('news.savedFrom') }}
@@ -269,7 +269,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
       </div>
 
       <!-- Order By -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div :class="GRID_LAYOUTS.twoColumn">
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ t('news.orderBy') }}

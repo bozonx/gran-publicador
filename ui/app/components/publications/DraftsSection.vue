@@ -42,7 +42,7 @@ const displayTitle = computed(() => {
 </script>
 
 <template>
-  <div class="app-card p-6">
+  <div :class="FORM_STYLES.wrapper">
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-4">
         <!-- Toggle for Drafts/Ready -->

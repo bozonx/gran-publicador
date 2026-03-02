@@ -198,7 +198,7 @@ function formatScore(score: number) {
     </div>
 
     <!-- Collections System -->
-    <div v-if="trackedQueries.length > 0" class="space-y-6">
+    <div v-if="trackedQueries.length > 0" :class="FORM_SPACING.section">
       <CommonDraggableTabs
         v-model="activeCollectionId"
         v-model:items="collections"

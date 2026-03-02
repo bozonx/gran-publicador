@@ -280,10 +280,10 @@ const hasActiveFilters = computed(() => {
       <!-- Collection header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 :class="FORM_STYLES.title">
             {{ t('admin.userManagement') }}
           </h2>
-          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p :class="FORM_STYLES.subtitle">
             {{ totalCount }} {{ t('navigation.users').toLowerCase() }}
           </p>
         </div>
@@ -475,10 +475,10 @@ const hasActiveFilters = computed(() => {
     <!-- Maintenance Collection -->
     <div v-if="selectedCollection === 'maintenance'">
       <div class="mb-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+        <h2 :class="FORM_STYLES.title">
           {{ t('admin.collections.maintenance') }}
         </h2>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p :class="FORM_STYLES.subtitle">
           {{ t('admin.maintenance.description') }}
         </p>
       </div>

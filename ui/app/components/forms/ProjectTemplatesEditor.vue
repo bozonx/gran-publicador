@@ -374,7 +374,7 @@ const allBlocks = computed(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div :class="FORM_SPACING.section">
     <div v-if="isLoading && templates.length === 0" class="flex justify-center py-8">
       <UIcon name="i-heroicons-arrow-path" class="w-6 h-6 text-gray-400 animate-spin" />
     </div>
@@ -497,7 +497,7 @@ const allBlocks = computed(() => {
         </AppTabs>
 
         <!-- Project Collection -->
-        <div v-if="activeCollection === 'project'" class="space-y-6">
+        <div v-if="activeCollection === 'project'" :class="FORM_SPACING.section">
           <!-- Basic fields -->
           <div class="space-y-4">
             <UFormField :label="t('channel.templateName')" required>

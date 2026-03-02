@@ -156,7 +156,7 @@ defineExpose({
 </script>
 
 <template>
-  <form :id="formId" class="space-y-6" @submit.prevent="handleSubmit">
+  <form :id="formId" :class="FORM_SPACING.section" @submit.prevent="handleSubmit">
     <!-- Project Selection (Optional) -->
     <UFormField v-if="props.showProjectSelect" :label="t('channel.project')" required>
       <CommonProjectSelect

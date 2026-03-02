@@ -139,7 +139,7 @@ const formattedPreferences = computed(() => {
 
     <div v-else class="space-y-6">
       <!-- Main Info Card -->
-      <div class="app-card p-6">
+      <div :class="FORM_STYLES.wrapper">
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-6">
           <div class="flex items-start gap-4 flex-1">
              <UAvatar
@@ -260,7 +260,7 @@ const formattedPreferences = computed(() => {
       </div>
       
       <!-- Preferences -->
-      <div v-if="user.preferences" class="app-card p-6">
+      <div v-if="user.preferences" :class="FORM_STYLES.wrapper">
           <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <UIcon name="i-heroicons-cog-6-tooth" class="w-5 h-5 text-gray-500" />
               {{ t('user.preferences', 'Preferences') }}

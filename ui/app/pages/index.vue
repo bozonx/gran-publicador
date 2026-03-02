@@ -76,7 +76,7 @@ const projectsByRole = computed(() => {
       </template>
     </UAlert>
 
-    <div class="space-y-6 sm:space-y-8">
+    <div :class="SPACING.sectionGap">
       <!-- Recent Content Widget -->
       <DashboardRecentContentWidget 
         :items="summary?.recentContent || []" 
