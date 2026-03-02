@@ -559,6 +559,8 @@ watch(isOpen, (next) => {
 </template>
 
 <style scoped>
+@reference "../../assets/css/main.css";
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

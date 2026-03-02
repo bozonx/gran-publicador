@@ -299,6 +299,8 @@ watch(sourceMode, () => {
 </template>
 
 <style scoped>
+@reference "../../assets/css/main.css";
+
 .post-preview-html {
   @apply text-gray-800 dark:text-gray-200 text-sm leading-6;
 }

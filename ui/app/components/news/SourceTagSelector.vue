@@ -371,7 +371,7 @@ v-for="(group, catLabel) in searchResults.reduce((acc, tag) => {
 </template>
 
 <style scoped>
-@reference "tailwindcss";
+@reference "../../assets/css/main.css";
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-in-out;
