@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import { useMedia } from '~/composables/useMedia'
+import { getMediaFileUrl } from '~/utils/media'
 import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({

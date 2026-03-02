@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useMedia, getMediaFileUrl } from '~/composables/useMedia'
+import { useMedia } from '~/composables/useMedia'
+import { getMediaFileUrl } from '~/utils/media'
 import { useProjects } from '~/composables/useProjects'
 import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
@@ -19,8 +20,10 @@ const projectId = computed(() => route.query.projectId as string | undefined || 
 
 const { fetchMedia, replaceMediaFile, isLoading: isMediaLoading } = useMedia()
 const { fetchProject, currentProject } = useProjects()
+const api = useApi()
 
 const media = ref<Awaited<ReturnType<typeof fetchMedia>>>(null)
+const sourceBlobUrl = ref<string>('')
 const isSaveModalOpen = ref(false)
 const isSaving = ref(false)
 
@@ -46,6 +49,7 @@ const optimizationDefaults = computed(() => {
 const saveOptimization = ref({ stripMetadata: false, lossless: false })
 
 const source = computed(() => {
+  if (sourceBlobUrl.value) return sourceBlobUrl.value
   if (!media.value) return ''
   return getMediaFileUrl(media.value.id, undefined, media.value.updatedAt)
 })
@@ -56,6 +60,24 @@ onMounted(async () => {
     projectId.value ? fetchProject(projectId.value) : Promise.resolve(null),
   ])
   media.value = m
+
+  if (m) {
+    const urlPath = `/media/${m.id}/file${m.updatedAt ? `?v=${m.updatedAt}` : ''}`
+    try {
+      const blob = await api.get<Blob>(urlPath, {
+        responseType: 'blob',
+      })
+      sourceBlobUrl.value = URL.createObjectURL(blob)
+    } catch (e) {
+      console.error('Failed to fetch image blob for editor:', e)
+    }
+  }
+})
+
+onBeforeUnmount(() => {
+  if (sourceBlobUrl.value) {
+    URL.revokeObjectURL(sourceBlobUrl.value)
+  }
 })
 
 let pendingFile: File | null = null
@@ -82,8 +104,10 @@ async function onSaveConfirm() {
       optimizeParams,
       projectId.value,
     )
-    // Refetch to get full metadata including fullMediaMeta from proxy
-    media.value = await fetchMedia(updatedMedia.id)
+    if (updatedMedia) {
+      // Refetch to get full metadata including fullMediaMeta from proxy
+      media.value = await fetchMedia(updatedMedia.id)
+    }
 
     toast.add({
       title: t('common.success'),

@@ -495,7 +495,9 @@ export class MediaService {
         return true;
       } catch (error) {
         // Log is already in remove, but we can add more context if needed
-        this.logger.warn(`Failed to cleanup orphaned media ${mediaId}: ${(error as Error).message}`);
+        this.logger.warn(
+          `Failed to cleanup orphaned media ${mediaId}: ${(error as Error).message}`,
+        );
       }
     }
     return false;
@@ -726,10 +728,7 @@ export class MediaService {
       return {
         stream: response.body as any as Readable,
         status: response.statusCode,
-        headers: {
-          ...responseHeaders,
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: responseHeaders,
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'file download');
@@ -774,10 +773,7 @@ export class MediaService {
       return {
         stream: response.body as any as Readable,
         status: response.statusCode,
-        headers: {
-          ...responseHeaders,
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers: responseHeaders,
       };
     } catch (error) {
       this.handleMicroserviceError(error, 'thumbnail');
