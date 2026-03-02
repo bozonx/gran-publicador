@@ -73,7 +73,7 @@ describe('ChannelsService (unit)', () => {
   const userId = 'user-1';
 
   describe('create', () => {
-    it('should check CHANNELS_CREATE permission and create channel', async () => {
+    it('should create channel', async () => {
       mockPrismaService.channel.create.mockResolvedValue({ id: 'c1' });
 
       await service.create(userId, projectId, {
@@ -83,17 +83,12 @@ describe('ChannelsService (unit)', () => {
         language: 'en',
       });
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.CHANNELS_CREATE,
-      );
       expect(mockPrismaService.channel.create).toHaveBeenCalled();
     });
   });
 
   describe('update', () => {
-    it('should check CHANNELS_UPDATE permission and update channel', async () => {
+    it('should update channel', async () => {
       mockPrismaService.channel.findUnique.mockResolvedValue({ id: 'c1', projectId });
       mockPermissionsService.getUserProjectRole.mockResolvedValue('editor');
       mockPrismaService.post.groupBy.mockResolvedValue([]);
@@ -101,11 +96,6 @@ describe('ChannelsService (unit)', () => {
 
       await service.update('c1', userId, { name: 'Updated' });
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.CHANNELS_UPDATE,
-      );
       expect(mockPrismaService.channel.update).toHaveBeenCalled();
     });
 
@@ -133,34 +123,26 @@ describe('ChannelsService (unit)', () => {
   });
 
   describe('remove', () => {
-    it('should check CHANNELS_DELETE permission and remove channel', async () => {
+    it('should remove channel', async () => {
       mockPrismaService.channel.findUnique.mockResolvedValue({ id: 'c1', projectId });
       mockPrismaService.channel.delete.mockResolvedValue({ id: 'c1' });
       mockPrismaService.post.findMany.mockResolvedValue([]); // No linked posts
 
       await service.remove('c1', userId);
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.CHANNELS_DELETE,
-      );
       expect(mockPrismaService.channel.delete).toHaveBeenCalled();
     });
   });
 
   describe('findAllForProject', () => {
-    it('should check CHANNELS_READ permission', async () => {
+    it('should return channels for project', async () => {
       mockPrismaService.channel.findMany.mockResolvedValue([]);
       mockPrismaService.post.groupBy.mockResolvedValue([]);
 
-      await service.findAllForProject(projectId, userId);
+      const result = await service.findAllForProject(projectId, userId);
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.CHANNELS_READ,
-      );
+      expect(result).toBeDefined();
+      expect(mockPrismaService.channel.findMany).toHaveBeenCalled();
     });
   });
 

@@ -13,6 +13,7 @@ import { ContentBulkService } from '../../src/modules/content-library/content-bu
 import { MediaService } from '../../src/modules/media/media.service.js';
 import { UnsplashService } from '../../src/modules/content-library/unsplash.service.js';
 import { ContentLibraryMapper } from '../../src/modules/content-library/content-library.mapper.js';
+import { PermissionKey } from '../../src/common/types/permissions.types.js';
 
 describe('ContentLibraryService (unit)', () => {
   let service: ContentLibraryService;
@@ -63,6 +64,10 @@ describe('ContentLibraryService (unit)', () => {
     tag: {
       findMany: jest.fn() as any,
     },
+    contentItemMedia: {
+      findMany: jest.fn(() => []) as any,
+      deleteMany: jest.fn() as any,
+    },
     $transaction: jest.fn() as any,
     $queryRaw: jest.fn() as any,
     $executeRaw: jest.fn() as any,
@@ -71,6 +76,7 @@ describe('ContentLibraryService (unit)', () => {
   const mockPermissionsService = {
     checkProjectAccess: jest.fn() as any,
     checkProjectPermission: jest.fn() as any,
+    checkPermission: jest.fn() as any,
   };
 
   const mockTagsService = {
@@ -225,10 +231,11 @@ describe('ContentLibraryService (unit)', () => {
         projectId: 'p1',
       } as any);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
-        'ADMIN',
-        'EDITOR',
-      ]);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
+        'p1',
+        'user-1',
+        PermissionKey.CONTENT_LIBRARY_UPDATE,
+      );
 
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -259,11 +266,12 @@ describe('ContentLibraryService (unit)', () => {
         operation: BulkOperationType.SET_PROJECT,
       } as any);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledTimes(1);
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
-        'ADMIN',
-        'EDITOR',
-      ]);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledTimes(1);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
+        'p1',
+        'user-1',
+        PermissionKey.CONTENT_LIBRARY_UPDATE,
+      );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'ci-1' },
@@ -628,7 +636,7 @@ describe('ContentLibraryService (unit)', () => {
     });
 
     it('should require project mutation permission for project scope', async () => {
-      mockPermissionsService.checkProjectPermission.mockResolvedValue(undefined);
+      mockPermissionsService.checkPermission.mockResolvedValue(undefined);
       mockPrismaService.contentItem.create.mockResolvedValue({ id: 'ci-1' });
 
       await service.create(
@@ -640,10 +648,11 @@ describe('ContentLibraryService (unit)', () => {
         'user-1',
       );
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
-        'ADMIN',
-        'EDITOR',
-      ]);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
+        'p1',
+        'user-1',
+        PermissionKey.CONTENT_LIBRARY_CREATE,
+      );
     });
   });
 
@@ -937,10 +946,11 @@ describe('ContentLibraryService (unit)', () => {
 
       await service.archive('ci-1', 'user-1');
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith('p1', 'user-1', [
-        'ADMIN',
-        'EDITOR',
-      ]);
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
+        'p1',
+        'user-1',
+        PermissionKey.CONTENT_LIBRARY_UPDATE,
+      );
       expect(mockPrismaService.contentItem.update).toHaveBeenCalled();
     });
 

@@ -16,6 +16,7 @@ describe('LlmService', () => {
     defaultType: 'fast',
     maxModelSwitches: 3,
     requestTimeoutSecs: 60,
+    retryMaxAttempts: 3,
   };
 
   beforeAll(() => {
@@ -38,6 +39,8 @@ describe('LlmService', () => {
           useValue: {
             get: jest.fn((key: string) => {
               if (key === 'llm') return mockConfig;
+              if (key === 'http')
+                return { retryMaxAttempts: 3, retryInitialDelayMs: 100, retryMaxDelayMs: 1000 };
               return undefined;
             }),
           },

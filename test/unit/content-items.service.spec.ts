@@ -34,6 +34,7 @@ describe('ContentItemsService (unit)', () => {
     contentItemMedia: {
       deleteMany: jest.fn() as any,
       createMany: jest.fn() as any,
+      findMany: jest.fn() as any,
     },
     $transaction: jest.fn() as any,
   };
@@ -41,6 +42,7 @@ describe('ContentItemsService (unit)', () => {
   const mockPermissionsService = {
     checkProjectAccess: jest.fn() as any,
     checkProjectPermission: jest.fn() as any,
+    checkPermission: jest.fn() as any,
   };
 
   const mockTagsService = {
@@ -141,6 +143,7 @@ describe('ContentItemsService (unit)', () => {
       tagObjects: [],
       media: [],
     });
+    mockPrismaService.contentItemMedia.findMany.mockResolvedValue([]);
     mockPrismaService.publication.findUnique.mockResolvedValue(null);
     mockPrismaService.publicationContentItem.create.mockResolvedValue({ id: 'pci-1' });
   });

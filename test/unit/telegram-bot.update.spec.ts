@@ -11,6 +11,7 @@ describe('TelegramBotUpdate', () => {
       api: {
         getFile: jest.fn(),
         deleteMessage: jest.fn(),
+        sendChatAction: jest.fn(async () => undefined),
       },
       ...overrides,
     };
@@ -70,6 +71,7 @@ describe('TelegramBotUpdate', () => {
     const botApi = {
       sendMessage: jest.fn(async () => undefined),
       getFile: jest.fn(async () => ({ file_path: 'f' })),
+      sendChatAction: jest.fn(async () => undefined),
     };
 
     return {
@@ -203,7 +205,7 @@ describe('TelegramBotUpdate', () => {
     await update.onStart(ctx);
 
     expect(deps.usersService.findOrCreateTelegramUser).toHaveBeenCalledTimes(1);
-    expect(ctx.reply).toHaveBeenCalledWith('telegram.welcome');
+    expect(ctx.reply).toHaveBeenCalledWith('telegram.welcome', expect.any(Object));
     expect(ctx.reply).toHaveBeenCalledWith('telegram.start_message');
   });
 

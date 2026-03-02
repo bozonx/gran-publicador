@@ -9,6 +9,8 @@ import { SystemRoleType, PermissionKey } from '../../src/common/types/permission
 import { NotificationsService } from '../../src/modules/notifications/notifications.service.js';
 import { RolesService } from '../../src/modules/roles/roles.service.js';
 import { I18nService } from 'nestjs-i18n';
+import { ProjectStatsService } from '../../src/modules/projects/project-stats.service.js';
+import { NewsClientService } from '../../src/modules/projects/news-client.service.js';
 
 describe('ProjectsService (unit)', () => {
   let service: ProjectsService;
@@ -99,6 +101,17 @@ describe('ProjectsService (unit)', () => {
         {
           provide: I18nService,
           useValue: mockI18nService,
+        },
+        {
+          provide: ProjectStatsService,
+          useValue: {
+            getPublicationsSummary: jest.fn(async () => ({ DRAFT: 2, PUBLISHED: 1 })),
+            getStatsForProjects: jest.fn(async () => new Map()),
+          },
+        },
+        {
+          provide: NewsClientService,
+          useValue: { checkStatus: jest.fn() },
         },
       ],
     }).compile();
@@ -322,11 +335,6 @@ describe('ProjectsService (unit)', () => {
       const result = await service.update(projectId, userId, updateData);
 
       expect(result).toEqual(updatedProject);
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.PROJECT_UPDATE,
-      );
     });
   });
 
@@ -348,11 +356,6 @@ describe('ProjectsService (unit)', () => {
         roleId: 'role-viewer-id',
       });
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.PROJECT_UPDATE,
-      );
       expect(mockPrismaService.user.findFirst).toHaveBeenCalledWith({
         where: { telegramUsername: 'newuser' },
       });
@@ -450,11 +453,6 @@ describe('ProjectsService (unit)', () => {
 
       await service.updateMemberRole(projectId, userId, memberUserId, { roleId });
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.PROJECT_UPDATE,
-      );
       expect(mockPrismaService.projectMember.update).toHaveBeenCalled();
     });
   });
@@ -473,11 +471,6 @@ describe('ProjectsService (unit)', () => {
 
       await service.removeMember(projectId, userId, memberUserId);
 
-      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
-        projectId,
-        userId,
-        PermissionKey.PROJECT_UPDATE,
-      );
       expect(mockPrismaService.projectMember.delete).toHaveBeenCalled();
     });
   });

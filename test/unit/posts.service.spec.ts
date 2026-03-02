@@ -42,6 +42,7 @@ describe('PostsService (unit)', () => {
 
   const mockPermissionsService = {
     checkProjectPermission: jest.fn() as any,
+    checkPermission: jest.fn() as any,
     getUserProjectRole: jest.fn() as any,
   };
 

@@ -2,8 +2,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { ArchiveService } from '../../src/modules/archive/archive.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
 import { PermissionsService } from '../../src/common/services/permissions.service.js';
-import { ArchiveEntityType } from '../../src/modules/archive/dto/archive.dto.js';
-import { jest } from '@jest/globals';
+import { ArchiveEntityType, ArchiveStatsDto } from '../../src/modules/archive/dto/archive.dto.js';
+import { jest, describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { PermissionKey } from '../../src/common/types/permissions.types.js';
 
 describe('ArchiveService', () => {
   let service: ArchiveService;
@@ -42,7 +43,7 @@ describe('ArchiveService', () => {
   const mockPermissionsService = {
     checkProjectAccess: jest.fn() as any,
     checkProjectPermission: jest.fn() as any,
-    getUserProjectRole: jest.fn() as any,
+    checkPermission: jest.fn() as any,
   };
 
   beforeEach(async () => {
@@ -160,10 +161,10 @@ describe('ArchiveService', () => {
 
       const result = await service.isEntityArchived(ArchiveEntityType.PROJECT, projectId, userId);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith(
         projectId,
         userId,
-        [],
+        true,
       );
       expect(result).toBe(true);
     });
@@ -186,10 +187,10 @@ describe('ArchiveService', () => {
 
       const result = await service.isEntityArchived(ArchiveEntityType.CHANNEL, channelId, userId);
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkProjectAccess).toHaveBeenCalledWith(
         projectId,
         userId,
-        [],
+        true,
       );
       expect(result).toBe(true);
     });
@@ -226,7 +227,6 @@ describe('ArchiveService', () => {
         projects: 5,
         channels: 10,
         publications: 3,
-        posts: 0,
         total: 18,
       });
     });
@@ -257,15 +257,15 @@ describe('ArchiveService', () => {
         userId,
       );
 
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         sourceProjectId,
         userId,
-        ['ADMIN'],
+        PermissionKey.CHANNELS_DELETE,
       );
-      expect(mockPermissionsService.checkProjectPermission).toHaveBeenCalledWith(
+      expect(mockPermissionsService.checkPermission).toHaveBeenCalledWith(
         targetProjectId,
         userId,
-        ['ADMIN'],
+        PermissionKey.CHANNELS_CREATE,
       );
       expect(mockPrismaService.channel.update).toHaveBeenCalledWith({
         where: { id: channelId },
