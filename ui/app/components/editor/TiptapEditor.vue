@@ -341,8 +341,8 @@ function cancelLink() {
 function normalizeUrl(url: string): string {
   const trimmed = url.trim()
   if (!trimmed) return ''
-  // Allow mailto: and tel: protocols as-is
-  if (/^(mailto:|tel:)/i.test(trimmed)) return trimmed
+  // Allow mailto:, tel:, and tg: protocols as-is
+  if (/^(mailto:|tel:|tg:)/i.test(trimmed)) return trimmed
   // Block dangerous protocols
   if (/^(javascript|data|vbscript):/i.test(trimmed)) return ''
   // Add https:// if no protocol specified
