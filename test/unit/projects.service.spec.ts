@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Logger, NotFoundException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ProjectsService } from '../../src/modules/projects/projects.service.js';
 import { PrismaService } from '../../src/modules/prisma/prisma.service.js';
@@ -472,6 +472,93 @@ describe('ProjectsService (unit)', () => {
       await service.removeMember(projectId, userId, memberUserId);
 
       expect(mockPrismaService.projectMember.delete).toHaveBeenCalled();
+    });
+  });
+
+  describe('transfer', () => {
+    const projectId = 'proj-1';
+    const userId = 'owner-id';
+    const targetUserId = 'target-id';
+    const projectName = 'Test Project';
+
+    it('should transfer project successfully', async () => {
+      const data = {
+        targetUsername: 'newowner',
+        projectName,
+        clearCredentials: true,
+      };
+
+      const mockProject = { id: projectId, ownerId: userId, name: projectName };
+      const mockTargetUser = { id: targetUserId, telegramUsername: 'newowner', uiLanguage: 'ru-RU' };
+
+      mockPrismaService.project.findUnique.mockResolvedValue(mockProject);
+      mockPrismaService.user.findFirst.mockResolvedValue(mockTargetUser);
+      mockPrismaService.user.findUnique.mockResolvedValue({ id: userId, fullName: 'Old Owner' });
+
+      mockPrismaService.$transaction.mockImplementation(async (cb: any) => {
+        const tx = {
+          project: {
+            update: jest.fn().mockResolvedValue({ ...mockProject, ownerId: targetUserId }),
+          },
+          channel: {
+            updateMany: jest.fn().mockResolvedValue({ count: 2 }),
+          },
+          projectMember: {
+            deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          user: {
+            findUnique: jest.fn().mockResolvedValue({ id: userId, fullName: 'Old Owner' }),
+          },
+        };
+        return await cb(tx);
+      });
+
+      const result = await service.transfer(projectId, userId, data);
+
+      expect(result.ownerId).toBe(targetUserId);
+      expect(mockNotificationsService.create).toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException if user is not owner', async () => {
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        ownerId: 'different-owner',
+      });
+
+      await expect(
+        service.transfer(projectId, userId, { targetUsername: 'u', projectName: 'p' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ForbiddenException if project name mismatch', async () => {
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        ownerId: userId,
+        name: 'Actual Name',
+      });
+
+      await expect(
+        service.transfer(projectId, userId, {
+          targetUsername: 'u',
+          projectName: 'Wrong Name',
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw ConflictException if transferring to self', async () => {
+      mockPrismaService.project.findUnique.mockResolvedValue({
+        id: projectId,
+        ownerId: userId,
+        name: projectName
+      });
+      mockPrismaService.user.findFirst.mockResolvedValue({ id: userId });
+
+      await expect(
+        service.transfer(projectId, userId, {
+          targetUsername: 'self',
+          projectName,
+        }),
+      ).rejects.toThrow(ConflictException);
     });
   });
 });

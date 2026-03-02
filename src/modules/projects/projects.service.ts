@@ -630,12 +630,19 @@ export class ProjectsService extends BaseCrudService<Project | any> {
       throw new NotFoundException(`User with identifier ${data.targetUsername} not found`);
     }
 
+    if (targetUser.id === userId) {
+      throw new ConflictException('You cannot transfer a project to yourself');
+    }
+
     return this.prisma.$transaction(
       async tx => {
-        // 1. Update project owner
+        // 1. Update project owner and version
         const updatedProject = await tx.project.update({
           where: { id: projectId },
-          data: { ownerId: targetUser.id },
+          data: { 
+            ownerId: targetUser.id,
+            version: { increment: 1 }
+          },
         });
 
         // 2. Cascade ownership of publications is REMOVED to preserve audit history
