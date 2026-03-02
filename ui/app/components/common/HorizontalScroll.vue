@@ -81,12 +81,12 @@ onUnmounted(() => {
 @media (min-width: 1024px) {
   .horizontal-scroll-container {
     scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* gray-400 with opacity */
+    scrollbar-color: color-mix(in srgb, var(--color-neutral-400) 50%, transparent) transparent;
   }
 
   .horizontal-scroll-container::-webkit-scrollbar {
     display: block;
-    height: 6px;
+    height: 8px;
   }
 
   .horizontal-scroll-container::-webkit-scrollbar-track {
@@ -94,13 +94,13 @@ onUnmounted(() => {
   }
 
   .horizontal-scroll-container::-webkit-scrollbar-thumb {
-    background-color: rgba(156, 163, 175, 0.5);
+    background-color: color-mix(in srgb, var(--color-neutral-400) 50%, transparent);
     border-radius: 20px;
     border: 1px solid transparent;
   }
 
   .horizontal-scroll-container::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(156, 163, 175, 0.8);
+    background-color: color-mix(in srgb, var(--color-neutral-400) 80%, transparent);
   }
 }
 </style>

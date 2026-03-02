@@ -261,7 +261,7 @@ export function useAutosave<T>(options: AutosaveOptions<T>): AutosaveReturn {
     }
 
     const isReferenceChange = oldValue && (
-      (oldValue as any)?.id !== (newValue as any)?.id || oldValue !== newValue
+      (oldValue as any)?.id !== (newValue as any)?.id
     );
 
     if (isReferenceChange) {

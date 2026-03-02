@@ -25,7 +25,7 @@ const { locales } = useI18n()
 const { languageOptions: allLanguageOptions } = useLanguages()
 
 const options = computed(() => {
-  let baseOptions = []
+  let baseOptions: any[]
   if (props.mode === 'ui') {
     baseOptions = (locales.value as any[]).map((l: any) => ({
       value: l.code,

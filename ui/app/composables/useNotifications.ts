@@ -84,7 +84,7 @@ export const useNotifications = () => {
     if (socket.value) return;
 
     const apiBase = config.public.apiBase || '';
-    let wsUrl = '';
+    let wsUrl: string
 
     if (apiBase.startsWith('http')) {
       const url = new URL(apiBase);

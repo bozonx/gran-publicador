@@ -256,7 +256,7 @@ const api: any = {
 };
 
 let callIdCounter = 0;
-const pendingCalls = new Map<number, { resolve: Function; reject: Function }>();
+const pendingCalls = new Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void }>();
 
 self.addEventListener('message', async (e: any) => {
   const data = e.data;

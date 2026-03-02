@@ -184,7 +184,7 @@ export function applyTimelineCommand(
     let nextTimelineStartUs = prevTimelineStartUs;
     let nextTimelineDurationUs = prevTimelineDurationUs;
     let nextSourceStartUs = prevSourceStartUs;
-    let nextSourceEndUs = prevSourceEndUs;
+    let nextSourceEndUs: number
 
     if (cmd.edge === 'start') {
       // deltaUs > 0 => move start right (trim in), deltaUs < 0 => move start left (extend)

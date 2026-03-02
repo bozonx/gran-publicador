@@ -77,7 +77,7 @@ async function handleSubmit() {
   if (!form.value.name.trim()) return
 
   isLoading.value = true
-  let result: Role | null = null
+  let result: Role | null
 
   if (isEditing.value && props.role) {
     result = await updateRole(props.role.id, {

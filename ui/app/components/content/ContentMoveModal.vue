@@ -568,11 +568,7 @@ watch(isOpen, (next) => {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #e5e7eb;
+  @apply bg-gray-200 dark:bg-gray-700;
   border-radius: 9999px;
-}
-
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: #374151;
 }
 </style>

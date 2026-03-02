@@ -231,10 +231,10 @@ watch(() => props.open, (next) => {
   background: transparent;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(var(--color-neutral-300), 0.3);
+  background: color-mix(in srgb, var(--color-neutral-300) 30%, transparent);
   border-radius: 10px;
 }
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(var(--color-neutral-700), 0.3);
+  background: color-mix(in srgb, var(--color-neutral-700) 30%, transparent);
 }
 </style>

@@ -27,6 +27,7 @@ function mountAutosave<T>(opts: Parameters<typeof useAutosave<T>>[0]) {
  * Two microtick rounds are needed because the queue chains `.then()`.
  */
 async function flushQueue() {
+  vi.advanceTimersByTime(0);
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
@@ -113,7 +114,7 @@ describe('composables/useAutosave', () => {
     await flushQueue();
 
     expect(saveFn).toHaveBeenCalledTimes(1);
-    expect(autosave.saveStatus.value).toBe('unsaved');
+    expect(autosave.saveStatus.value).toBe('invalid');
     expect(autosave.saveError.value).toBeNull();
 
     wrapper.unmount();

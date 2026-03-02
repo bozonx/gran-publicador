@@ -989,12 +989,12 @@ function getLinkHrefNearCursor(editor: any): string | null {
    */
   .ProseMirror pre,
   pre {
-    background-color: rgb(249 250 251) !important;
-    color: rgb(17 24 39) !important;
+    @apply bg-gray-50 text-gray-900 border-gray-200;
     border-radius: 0.375rem !important;
     padding: 1rem !important;
     margin: 1rem 0 !important;
-    border: 1px solid rgb(229 231 235) !important;
+    border-width: 1px !important;
+    border-style: solid !important;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.06) !important;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
     font-size: 0.875rem !important;
@@ -1004,9 +1004,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
 
   :global(.dark) .tiptap .ProseMirror pre,
   :global(.dark) .tiptap pre {
-    background-color: rgb(3 7 18) !important;
-    color: rgb(243 244 246) !important;
-    border-color: rgb(55 65 81) !important;
+    @apply bg-gray-950 text-gray-100 border-gray-700;
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.35) !important;
   }
   .ProseMirror pre code,

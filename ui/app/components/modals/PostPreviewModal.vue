@@ -300,13 +300,7 @@ watch(sourceMode, () => {
 
 <style scoped>
 .post-preview-html {
-  color: rgb(31 41 55);
-  font-size: 0.875rem;
-  line-height: 1.5rem;
-}
-
-.dark .post-preview-html {
-  color: rgb(229 231 235);
+  @apply text-gray-800 dark:text-gray-200 text-sm leading-6;
 }
 
 .post-preview-html :deep(p) {
@@ -356,25 +350,13 @@ watch(sourceMode, () => {
 }
 
 .post-preview-html :deep(a) {
-  color: rgb(59 130 246);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.dark .post-preview-html :deep(a) {
-  color: rgb(96 165 250);
+  @apply text-blue-500 dark:text-blue-400 underline underline-offset-2;
 }
 
 .post-preview-html :deep(blockquote) {
   margin: 0.75rem 0;
   padding: 0.5rem 0.75rem;
-  border-left: 3px solid rgb(209 213 219);
-  background: rgb(243 244 246);
-}
-
-.dark .post-preview-html :deep(blockquote) {
-  border-left-color: rgb(75 85 99);
-  background: rgb(17 24 39);
+  @apply border-l-4 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-900;
 }
 
 .post-preview-html :deep(code) {
@@ -383,20 +365,14 @@ watch(sourceMode, () => {
   font-size: 0.825rem;
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  background: rgb(243 244 246);
-}
-
-.dark .post-preview-html :deep(code) {
-  background: rgb(31 41 55);
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 
 .post-preview-html :deep(pre) {
   margin: 0.75rem 0;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: rgb(17 24 39);
-  color: rgb(229 231 235);
-  overflow: auto;
+  @apply bg-gray-900 text-gray-200 overflow-auto;
 }
 
 .post-preview-html :deep(pre code) {
@@ -413,22 +389,11 @@ watch(sourceMode, () => {
 
 .post-preview-html :deep(th),
 .post-preview-html :deep(td) {
-  border: 1px solid rgb(209 213 219);
-  padding: 0.375rem 0.5rem;
-  vertical-align: top;
-}
-
-.dark .post-preview-html :deep(th),
-.dark .post-preview-html :deep(td) {
-  border-color: rgb(55 65 81);
+  @apply border border-gray-300 dark:border-gray-700 p-2 align-top;
 }
 
 .post-preview-html :deep(th) {
   font-weight: 600;
-  background: rgb(243 244 246);
-}
-
-.dark .post-preview-html :deep(th) {
-  background: rgb(31 41 55);
+  @apply bg-gray-100 dark:bg-gray-800;
 }
 </style>

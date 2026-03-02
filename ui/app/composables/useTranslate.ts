@@ -33,7 +33,7 @@ export function useTranslate() {
     } catch (err: any) {
       const msg = err.data?.message || err.message || 'Translation failed'
       error.value = msg
-      throw new Error(msg)
+      throw new Error(msg, { cause: err })
     } finally {
       isLoading.value = false
     }

@@ -144,6 +144,7 @@
   "channel": {
     "activate": "Activate",
     "activate_info": "Activating the channel will resume posting for scheduled posts.",
+    "select_channel": "Select channel",
     "addFooter": "Add Footer",
     "addTemplate": "Add Template",
     "adjustFilters": "Try making the filters less strict",
@@ -1037,6 +1038,7 @@
     "createFirst": "Create a project first to start working with publications.",
     "createProject": "Create project",
     "createSuccess": "Project created successfully",
+    "select_project": "Select project",
     "createdAt": "Created At",
     "createdAtHelp": "Date when this project was created",
     "deleteCascadeInfo": "All associated channels, publications, and posts will be deleted permanently.",

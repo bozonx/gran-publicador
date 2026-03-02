@@ -168,14 +168,14 @@ const tagStyles = computed(() => {
       border-color: var(--color-warn) !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${rec + 1}) * {
-      color: #fff !important;
+      color: var(--color-white) !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) {
       background-color: var(--color-error) !important;
       border-color: var(--color-error) !important;
     }
     .${uniqueTagsClass} ${tagItemSelector}:nth-child(n+${max + 1}) * {
-      color: #fff !important;
+      color: var(--color-white) !important;
     }
   `
 })
@@ -230,12 +230,13 @@ useHead({
 
 <style scoped>
 .tags-container-root {
-  --color-warn: #f59e0b;
-  --color-error: #ef4444;
+  --color-warn: var(--ui-color-warning-500);
+  --color-error: var(--ui-color-error-500);
+  --color-white: #ffffff;
 }
 
 .dark .tags-container-root {
-  --color-warn: #d97706;
-  --color-error: #dc2626;
+  --color-warn: var(--ui-color-warning-600);
+  --color-error: var(--ui-color-error-600);
 }
 </style>

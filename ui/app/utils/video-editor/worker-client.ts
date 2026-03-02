@@ -11,7 +11,7 @@ interface WorkerChannelState {
   workerInstance: Worker | null;
   hostApiInstance: VideoCoreHostAPI | null;
   callIdCounter: number;
-  pendingCalls: Map<number, { resolve: Function; reject: Function }>;
+  pendingCalls: Map<number, { resolve: (value: any) => void; reject: (reason?: any) => void }>;
 }
 
 const channelStates: Record<WorkerChannel, WorkerChannelState> = {

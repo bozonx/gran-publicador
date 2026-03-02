@@ -72,7 +72,7 @@ export function usePublicationPlatformRules(options: UsePublicationPlatformRules
     const mediaArray = pub?.media?.map(m => ({ type: m.media?.type || 'UNKNOWN' })) || []
     const postType = state.postType
 
-    let errors = []
+    let errors: any[]
     
     if (!isEditMode.value) {
       const channelMap = Object.fromEntries(

@@ -122,7 +122,7 @@ export function useStt() {
 
     const config = useRuntimeConfig();
     const apiBase = config.public.apiBase || '';
-    let wsUrl = '';
+    let wsUrl: string
 
     if (apiBase.startsWith('http')) {
       const url = new URL(apiBase);

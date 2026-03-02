@@ -380,7 +380,7 @@ export function parseTimelineFromOtio(
   text: string,
   fallback: { id: string; name: string; fps: number },
 ): TimelineDocument {
-  let parsed: OtioTimeline | null = null;
+  let parsed: OtioTimeline | null
   try {
     parsed = JSON.parse(text);
   } catch {

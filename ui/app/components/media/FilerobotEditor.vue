@@ -307,7 +307,7 @@ async function initEditor() {
       source: props.source,
       // Filerobot 4.x config
       annotationsCommon: {
-        fill: '#3b82f6', // primary blue
+        fill: 'var(--ui-color-primary-500)', // primary blue
       },
       Text: { text: 'Type here...' },
       rotate: { angle: 90, factor: 1 },
