@@ -10,8 +10,19 @@ import remarkGfm from 'remark-gfm';
 export function mdToTelegramHtml(markdown: string): string {
   if (!markdown) return '';
 
+  // Preprocess spoilers to wrap them in <tg-spoiler> before AST parsing
+  // This allows remark to correctly parse nested formatting (e.g., ||**bold**||)
+  // We skip code blocks to avoid replacing || inside code.
+  const preprocessed = markdown.replace(
+    /(```[\s\S]*?```|`[^`]+`)|\|\|([\s\S]*?)\|\|/g,
+    (match, code, spoiler) => {
+      if (code) return code;
+      return `<tg-spoiler>${spoiler}</tg-spoiler>`;
+    },
+  );
+
   const processor = unified().use(remarkParse).use(remarkGfm);
-  const tree = processor.parse(markdown);
+  const tree = processor.parse(preprocessed);
 
   return astToTelegramHtml(tree, {
     isInsideCode: false,
@@ -44,13 +55,7 @@ function astToTelegramHtml(
 
   // 2. Text node
   if (node.type === 'text') {
-    let text = escapeHtml(node.value);
-
-    if (!context.isInsideCode && !context.isInsidePre) {
-      text = text.replace(/\|\|(.*?)\|\|/g, '<tg-spoiler>$1</tg-spoiler>');
-    }
-
-    return text;
+    return escapeHtml(node.value);
   }
 
   // 3. Paragraph
