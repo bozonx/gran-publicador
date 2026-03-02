@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
 import CommonThumb from '~/components/common/Thumb.vue'
-import { getMediaLinksThumbDataLoose } from '~/composables/useMedia'
+import { getMediaLinksThumbDataLoose } from '~/utils/media'
 import PublicationCreateForm from '~/components/publications/PublicationCreateForm.vue'
 
 definePageMeta({

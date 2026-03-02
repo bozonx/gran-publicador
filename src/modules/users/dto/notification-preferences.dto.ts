@@ -32,6 +32,11 @@ export class NotificationPreferencesDto {
   @Type(() => NotificationChannelPreferencesDto)
   @IsNotEmpty()
   NEW_NEWS!: NotificationChannelPreferencesDto;
+
+  @ValidateNested()
+  @Type(() => NotificationChannelPreferencesDto)
+  @IsNotEmpty()
+  PROJECT_TRANSFER!: NotificationChannelPreferencesDto;
 }
 
 /**
@@ -49,5 +54,6 @@ export function getDefaultNotificationPreferences(): NotificationPreferencesDto 
     PROJECT_INVITE: { ...defaultChannel },
     SYSTEM: { ...defaultChannel },
     NEW_NEWS: { ...defaultChannel },
+    PROJECT_TRANSFER: { ...defaultChannel },
   };
 }

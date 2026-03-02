@@ -45,6 +45,7 @@ describe('NotificationsService (unit)', () => {
       NEW_NEWS: { internal: true, telegram: false },
       PUBLICATION_FAILED: { internal: true, telegram: false },
       PROJECT_INVITE: { internal: true, telegram: false },
+      PROJECT_TRANSFER: { internal: true, telegram: false },
     }),
   };
 
@@ -126,6 +127,7 @@ describe('NotificationsService (unit)', () => {
         NEW_NEWS: { internal: false, telegram: false },
         PUBLICATION_FAILED: { internal: true, telegram: false },
         PROJECT_INVITE: { internal: true, telegram: false },
+        PROJECT_TRANSFER: { internal: true, telegram: false },
       });
 
       const result = await service.create(dto as any);
