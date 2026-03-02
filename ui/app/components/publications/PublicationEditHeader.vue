@@ -125,7 +125,7 @@ function formatDate(dateString: string | null | undefined): string {
                                     :label="option.label"
                                     color="neutral"
                                     variant="ghost"
-                                    :disabled="((option as any).isSystem && props.publication?.status === option.value) || (option.value === 'READY' && props.isReallyEmpty)"
+                                     :disabled="props.isLocked || ((option as any).isSystem && props.publication?.status === option.value) || (option.value === 'READY' && props.isReallyEmpty)"
                                     class="rounded-none border-r last:border-r-0 border-gray-200 dark:border-gray-700 transition-all px-4 py-2 font-medium"
                                     :class="[
                                         props.publication?.status === option.value 
@@ -313,7 +313,7 @@ function formatDate(dateString: string | null | undefined): string {
                                         variant="soft"
                                         size="xs"
                                         color="primary"
-                                        :disabled="props.isReallyEmpty || props.hasMediaValidationErrors || !!props.publication.archivedAt"
+                                         :disabled="props.isLocked || props.isReallyEmpty || props.hasMediaValidationErrors || !!props.publication.archivedAt"
                                         @click="emit('open-schedule-modal')"
                                     ></UButton>
                                  </UTooltip>

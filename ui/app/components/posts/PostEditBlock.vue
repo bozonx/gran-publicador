@@ -155,7 +155,7 @@ const dirtyState = props.autosave
     })
 
 const isDirty = computed(() => dirtyState?.isDirty.value ?? false)
-const isLocked = computed(() => props.publication?.status === 'READY')
+const isLocked = computed(() => props.publication?.status === 'PROCESSING')
 const saveOriginalState = () => dirtyState?.saveOriginalState()
 const resetToOriginal = () => dirtyState?.resetToOriginal()
 

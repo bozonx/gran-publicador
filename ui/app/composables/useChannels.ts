@@ -15,6 +15,13 @@ import type {
   ChannelCreateInput,
   ChannelUpdateInput,
 } from '~/types/channels';
+
+export type {
+  Channel,
+  ChannelWithProject,
+  ChannelCreateInput,
+  ChannelUpdateInput,
+};
 import {
   getChannelProblems as getLocalProblems,
   getChannelProblemLevel as getLocalLevel,

@@ -1292,6 +1292,9 @@
       "draftBlocked": "Drafts cannot be published. Please schedule the publication or change status to 'Ready'.",
       "fixMediaErrors": "Fix media file errors"
     },
+    "errors": {
+      "processingBlocked": "Publication is currently being processed and is temporarily blocked for editing."
+    },
     "sort": {
       "byPublished": "By Published",
       "byScheduled": "By Scheduled",

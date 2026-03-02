@@ -37,22 +37,12 @@ export function usePublicationFormSubmit(
       }
 
       let pubId = props.publicationId
-
-      const isReadOnly = state.status === 'READY' || state.status === 'SCHEDULED'
-      
       let payload = { ...commonData }
-      
-      if (isReadOnly) {
-         const filteredPayload: any = {}
-         if (payload.note !== undefined) filteredPayload.note = payload.note
-         if (payload.scheduledAt !== undefined) filteredPayload.scheduledAt = payload.scheduledAt
-         payload = filteredPayload
-      }
 
       if (props.isEditMode && pubId) {
         await updatePublication(pubId, {
           ...payload,
-          projectTemplateId: isReadOnly ? undefined : (data.projectTemplateId || null),
+          projectTemplateId: data.projectTemplateId || null,
           status: undefined,
         }, { silent: props.autosave })
       } else {
@@ -78,9 +68,15 @@ export function usePublicationFormSubmit(
     } catch (error: any) {
       console.error('Publication save error:', error)
       callbacks.showError()
+      
+      let description = t('common.saveError')
+      if (error?.status === 409 || error?.response?.status === 409) {
+        description = t('publication.errors.processingBlocked')
+      }
+
       toast.add({
         title: t('common.error'),
-        description: t('common.saveError'),
+        description,
         color: 'error'
       })
     }

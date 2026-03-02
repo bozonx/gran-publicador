@@ -71,7 +71,7 @@ const showAdvancedFields = ref(false)
 const isLoading = ref(false)
 
 const isEditMode = computed(() => !!props.publication?.id)
-const isLocked = computed(() => state.status === 'READY')
+const isLocked = computed(() => state.status === 'PROCESSING')
 
 
 const pubRef = computed(() => props.publication)
