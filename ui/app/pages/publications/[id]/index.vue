@@ -11,7 +11,7 @@ import { ArchiveEntityType } from '~/types/archive.types'
 import type { MediaItem } from '~/composables/useMedia'
 import MediaGallery from '~/components/media/MediaGallery.vue'
 import { getPostUrl } from '~/utils/posts'
-import { usePublicationActions } from '~/composables/usePublicationActions'
+import { usePublicationInstanceActions } from '~/composables/usePublicationInstanceActions'
 
 definePageMeta({
   middleware: 'auth',
@@ -37,7 +37,7 @@ const {
   majoritySchedule,
   normalizedPublicationMeta,
   applyLlmResult: applyLlm
-} = usePublicationActions(currentPublication)
+} = usePublicationInstanceActions(currentPublication)
 
 const publicationId = computed(() => route.params.id as string)
 
@@ -251,7 +251,7 @@ async function handleApplyLlm(data: any) {
             size="sm"
           />
           <template #item="{ item }">
-            <div class="flex items-center gap-2 w-full truncate" :class="[(item as any).class || '', { 'opacity-50 cursor-not-allowed': item.disabled }]" @click="!item.disabled && item.click && item.click()">
+            <div class="flex items-center gap-2 w-full truncate" :class="[(item as any).class || '', { 'opacity-50 cursor-not-allowed': (item as any).disabled }]" @click="!(item as any).disabled && (item as any).click && (item as any).click()">
               <UIcon v-if="item.icon" :name="item.icon" class="w-4 h-4 shrink-0" />
               <span class="truncate">{{ item.label }}</span>
             </div>

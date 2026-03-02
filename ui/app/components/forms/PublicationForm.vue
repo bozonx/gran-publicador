@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, toRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import type { PublicationWithRelations } from '~/composables/usePublications'
@@ -13,6 +13,9 @@ import { useLanguages } from '~/composables/useLanguages'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAuthorSignatures } from '~/composables/useAuthorSignatures'
 import { useProjectTemplates } from '~/composables/useProjectTemplates'
+import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
+import { usePublicationPlatformRules } from '~/composables/usePublicationPlatformRules'
+import { usePublicationFormSubmit } from '~/composables/usePublicationFormSubmit'
 import type { ProjectAuthorSignature } from '~/types/author-signatures'
 import type { ProjectTemplate } from '~/types/channels'
 
@@ -45,12 +48,7 @@ const route = useRoute()
 const toast = useToast()
 const { user } = useAuth()
 
-// 2. Publication state & logic
 const { projects, fetchProjects } = useProjects()
-
-import { usePublicationDependencies } from '~/composables/usePublicationDependencies'
-import { toRef } from 'vue'
-
 const currentProjectId = ref<string | undefined>(props.publication?.projectId || props.projectId || undefined)
 const languageParam = route.query.language as string | undefined
 const state = usePublicationFormState(props.publication, languageParam)
@@ -75,7 +73,6 @@ const isLoading = ref(false)
 const isEditMode = computed(() => !!props.publication?.id)
 const isLocked = computed(() => state.status === 'READY')
 
-import { usePublicationPlatformRules } from '~/composables/usePublicationPlatformRules'
 
 const pubRef = computed(() => props.publication)
 const {
@@ -204,7 +201,6 @@ async function handleSubmit(event: FormSubmitEvent<any>) {
   await performSubmit(event.data as PublicationFormData)
 }
 
-import { usePublicationFormSubmit } from '~/composables/usePublicationFormSubmit'
 
 const {
   showValidationWarning,

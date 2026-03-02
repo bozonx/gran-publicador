@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 import type { PublicationWithRelations } from '~/types/publications';
 
-export function usePublicationActions(publicationRef: Ref<PublicationWithRelations | null>) {
+export function usePublicationInstanceActions(publicationRef: Ref<PublicationWithRelations | null>) {
   const { t } = useI18n();
   const { updatePublication, fetchPublication } = usePublications();
   const { updatePost } = usePosts();
