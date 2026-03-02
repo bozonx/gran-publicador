@@ -1,4 +1,4 @@
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChannelsStore } from '~/stores/channels';
 import { eventBus } from '~/utils/events';
@@ -30,24 +30,26 @@ export function useChannels() {
   const { archiveEntity, restoreEntity } = useArchive();
 
   const store = useChannelsStore();
-  const { 
-    items: channels, 
-    currentChannel, 
-    totalCount, 
-    totalUnfilteredCount, 
-    isLoading, 
-    error 
+  const {
+    items: channels,
+    currentChannel,
+    totalCount,
+    totalUnfilteredCount,
+    isLoading,
+    error,
   } = storeToRefs(store);
 
   // Helper bindings for store state
   const loadingBinding = computed({
     get: () => isLoading.value,
-    set: (val) => store.setLoading(val)
+    set: val => store.setLoading(val),
   });
   const errorBinding = computed({
     get: () => error.value,
-    set: (val) => store.setError(val)
+    set: val => store.setError(val),
   });
+
+  const channelsController = ref<AbortController | null>(null);
 
   const socialMediaOptions = computed(() => getSocialMediaOptions(t));
 
@@ -69,8 +71,13 @@ export function useChannels() {
       includeArchived?: boolean;
       archivedOnly?: boolean;
     },
-    options: { append?: boolean } = {},
+    options: { append?: boolean; signal?: AbortSignal } = {},
   ): Promise<ChannelWithProject[]> {
+    if (!options.append && !options.signal) {
+      channelsController.value?.abort();
+      channelsController.value = api.createAbortController();
+    }
+
     const [, result] = await executeAction(
       async () => {
         const params: Record<string, string | number | boolean | undefined> = { ...filters };
@@ -83,7 +90,10 @@ export function useChannels() {
         const response = await api.get<{
           items: ChannelWithProject[];
           meta: { total: number; limit: number; offset: number; totalUnfiltered?: number };
-        }>('/channels', { params });
+        }>('/channels', {
+          params,
+          signal: options.signal || (options.append ? undefined : channelsController.value?.signal),
+        });
 
         if (options.append) {
           store.setItems([...channels.value, ...response.items]);
@@ -96,7 +106,7 @@ export function useChannels() {
 
         return response.items;
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: false },
     );
     return result || [];
   }
@@ -107,7 +117,7 @@ export function useChannels() {
         const params: any = { projectId };
         return await api.get<ChannelWithProject[]>('/channels/archived', { params });
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: false },
     );
     return result || [];
   }
@@ -119,7 +129,7 @@ export function useChannels() {
         store.setCurrentChannel(data);
         return data;
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true },
     );
     return result;
   }
@@ -134,7 +144,11 @@ export function useChannels() {
         eventBus.emit('channel:created', channel);
         return channel;
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.createSuccess') }
+      {
+        loadingRef: loadingBinding,
+        errorRef: errorBinding,
+        successMessage: t('channel.createSuccess'),
+      },
     );
     return result;
   }
@@ -149,7 +163,11 @@ export function useChannels() {
         store.updateChannelInList(channelId, updated as Partial<ChannelWithProject>);
         return updated;
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.updateSuccess') }
+      {
+        loadingRef: loadingBinding,
+        errorRef: errorBinding,
+        successMessage: t('channel.updateSuccess'),
+      },
     );
     return result;
   }
@@ -160,7 +178,11 @@ export function useChannels() {
         await api.delete(`/channels/${channelId}`);
         store.setItems(channels.value.filter(c => c.id !== channelId));
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, successMessage: t('channel.deleteSuccess') }
+      {
+        loadingRef: loadingBinding,
+        errorRef: errorBinding,
+        successMessage: t('channel.deleteSuccess'),
+      },
     );
     return !err;
   }
@@ -171,7 +193,7 @@ export function useChannels() {
         await archiveEntity(ArchiveEntityType.CHANNEL, channelId);
         return await fetchChannel(channelId);
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true },
     );
     return result;
   }
@@ -182,7 +204,7 @@ export function useChannels() {
         await restoreEntity(ArchiveEntityType.CHANNEL, channelId);
         return await fetchChannel(channelId);
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true },
     );
     return result;
   }

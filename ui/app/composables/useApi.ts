@@ -197,7 +197,6 @@ export const useApi = () => {
       return uploadWithProgress<T>(url, options.body, options);
     }
 
-    // Use $fetch for regular requests
     const headers = {
       ...options.headers,
     };
@@ -209,7 +208,8 @@ export const useApi = () => {
         headers,
       });
     } catch (error: any) {
-      if (isAbortError(error) || isAbortError(error?.cause)) {
+      // Improved AbortError detection
+      if (isAbortError(error) || error?.name === 'AbortError' || error?.cause?.name === 'AbortError') {
         throw createApiError('Request aborted', { status: 0 });
       }
 
@@ -217,7 +217,10 @@ export const useApi = () => {
         throw createApiError('Request timeout', { status: 0 });
       }
 
-      if (isUnauthorizedError(error)) {
+      const status = error?.response?.status ?? error?.status;
+      
+      // Auto-retry once for 401 if we haven't already
+      if (status === 401) {
         if (attempt >= 1) {
           notifySessionExpired();
           throw normalizeFetchError(error);
@@ -225,11 +228,23 @@ export const useApi = () => {
 
         try {
           await refreshTokens();
-        } catch {
+           // Re-request with new auth
+          return request<T>(url, options, attempt + 1);
+        } catch (refreshErr) {
           notifySessionExpired();
           throw normalizeFetchError(error);
         }
+      }
 
+      // Handle other retries for 503/504 or network errors if it's a GET request
+      const isIdempotent = options.method === 'GET' || !options.method;
+      const isRetryableStatus = status === 503 || status === 504 || status === 429;
+      const isNetworkError = !status || status === 0;
+      
+      if (isIdempotent && (isRetryableStatus || isNetworkError) && attempt < 2 && !isAbortError(error)) {
+        // Wait before retry: Exponential backoff 500ms -> 1000ms
+        const delay = Math.pow(2, attempt) * 500;
+        await new Promise(r => setTimeout(r, delay));
         return request<T>(url, options, attempt + 1);
       }
 

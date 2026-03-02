@@ -16,7 +16,7 @@ const router = useRouter()
 const { user } = useAuth()
 
 const {
-  publications, isLoading, totalCount, totalUnfilteredCount,
+  publications, isLoading, error, totalCount, totalUnfilteredCount,
   fetchPublications, bulkOperation, deletePublication
 } = usePublications()
 
@@ -166,7 +166,15 @@ const publicationTagsSuggestions = computed(() => {
       @reset="resetFilters"
     />
 
-    <div v-if="publications.length === 0 && !isLoading" class="app-card p-12 text-center">
+    <div v-if="error && publications.length === 0" class="mb-6">
+      <CommonErrorState 
+        :error="error" 
+        :loading="isLoading"
+        @retry="loadPublications" 
+      />
+    </div>
+
+    <div v-else-if="publications.length === 0 && !isLoading" class="app-card p-12 text-center">
       <h3 class="text-lg font-medium">{{ t('publication.noPublicationsFound') }}</h3>
     </div>
 

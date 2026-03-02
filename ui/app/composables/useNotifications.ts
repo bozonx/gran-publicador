@@ -9,7 +9,8 @@ import type { Notification } from '~/types/notifications';
 
 export const useNotifications = () => {
   const store = useNotificationsStore();
-  const { items, unreadCount, totalCount, isLoading, error, socket, hasUnread } = storeToRefs(store);
+  const { items, unreadCount, totalCount, isLoading, error, socket, hasUnread } =
+    storeToRefs(store);
   const api = useApi();
   const { executeAction } = useApiAction();
   const config = useRuntimeConfig();
@@ -19,11 +20,11 @@ export const useNotifications = () => {
   // Helper bindings for store state
   const loadingBinding = computed({
     get: () => isLoading.value,
-    set: (val) => store.setLoading(val)
+    set: val => store.setLoading(val),
   });
   const errorBinding = computed({
     get: () => error.value,
-    set: (val) => store.setError(val)
+    set: val => store.setError(val),
   });
 
   async function fetchNotifications(limit = DEFAULT_PAGE_SIZE, offset = 0, append = false) {
@@ -38,12 +39,12 @@ export const useNotifications = () => {
         } else {
           store.setItems(data.items);
         }
-        
+
         store.setTotalCount(data.total);
         await fetchUnreadCount();
         return data;
       },
-      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: true }
+      { loadingRef: loadingBinding, errorRef: errorBinding, silentErrors: false },
     );
     return response || { items: [], total: 0 };
   }
@@ -63,7 +64,7 @@ export const useNotifications = () => {
         await api.patch(`/notifications/${id}/read`);
         store.markReadLocally(id);
       },
-      { silentErrors: true }
+      { silentErrors: true },
     );
     return !err;
   }
@@ -74,7 +75,7 @@ export const useNotifications = () => {
         await api.patch('/notifications/read-all');
         store.markAllReadLocally();
       },
-      { silentErrors: true }
+      { silentErrors: true },
     );
     return !err;
   }

@@ -11,15 +11,28 @@
       <CommonAppLoading v-if="!authStore.isInitialized" />
     </Transition>
 
-    <NuxtLayout v-if="authStore.isInitialized">
-      <NuxtPage :key="route.fullPath" />
-    </NuxtLayout>
+    <NuxtErrorBoundary>
+      <NuxtLayout v-if="authStore.isInitialized">
+        <NuxtPage :key="route.fullPath" />
+      </NuxtLayout>
+      
+      <template #error="{ error, clearError }">
+        <div class="fixed inset-0 flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900 z-9999">
+          <CommonErrorState 
+            :error="error" 
+            :title="t('common.fatalAppError')"
+            @retry="clearError"
+          />
+        </div>
+      </template>
+    </NuxtErrorBoundary>
   </UApp>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth';
 
+const { t } = useI18n();
 const route = useRoute();
 const authStore = useAuthStore();
 const { connectWebSocket, disconnectWebSocket } = useNotifications();

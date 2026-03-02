@@ -36,14 +36,22 @@ export function useProjects() {
     set: (val) => store.setError(val)
   });
 
+  const projectsController = ref<AbortController | null>(null);
+  
   async function fetchProjects(
     arg?:
       | boolean
       | {
           includeArchived?: boolean;
           hasContentCollections?: boolean;
+          signal?: AbortSignal;
         },
   ): Promise<ProjectWithRole[]> {
+    if (typeof arg !== 'object' || !arg?.signal) {
+      projectsController.value?.abort();
+      projectsController.value = api.createAbortController();
+    }
+
     const [, result] = await executeAction(
       async () => {
         const options = typeof arg === 'object' ? arg : { includeArchived: arg };
@@ -52,7 +60,10 @@ export function useProjects() {
         if (options.hasContentCollections) {
           params.hasContentCollections = true;
         }
-        const data = await api.get<ProjectWithRole[]>('/projects', { params });
+        const data = await api.get<ProjectWithRole[]>('/projects', { 
+          params, 
+          signal: options.signal || projectsController.value?.signal 
+        });
         store.setProjects(data);
         return data;
       },
@@ -71,10 +82,10 @@ export function useProjects() {
     return result || [];
   }
 
-  async function fetchProject(projectId: string): Promise<ProjectWithRole | null> {
+  async function fetchProject(projectId: string, options: { signal?: AbortSignal } = {}): Promise<ProjectWithRole | null> {
     const [, result] = await executeAction(
       async () => {
-        const data = await api.get<ProjectWithRole>(`/projects/${projectId}`);
+        const data = await api.get<ProjectWithRole>(`/projects/${projectId}`, { signal: options.signal });
         store.setCurrentProject(data);
         return data;
       },

@@ -3,12 +3,12 @@ import { usePublicationState } from './usePublicationState';
 import { normalizePublication } from './utils';
 import { applyArchiveQueryFlags } from '~/utils/archive-query';
 import { logger } from '~/utils/logger';
-import type { 
-  PublicationWithRelations, 
-  PublicationsFilter, 
+import type {
+  PublicationWithRelations,
+  PublicationsFilter,
   PaginatedPublications,
   PublicationCreateInput,
-  PublicationUpdateInput
+  PublicationUpdateInput,
 } from '~/types/publications';
 
 export function usePublicationCrud() {
@@ -17,14 +17,22 @@ export function usePublicationCrud() {
   const { t } = useI18n();
   const state = usePublicationState();
 
+  const fetchController = ref<AbortController | null>(null);
+
   async function fetchPublications(
     filters: PublicationsFilter = {},
-    options: { append?: boolean, skipStore?: boolean } = {},
+    options: { append?: boolean; skipStore?: boolean; signal?: AbortSignal } = {},
   ): Promise<PaginatedPublications> {
+    // Abort previous fetch request for this list
+    if (!options.append && !options.skipStore) {
+      fetchController.value?.abort();
+      fetchController.value = api.createAbortController();
+    }
+
     const [, result] = await executeAction(
       async () => {
         const params: Record<string, string | number | boolean | undefined> = {};
-        
+
         if (filters.projectId) params.projectId = filters.projectId;
         if (filters.status) {
           params.status = Array.isArray(filters.status) ? filters.status.join(',') : filters.status;
@@ -32,7 +40,7 @@ export function usePublicationCrud() {
         if (filters.channelId) params.channelId = filters.channelId;
         if (filters.limit) params.limit = filters.limit;
         if (filters.offset) params.offset = filters.offset;
-        
+
         applyArchiveQueryFlags(params, {
           includeArchived: filters.includeArchived,
           archivedOnly: filters.archivedOnly,
@@ -48,7 +56,10 @@ export function usePublicationCrud() {
         if (filters.publishedAfter) params.publishedAfter = filters.publishedAfter;
         if (filters.tags) params.tags = filters.tags;
 
-        const data = await api.get<PaginatedPublications>('/publications', { params });
+        const data = await api.get<PaginatedPublications>('/publications', {
+          params,
+          signal: options.signal || (options.append ? undefined : fetchController.value?.signal),
+        });
         const normalizedItems = data.items.map(normalizePublication);
         const normalizedData = { ...data, items: normalizedItems };
 
@@ -64,53 +75,62 @@ export function usePublicationCrud() {
         }
         return normalizedData;
       },
-      { loadingRef: options.skipStore ? undefined : state.isLoading, errorRef: options.skipStore ? undefined : state.error, silentErrors: true }
+      {
+        loadingRef: options.skipStore ? undefined : state.isLoading,
+        errorRef: options.skipStore ? undefined : state.error,
+        silentErrors: false,
+      },
     );
 
     if (!result) {
-      if (!options.append) {
-        state.store.setItems([]);
-        state.store.setTotalCount(0);
-      }
       return {
         items: [],
         meta: { total: 0, limit: filters.limit || 50, offset: filters.offset || 0 },
       };
     }
-    
+
     return result;
   }
 
-  async function fetchUserPublications(filters: PublicationsFilter = {}, options: { append?: boolean } = {}) {
+  async function fetchUserPublications(filters: PublicationsFilter = {}, options: any = {}) {
     return fetchPublications(filters, options);
   }
 
-  async function fetchPublicationsByProject(projectId: string, filters: PublicationsFilter = {}, options: { append?: boolean } = {}) {
+  async function fetchPublicationsByProject(
+    projectId: string,
+    filters: PublicationsFilter = {},
+    options: any = {},
+  ) {
     return fetchPublications({ ...filters, projectId }, options);
   }
 
-  async function fetchPublication(id: string): Promise<PublicationWithRelations | null> {
+  async function fetchPublication(
+    id: string,
+    options: { signal?: AbortSignal } = {},
+  ): Promise<PublicationWithRelations | null> {
     if (state.currentPublication.value?.id !== id) {
       state.store.setCurrentPublication(null);
     }
 
     const [, result] = await executeAction(
       async () => {
-        const data = await api.get<PublicationWithRelations>(`/publications/${id}`);
+        const data = await api.get<PublicationWithRelations>(`/publications/${id}`, {
+          signal: options.signal,
+        });
         const normalized = normalizePublication(data);
         state.store.setCurrentPublication(normalized);
         return normalized;
       },
-      { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true }
+      { loadingRef: state.isLoading, errorRef: state.error, silentErrors: true },
     );
-    
+
     return result;
   }
 
   async function searchTags(q: string, options: { projectId?: string; limit?: number } = {}) {
     try {
       return await api.get<Array<{ name: string }>>('/publications/tags/search', {
-        params: { q, ...options }
+        params: { q, ...options },
       });
     } catch (err) {
       logger.error('[usePublications] searchTags error', err);
@@ -118,7 +138,9 @@ export function usePublicationCrud() {
     }
   }
 
-  async function createPublication(data: PublicationCreateInput): Promise<PublicationWithRelations> {
+  async function createPublication(
+    data: PublicationCreateInput,
+  ): Promise<PublicationWithRelations> {
     const [, result] = await executeAction(
       async () => {
         const res = await api.post<PublicationWithRelations>('/publications', data);
@@ -126,12 +148,20 @@ export function usePublicationCrud() {
         state.store.setItems([normalized, ...state.publications.value]);
         return normalized;
       },
-      { loadingRef: state.isLoading, successMessage: t('publication.createSuccess', 'Publication created successfully'), throwOnError: true }
+      {
+        loadingRef: state.isLoading,
+        successMessage: t('publication.createSuccess', 'Publication created successfully'),
+        throwOnError: true,
+      },
     );
     return result as PublicationWithRelations;
   }
 
-  async function updatePublication(id: string, data: PublicationUpdateInput, options: { silent?: boolean } = {}): Promise<PublicationWithRelations> {
+  async function updatePublication(
+    id: string,
+    data: PublicationUpdateInput,
+    options: { silent?: boolean } = {},
+  ): Promise<PublicationWithRelations> {
     const [, result] = await executeAction(
       async () => {
         const res = await api.patch<PublicationWithRelations>(`/publications/${id}`, data);
@@ -139,7 +169,7 @@ export function usePublicationCrud() {
         state.store.updatePublicationInList(id, normalized);
         return normalized;
       },
-      { loadingRef: state.isLoading, silentErrors: options.silent, throwOnError: true }
+      { loadingRef: state.isLoading, silentErrors: options.silent, throwOnError: true },
     );
     return result as PublicationWithRelations;
   }
@@ -151,7 +181,7 @@ export function usePublicationCrud() {
         state.store.setItems(state.publications.value.filter(p => p.id !== id));
         if (state.currentPublication.value?.id === id) state.store.setCurrentPublication(null);
       },
-      { loadingRef: state.isLoading, successMessage: t('common.success') }
+      { loadingRef: state.isLoading, successMessage: t('common.success') },
     );
     return !err;
   }
