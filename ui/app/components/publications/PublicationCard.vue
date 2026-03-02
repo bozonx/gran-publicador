@@ -19,11 +19,10 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const { getStatusColor, getStatusDisplayName, getStatusIcon, getPublicationProblems, getPostProblemLevel } = usePublications()
+const { getStatusColor, getStatusDisplayName, getStatusIcon, getPublicationProblems } = usePublications()
 const { formatDateShort, truncateContent } = useFormatters()
 const route = useRoute()
 const isArchiveView = computed(() => route.query.archived === 'true')
-const authStore = useAuthStore()
 
 const isContentActionModalOpen = ref(false)
 const isCopyProjectModalOpen = ref(false)
@@ -34,7 +33,7 @@ const thumbData = computed(() => {
     return { first: null, totalCount: 0 }
   }
 
-  return getMediaLinksThumbDataLoose(props.publication.media as any)
+  return getMediaLinksThumbDataLoose(props.publication.media as { media?: unknown; order: number }[])
 })
 
 // Compute problems for this publication
@@ -84,85 +83,86 @@ function handleDelete(e: Event) {
       />
     </div>
 
-    <!-- Header: Title, Status, Delete -->
-    <div class="flex items-start justify-between gap-3 mb-2" :class="{ 'pl-8': selectable }">
-      <div class="flex-1 min-w-0">
-        <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400">
+  <!-- Header: Title, Status, Delete -->
+    <CommonEntityCardHeader
+      :title="displayTitle"
+      :title-class="!publication.title && !stripHtmlAndSpecialChars(publication.content) ? 'italic text-gray-500 font-medium' : ''"
+      :class="{ 'pl-8': selectable }"
+    >
+      <template #badges>
+        <div v-if="showProjectInfo && publication.project" class="flex items-center gap-1.5 mb-1 text-xs text-gray-500 dark:text-gray-400 w-full">
           <UIcon name="i-heroicons-briefcase" class="w-3 h-3 text-gray-400" />
           <span class="truncate">{{ publication.project.name }}</span>
         </div>
-        <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base leading-snug mb-1" :class="{ 'italic text-gray-500 font-medium': !publication.title && !stripHtmlAndSpecialChars(publication.content) }">
-          {{ displayTitle }}
-        </h3>
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize gap-1">
-            <UIcon :name="getStatusIcon(publication.status)" class="w-3.5 h-3.5" :class="{ 'animate-spin': publication.status === 'PROCESSING' }" />
-            {{ getStatusDisplayName(publication.status) }}
-          </UBadge>
+        <UBadge :color="getStatusColor(publication.status) as any" size="xs" variant="subtle" class="capitalize gap-1">
+          <UIcon :name="getStatusIcon(publication.status)" class="w-3.5 h-3.5" :class="{ 'animate-spin': publication.status === 'PROCESSING' }" />
+          {{ getStatusDisplayName(publication.status) }}
+        </UBadge>
 
-          <UBadge v-if="publication.archivedAt && !isArchiveView" color="neutral" size="xs" variant="solid">
-            {{ t('common.archived') }}
-          </UBadge>
-          
-          <!-- Problem indicators -->
-          <PublicationsPublicationProblemIndicators :problems="problems" />
+        <UBadge v-if="publication.archivedAt && !isArchiveView" color="neutral" size="xs" variant="solid">
+          {{ t('common.archived') }}
+        </UBadge>
+        
+        <!-- Problem indicators -->
+        <PublicationsPublicationProblemIndicators :problems="problems" />
 
-          <CommonAdminDebugInfo :data="publication" />
-        </div>
-      </div>
+        <CommonAdminDebugInfo :data="publication" />
+      </template>
       
-      <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <slot name="actions" />
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-pencil-square"
-          size="xs"
-          :to="`/publications/${publication.id}/edit`"
-          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          :title="t('common.edit')"
-          @click.stop
-        />
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-heroicons-trash"
-          size="xs"
-          class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          :title="t('common.delete')"
-          @click="handleDelete"
-        />
-        <UDropdownMenu
-          :items="[[
-            {
-              label: t('publication.copyToProject'),
-              icon: 'i-heroicons-document-duplicate',
-              click: () => {
-                isCopyProjectModalOpen = true
-              }
-            },
-            {
-              label: t('publication.copyToContentLibrary'),
-              icon: 'i-heroicons-arrow-down-on-square-stack',
-              click: () => {
-                contentActionMode = 'copy'
-                isContentActionModalOpen = true
-              }
-            }
-          ]]"
-          :popper="{ placement: 'bottom-end', strategy: 'fixed' }"
-        >
+      <template #actions>
+        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <slot name="actions" />
           <UButton
             color="neutral"
             variant="ghost"
-            icon="i-heroicons-ellipsis-vertical"
+            icon="i-heroicons-pencil-square"
             size="xs"
+            :to="`/publications/${publication.id}/edit`"
             class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            :title="t('common.edit')"
             @click.stop
           />
-        </UDropdownMenu>
-      </div>
-    </div>
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-heroicons-trash"
+            size="xs"
+            class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            :title="t('common.delete')"
+            @click="handleDelete"
+          />
+          <UDropdownMenu
+            :items="[[
+              {
+                label: t('publication.copyToProject'),
+                icon: 'i-heroicons-document-duplicate',
+                click: () => {
+                  isCopyProjectModalOpen = true
+                }
+              },
+              {
+                label: t('publication.copyToContentLibrary'),
+                icon: 'i-heroicons-arrow-down-on-square-stack',
+                click: () => {
+                  contentActionMode = 'copy'
+                  isContentActionModalOpen = true
+                }
+              }
+            ]]"
+            :popper="{ placement: 'bottom-end', strategy: 'fixed' }"
+          >
+            <UButton
+              color="neutral"
+              variant="ghost"
+              icon="i-heroicons-ellipsis-vertical"
+              size="xs"
+              class="cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              @click.stop
+            />
+          </UDropdownMenu>
+        </div>
+      </template>
+    </CommonEntityCardHeader>
 
     <!-- Media preview -->
     <div v-if="publication.media && publication.media.length > 0" class="mb-3 flex justify-center">
@@ -210,7 +210,7 @@ function handleDelete(e: Event) {
         </div>
 
         <!-- Channel icons -->
-        <PublicationsPublicationChannelIcons :posts="publication.posts || []" />
+        <CommonPostChannelIcons :posts="publication.posts || []" size="sm" />
       </div>
 
       <!-- Tags if present -->

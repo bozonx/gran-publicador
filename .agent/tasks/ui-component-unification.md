@@ -104,13 +104,13 @@
 
 ### 4.1 Дополнительный рефакторинг карточек
 
-- [ ] **ChannelCard.vue**
+- [x] **ChannelCard.vue**
   - Применить EntityCardHeader
   - Применить CardDescription
   - Применить CardFooter
   - Применить MetricItem для статистики
 
-- [ ] **PublicationCard.vue**
+- [x] **PublicationCard.vue**
   - Применить EntityCardHeader
   - Применить CardDescription
   - Применить CardFooter
@@ -118,33 +118,33 @@
 
 ### 4.2 Рефакторинг списков (ListItem)
 
-- [ ] **ProjectListItem.vue**
+- [x] **ProjectListItem.vue**
   - Применить MetricItem
   - Применить WarningBadge
   - Применить useFormatters
 
-- [ ] **ChannelListItem.vue**
+- [x] **ChannelListItem.vue**
   - Применить MetricItem
   - Применить useFormatters
 
-- [ ] **PublicationListItem.vue**
+- [x] **PublicationListItem.vue**
   - Применить MetricItem
   - Применить useFormatters
 
 ### 4.3 Дополнительные унифицированные компоненты
 
-- [ ] **StatusBadge.vue** - унифицированный статус badge
+- [x] **StatusBadge.vue** - унифицированный статус badge
   - Для: DRAFT, READY, SCHEDULED, PUBLISHED, FAILED и т.д.
   - Автоматическая цветовая схема
 
-- [ ] **PostChannelIcons.vue** - иконки каналов для постов
+- [x] **PostChannelIcons.vue** - иконки каналов для постов
   - Аналогично ChannelIcons, но для постов publication
   - С индикаторами problemLevel
 
 ### 4.4 PublicationForm.vue
 
-- [ ] Ревью и рефакторинг для использования новых компонентов
-- [ ] Вынести повторяющуюся логику в composables
+- [x] Ревью и рефакторинг для использования новых компонентов
+- [x] Вынести повторяющуюся логику в composables
 
 ## 5. Преимущества унификации
 

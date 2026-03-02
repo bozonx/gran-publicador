@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ChannelWithProject } from '~/composables/useChannels'
+import type { ChannelWithProject } from '~/types/channels'
 
 import { isChannelCredentialsEmpty } from '~/utils/channels'
 
@@ -26,29 +26,40 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
     @click="navigateTo(`/channels/${channel.id}`)"
   >
     <!-- Header with icon and name -->
-    <div class="flex items-start gap-3 mb-3">
-      <CommonSocialIcon 
-        :platform="channel.socialMedia" 
-        show-background 
+    <CommonEntityCardHeader
+      :title="channel.name"
+    >
+      <template #icon>
+        <CommonSocialIcon 
+          :platform="channel.socialMedia" 
+          show-background 
+        />
+      </template>
+
+      <template #actions>
+        <!-- Problems from backend -->
+        <UTooltip 
+          v-for="problem in problems" 
+          :key="problem.key"
+          :text="t(`problems.channel.${problem.key}`, problem.count ? { count: problem.count } : {})"
+        >
+          <UIcon 
+            :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : 'i-heroicons-exclamation-triangle'" 
+            :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
+            class="w-5 h-5"
+          />
+        </UTooltip>
+      </template>
+    </CommonEntityCardHeader>
+
+    <div class="mb-3">
+      <!-- Language -->
+      <CommonLanguageBadges
+        v-if="channel.language"
+        :languages="[channel.language]"
+        mode="compact"
+        class="mb-2"
       />
-      
-      <div class="flex-1 min-w-0">
-        <h3 class="text-base font-semibold text-gray-900 dark:text-white truncate mb-1">
-          {{ channel.name }}
-        </h3>
-        
-        <!-- Language -->
-        <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
-          <UIcon name="i-heroicons-language" class="w-3.5 h-3.5" />
-          <span class="font-medium">{{ channel.language }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Note -->
-    <CommonCardDescription :text="channel.note" />
-
-    <div class="flex flex-wrap items-center gap-2 mb-3">
       <!-- Status badges -->
       <UBadge 
         v-if="!channel.isActive" 
@@ -58,20 +69,10 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
       >
         {{ t('channel.inactive') }}
       </UBadge>
-      
-      <!-- Problems from backend -->
-      <UTooltip 
-        v-for="problem in problems" 
-        :key="problem.key"
-        :text="t(`problems.channel.${problem.key}`, problem.count ? { count: problem.count } : {})"
-      >
-        <UIcon 
-          :name="problem.type === 'critical' ? 'i-heroicons-x-circle' : 'i-heroicons-exclamation-triangle'" 
-          :class="problem.type === 'critical' ? 'text-red-500' : 'text-orange-500'"
-          class="w-4 h-4"
-        />
-      </UTooltip>
     </div>
+
+    <!-- Note -->
+    <CommonCardDescription :text="channel.note" />
 
     <!-- Project info (if needed) -->
     <div v-if="showProject && channel.project" class="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center gap-1.5">
@@ -94,9 +95,7 @@ const isChannelArchived = computed(() => (props.isArchived || !!props.channel.ar
           :value="channel.postsCount || 0"
         />
 
-
-
-        <div class="flex items-center gap-1 ml-auto" :title="t('channel.lastPublishedPost')">
+        <div v-if="channel.lastPostAt" class="flex items-center gap-1 ml-auto" :title="t('channel.lastPublishedPost')">
           <UIcon name="i-heroicons-clock" class="w-3.5 h-3.5" />
           <span>{{ formatDateShort(channel.lastPostAt) }}</span>
         </div>

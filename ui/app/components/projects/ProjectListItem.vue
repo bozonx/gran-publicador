@@ -18,14 +18,6 @@ const { formatDateShort, formatDateWithTime } = useFormatters()
 
 // Problem detection
 const problemsSummary = computed(() => getProjectProblemsSummary(props.project))
-const problems = computed(() => problemsSummary.value.problems)
-const problemLevel = computed(() => problemsSummary.value.level)
-
-function getIndicatorColor(level: 'critical' | 'warning' | null) {
-  if (level === 'critical') return 'bg-red-500'
-  if (level === 'warning') return 'bg-yellow-500'
-  return 'bg-emerald-500'
-}
 
 // Category counts and tooltips from summary
 const errorsCount = computed(() => problemsSummary.value.errorsCount)
@@ -37,55 +29,52 @@ const warningsTooltip = computed(() => problemsSummary.value.warningsTooltip)
 <template>
   <NuxtLink
     :to="`/projects/${project.id}`"
-    class="block app-card app-card-hover transition-all cursor-pointer"
+    class="block app-card app-card-hover transition-all cursor-pointer h-full"
     :class="{ 'opacity-75 grayscale': project.archivedAt }"
   >
     <div class="flex items-start gap-4">
       <slot name="leading" />
       <div class="flex-1 min-w-0">
           <!-- Header: Name + Role + Problem Badges -->
-          <div class="flex items-center gap-2 mb-1 flex-wrap">
-            <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate max-w-full">
-              <CommonSearchHighlight :text="project.name" :query="searchQuery || ''" />
-            </h3>
-            <UBadge 
-              v-if="project.role" 
-              :color="getRoleBadgeColor(project.role)" 
-              variant="subtle" 
-              size="xs"
-              class="capitalize"
-            >
-              {{ t(`roles.${project.role}`) }}
-            </UBadge>
-
-            <!-- Mini Error Badge -->
-            <UTooltip v-if="errorsCount > 0" :text="errorsTooltip">
+          <CommonEntityCardHeader
+            :title="project.name"
+            :title-class="'text-base sm:text-lg max-w-full'"
+          >
+            <template #title>
+              <h3 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white truncate max-w-full mb-1">
+                <CommonSearchHighlight :text="project.name" :query="searchQuery || ''" />
+              </h3>
+            </template>
+            <template #badges>
               <UBadge 
-                color="error" 
-                variant="soft" 
+                v-if="project.role" 
+                :color="getRoleBadgeColor(project.role)" 
+                variant="subtle" 
                 size="xs"
+                class="capitalize"
               >
-                <span class="flex items-center gap-0.5">
-                  <UIcon name="i-heroicons-x-circle-solid" class="w-3.5 h-3.5" />
-                  <span class="font-bold text-[10px]">{{ errorsCount }}</span>
-                </span>
+                {{ t(`roles.${project.role}`) }}
               </UBadge>
-            </UTooltip>
 
-            <!-- Mini Warning Badge -->
-            <UTooltip v-if="warningsCount > 0" :text="warningsTooltip">
-              <UBadge 
-                color="warning" 
-                variant="soft" 
-                size="xs"
-              >
-                <span class="flex items-center gap-0.5">
-                  <UIcon name="i-heroicons-exclamation-triangle-solid" class="w-3.5 h-3.5" />
-                  <span class="font-bold text-[10px]">{{ warningsCount }}</span>
-                </span>
-              </UBadge>
-            </UTooltip>
-          </div>
+              <!-- Mini Error Badge -->
+              <CommonWarningBadge
+                v-if="errorsCount > 0"
+                variant="error"
+                icon="i-heroicons-x-circle-solid"
+                :text="String(errorsCount)"
+                :title="errorsTooltip"
+              />
+
+              <!-- Mini Warning Badge -->
+              <CommonWarningBadge
+                v-if="warningsCount > 0"
+                variant="warning"
+                icon="i-heroicons-exclamation-triangle-solid"
+                :text="String(warningsCount)"
+                :title="warningsTooltip"
+              />
+            </template>
+          </CommonEntityCardHeader>
 
           <!-- Note (optional) -->
           <p 
@@ -94,73 +83,60 @@ const warningsTooltip = computed(() => problemsSummary.value.warningsTooltip)
           >
             <CommonSearchHighlight :text="project.note" :query="searchQuery || ''" />
           </p>
-          <!-- Metrics / Stats -->
-          <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-2 flex-wrap">
-            <div class="flex items-center gap-1.5" :title="t('project.publicationsCountTooltip')">
-              <UIcon name="i-heroicons-document-text" class="w-4 h-4 shrink-0" />
-              <span>
-                {{ project.publicationsCount || 0 }} {{ t('publication.titlePlural').toLowerCase() }}
-              </span>
-            </div>
-            
-            <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-
-            <div class="flex items-center gap-1.5" :title="t('channel.titlePlural')">
-              <UIcon name="i-heroicons-signal" class="w-4 h-4 shrink-0" />
-              <span>
-                {{ project.channelCount || 0 }} {{ t('channel.titlePlural').toLowerCase() }}
-              </span>
-            </div>
-
-            <template v-if="project.languages?.length">
-              <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-              <div class="flex items-center gap-1.5">
-                <UIcon name="i-heroicons-globe-alt" class="w-4 h-4 shrink-0" />
-                <span class="uppercase">
-                  {{ project.languages.map(l => l.split('-')[0]).join(', ') }}
-                </span>
-              </div>
-            </template>
-
-            <template v-if="project.lastPublicationAt">
-              <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-
-              <div class="flex items-center gap-1.5">
-                <UIcon name="i-heroicons-clock" class="w-4 h-4 shrink-0" />
-                <span>
-                   {{ t('project.lastPublication') }}:
-                   <span 
-                     class="text-primary-500 hover:text-primary-400 transition-colors cursor-pointer font-medium underline decoration-dotted decoration-primary-500/30 underline-offset-2"
-                     @click.stop.prevent="router.push(`/publications/${project.lastPublicationId}`)"
-                   >
-                     {{ formatDateWithTime(project.lastPublicationAt) }}
-                   </span>
-                </span>
-              </div>
-            </template>
-          </div>
 
           <!-- Channels -->
-          <div v-if="project.channels?.length" class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2 flex-wrap">
-            <UTooltip 
-              v-for="channel in project.channels" 
-              :key="channel.id" 
-              :text="channel.name"
-            >
-              <NuxtLink 
-                :to="`/channels/${channel.id}`"
-                class="hover:opacity-80 transition-opacity"
-                @click.stop
-              >
-                <CommonSocialIcon 
-                  :platform="channel.socialMedia" 
-                  :show-background="true" 
-                  :is-stale="channel.isStale"
-                  :problem-level="getChannelProblemLevel(channel as any)"
-                />
-              </NuxtLink>
-            </UTooltip>
+          <div v-if="project.channels?.length" class="mb-4">
+            <CommonChannelIcons
+              :channels="project.channels"
+              :max-visible="10"
+              :get-problem-level="(c) => getChannelProblemLevel(c as any)"
+              route-prefix="/channels/"
+              :stacked="false"
+            />
           </div>
+
+          <!-- Metrics / Stats -->
+          <CommonCardFooter with-border spacing="compact">
+            <div class="flex items-center gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+              <CommonMetricItem
+                icon="i-heroicons-document-text"
+                :label="t('publication.titlePlural').toLowerCase()"
+                :value="project.publicationsCount || 0"
+                :title="t('project.publicationsCountTooltip')"
+              />
+              
+              <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+
+              <CommonMetricItem
+                icon="i-heroicons-signal"
+                :label="t('channel.titlePlural').toLowerCase()"
+                :value="project.channelCount || 0"
+                :title="t('channel.titlePlural')"
+              />
+
+              <template v-if="project.languages?.length">
+                <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                <CommonLanguageBadges :languages="project.languages" mode="compact" />
+              </template>
+
+              <template v-if="project.lastPublicationAt">
+                <div class="w-1 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+
+                <div class="flex items-center gap-1.5">
+                  <UIcon name="i-heroicons-clock" class="w-4 h-4 shrink-0" />
+                  <span>
+                    {{ t('project.lastPublication') }}:
+                    <span 
+                      class="text-primary-500 hover:text-primary-400 transition-colors cursor-pointer font-medium underline decoration-dotted decoration-primary-500/30 underline-offset-2"
+                      @click.stop.prevent="router.push(`/publications/${project.lastPublicationId}`)"
+                    >
+                      {{ formatDateWithTime(project.lastPublicationAt) }}
+                    </span>
+                  </span>
+                </div>
+              </template>
+            </div>
+          </CommonCardFooter>
         </div>
     </div>
   </NuxtLink>

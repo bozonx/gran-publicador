@@ -12,12 +12,13 @@ const props = withDefaults(defineProps<Props>(), { isValid: true })
 const emit = defineEmits(['update:modelValue'])
 
 const { t } = useI18n()
+const { getStatusDisplayName } = usePublications()
 
 const options = computed(() => {
     return [
-        { value: 'DRAFT', label: t('publicationStatus.draft') },
-        { value: 'READY', label: t('publicationStatus.ready') },
-        { value: 'SCHEDULED', label: t('publicationStatus.scheduled') }
+        { value: 'DRAFT', label: getStatusDisplayName('DRAFT') },
+        { value: 'READY', label: getStatusDisplayName('READY') },
+        { value: 'SCHEDULED', label: getStatusDisplayName('SCHEDULED') }
     ]
 })
 
