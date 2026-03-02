@@ -46,6 +46,21 @@ export default defineNuxtConfig({
     },
   },
 
+  nitro: {
+    hooks: {
+      'render:response': response => {
+        const nonce = response.headers['x-csp-nonce'];
+        if (nonce && response.body) {
+          const nonceAttr = `nonce="${nonce}"`;
+          response.body = response.body.replace(/<script(\s+[^>]*)?>/g, (match, attrs) => {
+            if (attrs?.includes('nonce=')) return match;
+            return `<script${attrs || ''} ${nonceAttr}>`;
+          });
+        }
+      },
+    },
+  },
+
   experimental: {
     viewTransition: false,
   },
