@@ -35,14 +35,10 @@ export function getExifData(media?: { fullMediaMeta?: any }) {
 
 export function getResolution(media?: { width?: number; height?: number; meta?: any; fullMediaMeta?: any }) {
   if (!media) return null
-  const { width, height, meta, fullMediaMeta } = media
+  const { width, height } = media
   
-  // Try to find width and height in various common locations
-  const w = width || fullMediaMeta?.width || meta?.width || fullMediaMeta?.video?.width || meta?.video?.width
-  const h = height || fullMediaMeta?.height || meta?.height || fullMediaMeta?.video?.height || meta?.video?.height
-  
-  if (w && h) {
-    return `${w} × ${h}`
+  if (width && height) {
+    return `${width} × ${height}`
   }
   
   // Fallback to EXIF if available
@@ -58,7 +54,7 @@ export function getResolution(media?: { width?: number; height?: number; meta?: 
   return null
 }
 
-export function getCompressionStats(media?: { meta?: any; sizeBytes?: any }) {
+export const getOptimizationStats = (media: { meta?: any; sizeBytes?: any; mimeType?: string }) => {
   if (!media?.meta) return null
   const { meta } = media
   
@@ -91,8 +87,7 @@ export function getCompressionStats(media?: { meta?: any; sizeBytes?: any }) {
     ratio,
     quality,
     lossless,
-    originalFormat: meta.originalMimeType || meta.original_mime_type,
-    optimizedFormat: meta.mimeType || meta.mime_type
+    optimizedFormat: media.mimeType || meta.mimeType || meta.mime_type
   }
 }
 

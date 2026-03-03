@@ -336,10 +336,6 @@ describe('MediaService (unit)', () => {
         meta: {
           customKey: 'customValue',
           originalSize: 200,
-          size: 100,
-          width: 20,
-          height: 30,
-          mimeType: 'image/jpeg',
           checksum: 'hash',
           url: 'http://storage/file',
           gp: { editedAt: new Date().toISOString() },
@@ -404,7 +400,6 @@ describe('MediaService (unit)', () => {
       expect(result.width).toBe(20);
       expect(result.height).toBe(30);
       expect(result.meta.customKey).toBe('customValue');
-      expect(result.meta.width).toBe(20);
       expect(result.meta.gp?.editedAt).toBeDefined();
     });
 

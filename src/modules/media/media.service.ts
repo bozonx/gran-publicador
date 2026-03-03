@@ -386,8 +386,8 @@ export class MediaService {
       data: {
         ...rest,
         sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
-        width: width ?? meta?.width,
-        height: height ?? meta?.height,
+        width,
+        height,
         meta: this.cleanupMeta(meta || {}),
       },
     });
@@ -445,8 +445,8 @@ export class MediaService {
     const updateData: any = {
       ...rest,
       sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
-      width: width !== undefined ? width : meta?.width,
-      height: height !== undefined ? height : meta?.height,
+      width,
+      height,
       meta: meta ? this.cleanupMeta(meta) : undefined,
     };
 

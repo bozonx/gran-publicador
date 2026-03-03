@@ -68,8 +68,8 @@ export class PublicationsMediaService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
-              width: m.width ?? m.meta?.width,
-              height: m.height ?? m.meta?.height,
+              width: m.width,
+              height: m.height,
               meta: this.cleanupMeta(m.meta || {}),
             },
           });
@@ -330,9 +330,9 @@ export class PublicationsMediaService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
-              width: m.width ?? m.meta?.width,
-              height: m.height ?? m.meta?.height,
-              meta: m.meta 
+              width: m.width,
+              height: m.height,
+              meta: this.cleanupMeta(m.meta || {})
             } 
           },
           alt: m.alt,

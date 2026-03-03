@@ -104,23 +104,7 @@ export class MediaMetaDto {
 
   @IsOptional()
   @IsNumber()
-  width?: number;
-
-  @IsOptional()
-  @IsNumber()
-  height?: number;
-
-  @IsOptional()
-  @IsNumber()
-  size?: number;
-
-  @IsOptional()
-  @IsNumber()
   originalSize?: number;
-
-  @IsOptional()
-  @IsString()
-  mimeType?: string;
 }
 
 /**
