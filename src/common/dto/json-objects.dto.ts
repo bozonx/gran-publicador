@@ -105,6 +105,10 @@ export class MediaMetaDto {
   @IsOptional()
   @IsNumber()
   originalSize?: number;
+
+  @IsOptional()
+  @IsObject()
+  exif?: Record<string, any>;
 }
 
 /**

@@ -550,6 +550,7 @@ export class MediaService {
         'x-filename': filename,
         'Content-Type': rawMimeType,
         'x-mime-type': rawMimeType,
+        'x-extract-exif': 'true',
       };
 
       if (Object.keys(metaHeader).length > 0) {
@@ -615,6 +616,7 @@ export class MediaService {
       if (filename) body.filename = filename;
       if (userId) body.userId = userId;
       if (purpose) body.purpose = purpose;
+      body.extractExif = true;
       const compression = this.buildEffectiveImageOptimization(optimize);
       if (compression) body.optimize = compression;
 

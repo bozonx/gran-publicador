@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatBytes } from '~/utils/media'
+import { formatBytes, getGpsLink } from '~/utils/media'
 
 const props = defineProps<{
   media: any
@@ -15,6 +15,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+const gpsLink = computed(() => getGpsLink(props.exifData))
 </script>
 
 <template>
@@ -124,6 +126,18 @@ const { t } = useI18n()
       <div class="flex items-center gap-2 mb-3 text-gray-700 dark:text-gray-300">
         <UIcon name="i-heroicons-camera" class="w-5 h-5" />
         <span class="font-semibold text-sm">{{ t('media.exif', 'EXIF Data') }}</span>
+        <UButton
+          v-if="gpsLink"
+          :to="gpsLink"
+          target="_blank"
+          icon="i-heroicons-map-pin"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          class="ml-auto"
+        >
+          {{ t('media.viewOnMap', 'View on Map') }}
+        </UButton>
       </div>
       <div class="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         <div v-for="(value, key) in exifData" :key="key" class="flex flex-col">

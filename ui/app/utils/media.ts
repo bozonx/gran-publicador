@@ -29,8 +29,8 @@ export function getMediaIcon(type: string): string {
   }
 }
 
-export function getExifData(media?: { fullMediaMeta?: any }) {
-  return media?.fullMediaMeta?.exif || null
+export function getExifData(media?: { meta?: any; fullMediaMeta?: any }) {
+  return media?.meta?.exif || media?.fullMediaMeta?.exif || null
 }
 
 export function getResolution(media?: { width?: number; height?: number; meta?: any; fullMediaMeta?: any }) {
@@ -49,6 +49,44 @@ export function getResolution(media?: { width?: number; height?: number; meta?: 
     if (exifW && exifH) {
       return `${exifW} × ${exifH}`
     }
+  }
+
+  return null
+}
+
+/**
+ * Converts EXIF GPS coordinates to decimal degrees
+ */
+function parseGpsCoordinate(value: any, ref?: string): number | null {
+  if (typeof value === 'number') return ref === 'S' || ref === 'W' ? -value : value
+  
+  if (Array.isArray(value) && value.length >= 3) {
+    // Handle [degrees, minutes, seconds]
+    const d = typeof value[0] === 'number' ? value[0] : parseFloat(String(value[0]))
+    const m = typeof value[1] === 'number' ? value[1] : parseFloat(String(value[1]))
+    const s = typeof value[2] === 'number' ? value[2] : parseFloat(String(value[2]))
+    
+    if (isNaN(d) || isNaN(m) || isNaN(s)) return null
+    
+    let res = d + m / 60 + s / 3600
+    if (ref === 'S' || ref === 'W') res = -res
+    return res
+  }
+  
+  return null
+}
+
+/**
+ * Generates a Google Maps link from EXIF data if GPS coordinates are present
+ */
+export function getGpsLink(exif: any): string | null {
+  if (!exif) return null
+
+  const lat = parseGpsCoordinate(exif.GPSLatitude, exif.GPSLatitudeRef)
+  const lon = parseGpsCoordinate(exif.GPSLongitude, exif.GPSLongitudeRef)
+
+  if (lat !== null && lon !== null) {
+    return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
   }
 
   return null

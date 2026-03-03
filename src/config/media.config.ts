@@ -111,7 +111,7 @@ export class MediaConfig {
    * Strip metadata from optimized images.
    */
   @IsBoolean()
-  public imageOptimizationStripMetadata: boolean = true;
+  public imageOptimizationStripMetadata: boolean = false;
 
   /**
    * Auto-orient image based on EXIF.

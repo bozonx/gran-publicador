@@ -762,6 +762,7 @@
     "editOnlyFSImages": "Only local images can be edited",
     "editSuccess": "Image edited successfully",
     "exif": "EXIF Data",
+    "viewOnMap": "View on Map",
     "extendedOptions": "Extended upload settings",
     "extendedOptionsShort": "Extended upload settings",
     "filename": "Filename (optional)",
