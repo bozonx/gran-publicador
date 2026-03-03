@@ -1,95 +1,103 @@
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useAuthStore } from '~/stores/auth';
-import { useAppStore } from '~/stores/app';
-import { useNotificationsStore } from '~/stores/notifications';
-import { useDashboardStore } from '~/stores/dashboard';
-import { useUsersStore } from '~/stores/users';
-import { useProjectsStore } from '~/stores/projects';
-import { useSttStore } from '~/stores/stt';
-import { useChannelsStore } from '~/stores/channels';
-import { usePublicationsStore } from '~/stores/publications';
-import { usePostsStore } from '~/stores/posts';
-import { useNewsStore } from '~/stores/news';
-import { useMediaStore } from '~/stores/media';
-import { useTemplatesStore } from '~/stores/templates';
-import { useContentDestinationStore } from '~/stores/content-destination';
-import { useAutosaveStore } from '~/stores/autosave';
-import type { User, AuthResponse } from '~/types/user';
-import { logger } from '~/utils/logger';
+import type { User, AuthResponse } from '~/types/auth';
+import type { ProjectWithRole } from '~/types/projects';
 
-export const useAuth = () => {
-  const store = useAuthStore();
-  const { user, isLoading, error, isInitialized, isLoggedIn, isAdmin, isSuperAdmin, displayName } = storeToRefs(store);
+/**
+ * Auth composable following Dumb Store pattern.
+ * Contains logic for authentication, profile management, and roles.
+ */
+export function useAuth() {
+  const config = useRuntimeConfig();
   const api = useApi();
   const { executeAction } = useApiAction();
-  const config = useRuntimeConfig();
+  const store = useAuthStore();
 
-  // Helper bindings for store state to be used with executeAction
-  const loadingBinding = computed({
-    get: () => isLoading.value,
-    set: (val) => store.setLoading(val)
+  const { user, isLoggedIn, isInitialized, isLoading } = storeToRefs(store);
+
+  /**
+   * Computed properties for auth state and mode.
+   */
+  const isAuthenticated = computed(() => isLoggedIn.value);
+  const isDevMode = computed(() => ['true', '1', 'yes', 'on'].includes(String(config.public.devMode)));
+  
+  const authMode = computed(() => {
+    if (isDevMode.value) return 'dev';
+    return 'miniApp';
   });
-  const errorBinding = computed({
-    get: () => error.value,
-    set: (val) => store.setError(val)
-  });
 
-  const devModeRaw = config.public.devMode;
-  const isDevMode = ['true', '1', 'yes', 'on'].includes(String(devModeRaw));
-
-  async function loginWithTelegram(initData: string) {
+  /**
+   * Initialize auth state by fetching current user.
+   */
+  async function initialize() {
+    store.setLoading(true);
     const [, response] = await executeAction(
-      async () => {
-        const res = await api.post<AuthResponse>('/auth/telegram', { initData });
-        store.setUser(res.user);
-        store.setInitialized(true);
-        return res;
-      },
-      { loadingRef: loadingBinding, errorRef: errorBinding }
+      async () => await api.get<User>('/auth/me'),
+      {
+        onError: () => {
+          store.setUser(null);
+        },
+      }
     );
-    return response;
-  }
 
-  async function loginWithTelegramWidget(widgetData: any) {
-    const [, response] = await executeAction(
-      async () => {
-        const res = await api.post<AuthResponse>('/auth/telegram-widget', widgetData);
-        store.setUser(res.user);
-        store.setInitialized(true);
-        return res;
-      },
-      { loadingRef: loadingBinding, errorRef: errorBinding }
-    );
-    return response;
-  }
-
-  async function loginWithDev() {
-    const [, response] = await executeAction(
-      async () => {
-        const devTelegramId = config.public.devTelegramId;
-        if (!devTelegramId) {
-          throw new Error('NUXT_PUBLIC_DEV_TELEGRAM_ID not set');
-        }
-        const res = await api.post<AuthResponse>('/auth/dev', {
-          telegramId: Number(devTelegramId),
-        });
-        store.setUser(res.user);
-        store.setInitialized(true);
-        return res;
-      },
-      { loadingRef: loadingBinding, errorRef: errorBinding }
-    );
-    return response;
-  }
-
-  async function signOut() {
-    try {
-      await api.post('/auth/logout', undefined);
-    } catch {
-      // noop
+    if (response) {
+      store.setUser(response);
     }
-    
+    store.setInitialized(true);
+    store.setLoading(false);
+    return response;
+  }
+
+  /**
+   * Login with Telegram data.
+   */
+  async function loginWithTelegram(initData: string) {
+    store.setLoading(true);
+    const [, response] = await executeAction(async () => {
+      const res = await api.post<AuthResponse>('/auth/telegram', { initData });
+      return res;
+    });
+
+    if (response) {
+      store.setUser(response.user);
+      store.setInitialized(true);
+    }
+    store.setLoading(false);
+    return response;
+  }
+
+  /**
+   * Login with dev telegram ID (only in dev mode).
+   */
+  async function loginWithDev() {
+    store.setLoading(true);
+    const [, response] = await executeAction(async () => {
+      const devTelegramId = config.public.devTelegramId;
+      if (!isDevMode.value || !devTelegramId) {
+        throw new Error('Dev mode is not enabled or dev telegram ID is not set');
+      }
+
+      return await api.post<AuthResponse>('/auth/dev', {
+        telegramId: Number(devTelegramId),
+      });
+    });
+
+    if (response) {
+      store.setUser(response.user);
+      store.setInitialized(true);
+    }
+
+    store.setLoading(false);
+    return response;
+  }
+
+  /**
+   * Sign out and clear all stores.
+   */
+  async function signOut() {
+    await executeAction(async () => await api.post('/auth/logout', undefined));
+
     // Reset all stores
     store.reset();
     useAppStore().reset();
@@ -106,53 +114,38 @@ export const useAuth = () => {
     useTemplatesStore().reset();
     useContentDestinationStore().reset();
     useAutosaveStore().reset();
-    
+
     navigateTo('/auth/login');
   }
 
-  async function fetchMe() {
-    const [, userData] = await executeAction(
-      async () => {
-        const data = await api.get<User>('/auth/me');
-        store.setUser(data);
-        store.setInitialized(true);
-        return data;
-      },
-      { 
-        loadingRef: loadingBinding, 
-        silentErrors: true // For startup fetch, errors (401) are expected/normal
-      }
-    );
+  /**
+   * Checks if user has a specific role in a project.
+   */
+  function hasProjectRole(project: ProjectWithRole | null | undefined, roles: string | string[]) {
+    if (!project?.role) return false;
+    const rolesArray = Array.isArray(roles) ? roles : [roles];
+    return rolesArray.includes(project.role);
+  }
 
-    if (!userData) {
-      store.setUser(null);
-      store.setInitialized(true);
-    }
-    
-    return userData;
+  /**
+   * Checks if user is owner of a project.
+   */
+  function isProjectOwner(project: ProjectWithRole | null | undefined) {
+    return project?.role === 'OWNER';
   }
 
   return {
     user,
-    isLoading,
+    isLoggedIn, // kept for backward compatibility if any
+    isAuthenticated,
     isInitialized,
-    error,
-    isAuthenticated: isLoggedIn,
-    isAdmin,
-    isSuperAdmin,
-    displayName,
-    authMode: computed(() => {
-      if (isDevMode) return 'dev';
-      // @ts-ignore
-      if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) return 'miniApp';
-      return 'browser';
-    }),
-
+    isLoading,
+    authMode,
+    initialize,
     loginWithTelegram,
-    loginWithTelegramWidget,
     loginWithDev,
     signOut,
-    refreshUser: fetchMe,
-    initialize: fetchMe,
+    hasProjectRole,
+    isProjectOwner,
   };
-};
+}
