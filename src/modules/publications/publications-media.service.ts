@@ -70,7 +70,7 @@ export class PublicationsMediaService {
               sizeBytes: m.sizeBytes,
               width: m.width ?? m.meta?.width,
               height: m.height ?? m.meta?.height,
-              meta: m.meta || {},
+              meta: this.cleanupMeta(m.meta || {}),
             },
           });
           mediaId = mediaItem.id;
@@ -392,7 +392,7 @@ export class PublicationsMediaService {
             width: metadata.width,
             height: metadata.height,
             meta: {
-              ...metadata,
+              ...this.cleanupMeta(metadata),
               unsplashId: photo.id,
               unsplashUrl: photo.links.html,
               unsplashUser: photo.user.name,
@@ -433,7 +433,7 @@ export class PublicationsMediaService {
             sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
             width: metadata.width,
             height: metadata.height,
-            meta: metadata,
+            meta: this.cleanupMeta(metadata),
           },
         },
       };
@@ -458,5 +458,14 @@ export class PublicationsMediaService {
       alt: item.alt,
       description: item.description,
     };
+  }
+  private cleanupMeta(meta: any): any {
+    if (!meta || typeof meta !== 'object') return meta;
+    const cleanMeta = { ...meta };
+    delete cleanMeta.width;
+    delete cleanMeta.height;
+    delete cleanMeta.size;
+    delete cleanMeta.mimeType;
+    return cleanMeta;
   }
 }

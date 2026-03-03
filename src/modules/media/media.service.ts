@@ -388,7 +388,7 @@ export class MediaService {
         sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
         width: width ?? meta?.width,
         height: height ?? meta?.height,
-        meta: (meta || {}) as any,
+        meta: this.cleanupMeta(meta || {}),
       },
     });
     return {
@@ -447,7 +447,7 @@ export class MediaService {
       sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
       width: width !== undefined ? width : meta?.width,
       height: height !== undefined ? height : meta?.height,
-      meta: meta ? (meta as any) : undefined,
+      meta: meta ? this.cleanupMeta(meta) : undefined,
     };
 
     if (version !== undefined) {
@@ -1119,5 +1119,23 @@ export class MediaService {
 
     const prefs = project.preferences as Record<string, any>;
     return prefs.mediaOptimization;
+  }
+
+  /**
+   * Removes redundant fields from meta object that are now direct columns.
+   */
+  private cleanupMeta(meta: any): any {
+    if (!meta || typeof meta !== 'object') return meta;
+    
+    // Create a copy to avoid mutating the original object
+    const cleanMeta = { ...meta };
+    
+    // Remove fields that are now in dedicated columns
+    delete cleanMeta.width;
+    delete cleanMeta.height;
+    delete cleanMeta.size;
+    delete cleanMeta.mimeType;
+    
+    return cleanMeta;
   }
 }

@@ -59,8 +59,8 @@ export async function exportToContainer(
       ? Math.round(Math.min(240, Math.max(1, Number(fps))))
       : 30;
 
-  const metaWidth = Number(clip?.meta?.width);
-  const metaHeight = Number(clip?.meta?.height);
+  const metaWidth = Number(clip?.width || clip?.meta?.width);
+  const metaHeight = Number(clip?.height || clip?.meta?.height);
   const inputWidth = Number(width);
   const inputHeight = Number(height);
 
