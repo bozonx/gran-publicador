@@ -8,7 +8,7 @@ import { useAuthStore } from '~/stores/auth'
 import { DEFAULT_MEDIA_OPTIMIZATION_SETTINGS } from '~/utils/media-presets'
 import { AUTO_SAVE_DEBOUNCE_MS } from '~/constants/autosave'
 import { useAutosave } from '~/composables/useAutosave'
-import { formatBytes, getMediaIcon, getCompressionStats, getResolution, getExifData } from '~/utils/media'
+import { formatBytes, getMediaIcon, getOptimizationStats, getResolution, getExifData } from '~/utils/media'
 import type { MediaItem, MediaLinkItem } from '~/types/media'
 import type { ValidationError } from '~/composables/useSocialMediaValidation'
 import { useMediaDnd } from '~/composables/media/useMediaDnd'
@@ -203,7 +203,7 @@ const addMediaButtonLabel = computed(() => {
 
 // formatBytes and getMediaIcon moved to utils/media.ts
 
-const compressionStats = computed(() => getCompressionStats(selectedMedia.value as any))
+const compressionStats = computed(() => getOptimizationStats(selectedMedia.value as any))
 const exifData = computed(() => getExifData(selectedMedia.value as any))
 const resolution = computed(() => getResolution(selectedMedia.value as any))
 
