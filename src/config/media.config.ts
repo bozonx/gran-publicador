@@ -78,7 +78,23 @@ export class MediaConfig {
   public imageOptimizationEffort: number = 4;
 
   /**
-   * Forced compression quality for optimized images.
+   * Compression quality for "normal" optimized images.
+   */
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  public imageOptimizationQualityNormal: number = 75;
+
+  /**
+   * Compression quality for "high" optimized images.
+   */
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  public imageOptimizationQualityHigh: number = 95;
+
+  /**
+   * Default compression quality for optimized images.
    */
   @IsInt()
   @Min(1)
@@ -155,6 +171,12 @@ export default registerAs('media', (): MediaConfig => {
       : undefined,
     imageOptimizationEffort: process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT
       ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_EFFORT, 10)
+      : undefined,
+    imageOptimizationQualityNormal: process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY_NORMAL
+      ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY_NORMAL, 10)
+      : undefined,
+    imageOptimizationQualityHigh: process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY_HIGH
+      ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY_HIGH, 10)
       : undefined,
     imageOptimizationQuality: process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY
       ? parseInt(process.env.MEDIA_IMAGE_OPTIMIZATION_QUALITY, 10)

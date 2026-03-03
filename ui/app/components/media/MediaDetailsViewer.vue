@@ -116,13 +116,6 @@ const { t } = useI18n()
           <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.quality') }}</div>
           <div class="text-sm font-mono">{{ compressionStats.quality }}%</div>
         </div>
-        <div v-if="compressionStats.lossless !== undefined" class="space-y-1">
-          <div class="text-xxs text-gray-500 uppercase font-bold tracking-tight">{{ t('media.lossless') }}</div>
-          <div class="text-sm font-mono flex items-center gap-1">
-            <UIcon :name="compressionStats.lossless ? 'i-heroicons-check' : 'i-heroicons-x-mark'" :class="compressionStats.lossless ? 'text-green-500' : 'text-gray-400'" class="w-4 h-4" />
-            <span>{{ compressionStats.lossless ? t('common.yes') : t('common.no') }}</span>
-          </div>
-        </div>
       </div>
     </div>
 

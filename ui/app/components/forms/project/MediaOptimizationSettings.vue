@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { MediaOptimizationPreferences } from '~/stores/projects'
+import type { MediaOptimizationPreferences } from '~/types/projects'
 
 interface Props {
   modelValue?: MediaOptimizationPreferences
@@ -18,7 +18,7 @@ const DEFAULTS: MediaOptimizationPreferences = {
   stripMetadata: false,
   autoOrient: true,
   flatten: '',
-  lossless: false,
+  quality: 'normal',
 }
 
 // Local state for internal handling
@@ -31,7 +31,7 @@ const state = computed({
       ...val,
       stripMetadata: Boolean(val.stripMetadata ?? val['strip_metadata']),
       autoOrient: Boolean(val.autoOrient ?? val['auto_orient']),
-      lossless: Boolean(val.lossless ?? val['lossless']),
+      quality: val.quality ?? (val.lossless ? 'high' : 'normal'),
     }
     return {
       ...DEFAULTS,
@@ -40,6 +40,11 @@ const state = computed({
   },
   set: (val) => emit('update:modelValue', val)
 })
+
+const qualityOptions = [
+  { value: 'normal', label: t('settings.mediaOptimization.qualityNormal', 'Normal') },
+  { value: 'high', label: t('settings.mediaOptimization.qualityHigh', 'High') },
+]
 
 function updateField<K extends keyof MediaOptimizationPreferences>(field: K, value: MediaOptimizationPreferences[K]) {
   emit('update:modelValue', {
@@ -88,13 +93,14 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
 
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.lossless') }}</label>
-            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.losslessHelp', '') }}</span>
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.quality', 'Image Quality') }}</label>
+            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp', 'Choose between normal and high compression quality') }}</span>
           </div>
-          <USwitch
-            :model-value="state.lossless"
+          <UiAppButtonGroup
+            :model-value="state.quality"
+            :options="qualityOptions"
             :disabled="disabled"
-            @update:model-value="(val: any) => updateField('lossless', val)"
+            @update:model-value="(val: any) => updateField('quality', val)"
           />
         </div>
 

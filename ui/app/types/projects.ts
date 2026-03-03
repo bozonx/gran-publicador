@@ -31,7 +31,7 @@ export interface MediaOptimizationPreferences {
   stripMetadata: boolean;
   autoOrient: boolean;
   flatten: string;
-  lossless: boolean;
+  quality: 'normal' | 'high';
 }
 
 export interface ProjectMember {

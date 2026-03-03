@@ -221,7 +221,6 @@ export class MediaService {
       'format',
       'quality',
       'maxDimension',
-      'lossless',
       'stripMetadata',
       'autoOrient',
       'flatten',
@@ -248,15 +247,21 @@ export class MediaService {
 
     const normalized = this.normalizeCompressionOptions(options);
 
+    let finalQuality = normalized.quality ?? mediaConfig.imageOptimizationQuality;
+    if (finalQuality === 'high') {
+      finalQuality = mediaConfig.imageOptimizationQualityHigh;
+    } else if (finalQuality === 'normal') {
+      finalQuality = mediaConfig.imageOptimizationQualityNormal;
+    }
+
     return {
       ...normalized,
       format: normalized.format ?? mediaConfig.imageOptimizationFormat,
       maxDimension: normalized.maxDimension ?? mediaConfig.imageOptimizationMaxDimension,
       effort: normalized.effort ?? mediaConfig.imageOptimizationEffort,
-      quality: normalized.quality ?? mediaConfig.imageOptimizationQuality,
+      quality: finalQuality,
       chromaSubsampling:
         normalized.chromaSubsampling ?? mediaConfig.imageOptimizationChromaSubsampling,
-      lossless: normalized.lossless ?? false,
       stripMetadata: normalized.stripMetadata ?? mediaConfig.imageOptimizationStripMetadata,
       autoOrient: normalized.autoOrient ?? mediaConfig.imageOptimizationAutoOrient,
       flatten:
@@ -264,7 +269,7 @@ export class MediaService {
           ? undefined
           : typeof normalized.flatten === 'string'
             ? normalized.flatten
-            : normalized.flatten !== undefined // Handle legacy/other cases just in case, though false is handled above
+            : normalized.flatten !== undefined
               ? normalized.flatten
               : mediaConfig.imageOptimizationFlatten
                 ? '#FFFFFF'
@@ -305,9 +310,8 @@ export class MediaService {
     const effectiveOptimize = optimize || {};
 
     // Combine existing optimization params with new ones, prioritizing new ones
-    // specifically for lossless and stripMetadata as requested
-    if (effectiveOptimize.lossless === undefined && existingOptimize.lossless !== undefined) {
-      effectiveOptimize.lossless = existingOptimize.lossless;
+    if (effectiveOptimize.quality === undefined && existingOptimize.quality !== undefined) {
+      effectiveOptimize.quality = existingOptimize.quality;
     }
     if (
       effectiveOptimize.stripMetadata === undefined &&
@@ -316,12 +320,12 @@ export class MediaService {
       effectiveOptimize.stripMetadata = existingOptimize.stripMetadata;
     }
 
-    if (projectId && (!effectiveOptimize.lossless || !effectiveOptimize.stripMetadata)) {
+    if (projectId && (!effectiveOptimize.quality || !effectiveOptimize.stripMetadata)) {
       try {
         const projectSettings = await this.getProjectOptimizationSettings(projectId);
         if (projectSettings) {
-          if (effectiveOptimize.lossless === undefined)
-            effectiveOptimize.lossless = projectSettings.lossless;
+          if (effectiveOptimize.quality === undefined)
+            effectiveOptimize.quality = projectSettings.quality;
           if (effectiveOptimize.stripMetadata === undefined)
             effectiveOptimize.stripMetadata = projectSettings.stripMetadata;
         }

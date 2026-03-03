@@ -194,16 +194,11 @@ export class MediaOptimizationDto {
   format?: string;
 
   @IsOptional()
-  @IsNumber()
-  quality?: number;
+  quality?: number | string;
 
   @IsOptional()
   @IsNumber()
   maxDimension?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  lossless?: boolean;
 
   @IsOptional()
   @IsBoolean()
