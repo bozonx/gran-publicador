@@ -41,10 +41,18 @@ const state = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
-const qualityOptions = [
-  { value: 'normal', label: t('settings.mediaOptimization.qualityNormal', 'Normal') },
-  { value: 'high', label: t('settings.mediaOptimization.qualityHigh', 'High') },
-]
+const qualityOptions = computed(() => [
+  {
+    value: 'normal',
+    label: t('settings.mediaOptimization.qualityNormal', 'Normal'),
+    title: t('settings.mediaOptimization.qualityNormalTitle', 'Normal quality (~75%)')
+  },
+  {
+    value: 'high',
+    label: t('settings.mediaOptimization.qualityHigh', 'High'),
+    title: t('settings.mediaOptimization.qualityHighTitle', 'High quality (~95%)')
+  },
+])
 
 function updateField<K extends keyof MediaOptimizationPreferences>(field: K, value: MediaOptimizationPreferences[K]) {
   emit('update:modelValue', {
@@ -94,7 +102,7 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
         <div class="flex items-center justify-between">
           <div class="flex flex-col">
             <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.quality', 'Image Quality') }}</label>
-            <span class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp', 'Choose between normal and high compression quality') }}</span>
+            <span v-if="t('settings.mediaOptimization.qualityHelp')" class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp') }}</span>
           </div>
           <UiAppButtonGroup
             :model-value="state.quality"
