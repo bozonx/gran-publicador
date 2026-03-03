@@ -14,7 +14,7 @@ export function useAuth() {
   const { executeAction } = useApiAction();
   const store = useAuthStore();
 
-  const { user, isLoggedIn, isInitialized, isLoading } = storeToRefs(store);
+  const { user, isLoggedIn, isInitialized, isLoading, isAdmin } = storeToRefs(store);
 
   /**
    * Computed properties for auth state and mode.
@@ -138,6 +138,7 @@ export function useAuth() {
     user,
     isLoggedIn, // kept for backward compatibility if any
     isAuthenticated,
+    isAdmin,
     isInitialized,
     isLoading,
     authMode,
