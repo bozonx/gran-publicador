@@ -331,6 +331,8 @@ describe('MediaService (unit)', () => {
         filename: 'new.jpg',
         mimeType: 'image/jpeg',
         sizeBytes: 100n,
+        width: 20,
+        height: 30,
         meta: {
           customKey: 'customValue',
           originalSize: 200,
@@ -399,6 +401,8 @@ describe('MediaService (unit)', () => {
 
       expect(result.id).toBe(mediaId);
       expect(result.storagePath).toBe(newStoragePath);
+      expect(result.width).toBe(20);
+      expect(result.height).toBe(30);
       expect(result.meta.customKey).toBe('customValue');
       expect(result.meta.width).toBe(20);
       expect(result.meta.gp?.editedAt).toBeDefined();

@@ -68,6 +68,8 @@ export class PublicationsMediaService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
+              width: m.width ?? m.meta?.width,
+              height: m.height ?? m.meta?.height,
               meta: m.meta || {},
             },
           });
@@ -328,6 +330,8 @@ export class PublicationsMediaService {
               filename: m.filename,
               mimeType: m.mimeType,
               sizeBytes: m.sizeBytes,
+              width: m.width ?? m.meta?.width,
+              height: m.height ?? m.meta?.height,
               meta: m.meta 
             } 
           },
@@ -385,6 +389,8 @@ export class PublicationsMediaService {
             filename: `unsplash-${photo.id}.jpg`,
             mimeType: metadata.mimeType,
             sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
+            width: metadata.width,
+            height: metadata.height,
             meta: {
               ...metadata,
               unsplashId: photo.id,
@@ -425,6 +431,8 @@ export class PublicationsMediaService {
             filename,
             mimeType: metadata.mimeType,
             sizeBytes: metadata.size ? BigInt(metadata.size) : undefined,
+            width: metadata.width,
+            height: metadata.height,
             meta: metadata,
           },
         },

@@ -114,6 +114,8 @@ export class MediaController {
       filename: part.filename,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
+      width: metadata.width,
+      height: metadata.height,
       meta: metadata,
     });
   }
@@ -248,6 +250,8 @@ export class MediaController {
       filename,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
+      width: metadata.width,
+      height: metadata.height,
       meta: metadata,
     });
   }
@@ -286,6 +290,8 @@ export class MediaController {
       filename,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
+      width: metadata.width,
+      height: metadata.height,
       meta: metadata,
     });
   }
@@ -479,6 +485,8 @@ export class MediaController {
       storagePath: fileId,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
+      width: metadata.width,
+      height: metadata.height,
       meta: {
         ...existingMedia.meta,
         ...metadata,

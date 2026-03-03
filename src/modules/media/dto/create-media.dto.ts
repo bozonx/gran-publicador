@@ -1,6 +1,7 @@
 import { Transform, Type } from 'class-transformer';
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsObject,
   IsOptional,
@@ -40,6 +41,14 @@ export class CreateMediaDto {
   @IsBigInt()
   @MinBigInt(VALIDATION_LIMITS.MIN_MEDIA_SIZE_BYTES)
   sizeBytes?: bigint;
+
+  @IsOptional()
+  @IsInt()
+  width?: number;
+
+  @IsOptional()
+  @IsInt()
+  height?: number;
 
   @IsObject()
   @IsOptional()

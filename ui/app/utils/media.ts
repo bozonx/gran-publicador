@@ -33,13 +33,13 @@ export function getExifData(media?: { fullMediaMeta?: any }) {
   return media?.fullMediaMeta?.exif || null
 }
 
-export function getResolution(media?: { meta?: any; fullMediaMeta?: any }) {
+export function getResolution(media?: { width?: number; height?: number; meta?: any; fullMediaMeta?: any }) {
   if (!media) return null
-  const { meta, fullMediaMeta } = media
+  const { width, height, meta, fullMediaMeta } = media
   
   // Try to find width and height in various common locations
-  const w = fullMediaMeta?.width || meta?.width || fullMediaMeta?.video?.width || meta?.video?.width
-  const h = fullMediaMeta?.height || meta?.height || fullMediaMeta?.video?.height || meta?.video?.height
+  const w = width || fullMediaMeta?.width || meta?.width || fullMediaMeta?.video?.width || meta?.video?.width
+  const h = height || fullMediaMeta?.height || meta?.height || fullMediaMeta?.video?.height || meta?.video?.height
   
   if (w && h) {
     return `${w} × ${h}`

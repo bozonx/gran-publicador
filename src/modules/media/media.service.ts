@@ -350,6 +350,8 @@ export class MediaService {
       filename,
       mimeType: metadata.mimeType,
       sizeBytes: metadata.size,
+      width: metadata.width,
+      height: metadata.height,
       meta: {
         ...existingMeta,
         ...metadata,
@@ -379,11 +381,13 @@ export class MediaService {
   async create(
     data: CreateMediaDto,
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
-    const { meta, sizeBytes, ...rest } = data;
+    const { meta, sizeBytes, width, height, ...rest } = data;
     const created = await this.prisma.media.create({
       data: {
         ...rest,
         sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
+        width: width ?? meta?.width,
+        height: height ?? meta?.height,
         meta: (meta || {}) as any,
       },
     });
@@ -437,10 +441,12 @@ export class MediaService {
   ): Promise<Omit<Media, 'meta'> & { meta: Record<string, any>; publicToken: string }> {
     const media = await this.prisma.media.findUnique({ where: { id } });
     if (!media) throw new NotFoundException(`Media with ID ${id} not found`);
-    const { meta, sizeBytes, version, ...rest } = data;
+    const { meta, sizeBytes, width, height, version, ...rest } = data;
     const updateData: any = {
       ...rest,
       sizeBytes: sizeBytes !== undefined && sizeBytes !== null ? BigInt(sizeBytes) : undefined,
+      width: width !== undefined ? width : meta?.width,
+      height: height !== undefined ? height : meta?.height,
       meta: meta ? (meta as any) : undefined,
     };
 
