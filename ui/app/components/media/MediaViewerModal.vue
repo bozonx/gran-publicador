@@ -4,6 +4,7 @@ interface Props {
   counterText?: string
   preventClose?: boolean
   media?: Record<string, any>
+  description?: string
   ui?: {
     content?: string
     body?: string
@@ -51,6 +52,7 @@ function handleClose() {
   <UiAppModal
     v-model:open="isOpen"
     :title="props.title || t('media.preview', 'Media Preview')"
+    :description="props.description || t('media.previewDescription', 'View and edit media details')"
     :close-button="false"
     :prevent-close="props.preventClose"
     :ui="mergedUi"

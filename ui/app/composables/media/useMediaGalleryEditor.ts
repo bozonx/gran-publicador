@@ -114,6 +114,17 @@ export function useMediaGalleryEditor({
           selectedMedia.value.fullMediaMeta = fullMedia.fullMediaMeta
           selectedMedia.value.publicToken = fullMedia.publicToken
         }
+      }).catch((error: any) => {
+        console.error('Failed to fetch full media details', error)
+        if (error.status === 404 || error.response?.status === 404) {
+          toast.add({
+            title: t('common.error'),
+            description: t('media.notFound', 'Media record not found. It may have been deleted.'),
+            color: 'error',
+          })
+          emit('refresh')
+          closeMediaModal()
+        }
       })
     }
   }

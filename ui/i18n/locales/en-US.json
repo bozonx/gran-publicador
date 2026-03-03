@@ -775,6 +775,8 @@
     "originalSize": "Исходный размер",
     "originalSpoilerFromTelegram": "Original message from Telegram had spoiler",
     "preview": "Preview",
+    "previewDescription": "View and edit media details",
+    "notFound": "Media record not found. It may have been deleted.",
     "quality": "Quality",
     "removeError": "Failed to remove media",
     "reorderError": "Failed to reorder media",

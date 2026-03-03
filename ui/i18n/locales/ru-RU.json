@@ -775,6 +775,8 @@
     "originalSize": "Исходный размер",
     "originalSpoilerFromTelegram": "Исходное сообщение из Telegram содержало spoiler",
     "preview": "Просмотр",
+    "previewDescription": "Просмотр и редактирование сведений о медиафайле",
+    "notFound": "Запись о медиафайле не найдена. Возможно, она была удалена.",
     "quality": "Качество",
     "removeError": "Ошибка удаления медиа",
     "reorderError": "Ошибка изменения порядка медиа",
