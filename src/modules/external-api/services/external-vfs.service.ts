@@ -12,7 +12,14 @@ export class ExternalVfsService {
     private readonly mediaService: MediaService,
   ) {}
 
-  async list(userId: string, path: string = '/', projectIds: string[], allProjects: boolean) {
+  async list(
+    userId: string,
+    path: string = '/',
+    projectIds: string[],
+    allProjects: boolean,
+    limit: number = 50,
+    offset: number = 0,
+  ) {
     if (path === '/' || !path) {
       // List Collections (Folders)
       const where: any = {
@@ -26,6 +33,8 @@ export class ExternalVfsService {
       const collections = await this.prisma.contentCollection.findMany({
         where,
         orderBy: { title: 'asc' },
+        take: limit,
+        skip: offset,
       });
 
       return {
@@ -63,6 +72,8 @@ export class ExternalVfsService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
 
     return {
@@ -92,6 +103,8 @@ export class ExternalVfsService {
     tags: string[],
     projectIds: string[],
     allProjects: boolean,
+    limit: number = 50,
+    offset: number = 0,
   ) {
     const where: any = {
       OR: [{ userId }, { project: { members: { some: { userId } } } }],
@@ -129,7 +142,8 @@ export class ExternalVfsService {
           orderBy: { order: 'asc' },
         },
       },
-      take: 100,
+      take: limit,
+      skip: offset,
     });
 
     return items.map(item => ({
@@ -148,8 +162,33 @@ export class ExternalVfsService {
     }));
   }
 
-  async upload(userId: string, part: any, collectionId: string, projectId?: string) {
+  async upload(
+    userId: string,
+    part: any,
+    collectionId: string,
+    projectId?: string,
+    projectIds?: string[],
+    allProjects?: boolean,
+  ) {
     this.logger.log(`Uploading file to VFS: user=${userId}, collection=${collectionId}`);
+
+    // Verify user has access to this collection
+    const where: any = {
+      id: collectionId,
+      OR: [{ userId }, { project: { members: { some: { userId } } } }],
+    };
+
+    if (allProjects === false && projectIds && projectIds.length > 0) {
+      where.projectId = { in: projectIds };
+    }
+
+    const collection = await this.prisma.contentCollection.findFirst({
+      where,
+    });
+
+    if (!collection) {
+      throw new BadRequestException('Collection not found or access denied');
+    }
 
     // 1. Upload file using MediaService (streaming)
     const { fileId, metadata } = await this.mediaService.uploadFileToStorage(

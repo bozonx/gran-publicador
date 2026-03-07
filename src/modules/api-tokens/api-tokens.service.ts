@@ -82,7 +82,7 @@ export class ApiTokensService {
    * Generate a secure random token
    */
   private generateToken(): string {
-    return 'gpt_' + randomBytes(32).toString('base64url');
+    return 'gp_token_' + randomBytes(32).toString('base64url');
   }
 
   /**

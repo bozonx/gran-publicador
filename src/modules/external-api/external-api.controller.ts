@@ -28,8 +28,10 @@ export class ExternalApiController {
     return this.vfsService.list(
       req.user.userId,
       query.path,
-      req.user.projectIds,
-      req.user.allProjects,
+      req.user.projectIds || [],
+      req.user.allProjects || false,
+      query.limit,
+      query.offset,
     );
   }
 
@@ -39,8 +41,10 @@ export class ExternalApiController {
       req.user.userId,
       query.query,
       query.tags || [],
-      req.user.projectIds,
-      req.user.allProjects,
+      req.user.projectIds || [],
+      req.user.allProjects || false,
+      query.limit,
+      query.offset,
     );
   }
 
@@ -55,7 +59,7 @@ export class ExternalApiController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const fields = (part as any).fields;
+    const fields: any = (part as any).fields;
     const collectionId = fields?.collectionId?.value;
     const projectId = fields?.projectId?.value;
 
@@ -63,7 +67,24 @@ export class ExternalApiController {
       throw new BadRequestException('collectionId is required');
     }
 
-    return this.vfsService.upload(req.user.userId, part, collectionId, projectId);
+    // Validate project scope if provided
+    if (projectId) {
+      ApiTokenGuard.validateProjectScope(
+        projectId,
+        req.user.allProjects || false,
+        req.user.projectIds || [],
+        { userId: req.user.userId, tokenId: req.user.tokenId },
+      );
+    }
+
+    return this.vfsService.upload(
+      req.user.userId,
+      part,
+      collectionId,
+      projectId,
+      req.user.projectIds,
+      req.user.allProjects,
+    );
   }
 
   @Post('stt/transcribe')
@@ -77,9 +98,10 @@ export class ExternalApiController {
       throw new BadRequestException('No file uploaded');
     }
 
-    const fields = (part as any).fields;
+    const fields: any = (part as any).fields;
     const language = fields?.language?.value;
-
+    
+    // Convert stream to buffer for STT service
     const buffer = await part.toBuffer();
 
     return this.proxyService.transcribe({
