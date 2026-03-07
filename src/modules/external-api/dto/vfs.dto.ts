@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, Min, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class VfsListQueryDto {
@@ -33,6 +33,9 @@ export class VfsSearchQueryDto {
 
   @IsString({ each: true })
   @IsOptional()
+  @Type(() => {
+    return String;
+  })
   tags?: string[];
 
   @IsString()
@@ -50,4 +53,30 @@ export class VfsSearchQueryDto {
   @IsOptional()
   @Type(() => Number)
   offset?: number = 0;
+}
+
+export class VfsCreateCollectionDto {
+  @IsString()
+  @IsNotEmpty()
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  parentId?: string;
+}
+
+export class VfsUpdateCollectionDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+}
+
+export class VfsUpdateItemDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
 }

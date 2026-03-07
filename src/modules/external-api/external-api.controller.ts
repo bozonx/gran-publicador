@@ -2,17 +2,26 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
+  Delete,
   Query,
   UseGuards,
   Request,
   Body,
+  Param,
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
 import { ApiTokenRequest } from '../../common/types/api-token-user.interface.js';
 import { ExternalVfsService } from './services/external-vfs.service.js';
 import { ExternalProxyService } from './services/external-proxy.service.js';
-import { VfsListQueryDto, VfsSearchQueryDto } from './dto/vfs.dto.js';
+import {
+  VfsListQueryDto,
+  VfsSearchQueryDto,
+  VfsCreateCollectionDto,
+  VfsUpdateCollectionDto,
+  VfsUpdateItemDto,
+} from './dto/vfs.dto.js';
 import { ScopesGuard } from '../../common/guards/scopes.guard.js';
 import { RequireScopes } from '../../common/decorators/require-scopes.decorator.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
@@ -113,6 +122,50 @@ export class ExternalApiController {
       req.user.projectIds,
       req.user.allProjects,
     );
+  }
+
+  @Post('vfs/collections')
+  @RequireScopes('vfs:write')
+  async createCollection(@Request() req: ApiTokenRequest, @Body() dto: VfsCreateCollectionDto) {
+    return this.vfsService.createCollection(
+      req.user.userId,
+      dto.name,
+      dto.parentId,
+      req.user.projectIds,
+      req.user.allProjects,
+    );
+  }
+
+  @Patch('vfs/collections/:id')
+  @RequireScopes('vfs:write')
+  async updateCollection(
+    @Request() req: ApiTokenRequest,
+    @Param('id') id: string,
+    @Body() dto: VfsUpdateCollectionDto,
+  ) {
+    return this.vfsService.updateCollection(req.user.userId, id, dto.name!);
+  }
+
+  @Delete('vfs/collections/:id')
+  @RequireScopes('vfs:write')
+  async deleteCollection(@Request() req: ApiTokenRequest, @Param('id') id: string) {
+    return this.vfsService.deleteCollection(req.user.userId, id);
+  }
+
+  @Patch('vfs/items/:id')
+  @RequireScopes('vfs:write')
+  async updateItem(
+    @Request() req: ApiTokenRequest,
+    @Param('id') id: string,
+    @Body() dto: VfsUpdateItemDto,
+  ) {
+    return this.vfsService.updateItem(req.user.userId, id, dto.name, dto.tags);
+  }
+
+  @Delete('vfs/items/:id')
+  @RequireScopes('vfs:write')
+  async deleteItem(@Request() req: ApiTokenRequest, @Param('id') id: string) {
+    return this.vfsService.deleteItem(req.user.userId, id);
   }
 
   @Post('stt/transcribe')

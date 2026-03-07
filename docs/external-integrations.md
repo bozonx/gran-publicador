@@ -25,7 +25,7 @@ Gran Publicador предоставляет REST API для интеграции 
 | Scope | Описание |
 | :--- | :--- |
 | `vfs:read` | Чтение и поиск в библиотеке контента |
-| `vfs:write` | Загрузка новых файлов в библиотеку |
+| `vfs:write` | Управление файлами (загрузка, удаление, переименование, создание папок) |
 | `stt:transcribe` | Доступ к распознаванию речи (STT) |
 | `llm:chat` | Доступ к ИИ-ассистенту (LLM) |
 
@@ -64,11 +64,24 @@ VFS позволяет работать с библиотекой контент
 
 `GET /api/v1/external/vfs/list?path=/`
 
+**Параметры:**
+* `path`: Путь (например, `/`, `/uuid-folder`, `/virtual-all`)
+* `limit`: Количество элементов (по умолчанию 50)
+* `offset`: Смещение
+
 **Пример ответа (Root):**
+В корне всегда присутствует виртуальная папка `All` (`virtual-all`), содержащая все элементы без папок (orphans).
 ```json
 {
   "type": "directory",
   "items": [
+    { 
+      "id": "virtual-all", 
+      "name": "All", 
+      "type": "directory", 
+      "path": "/virtual-all",
+      "itemsCount": 42
+    },
     { 
       "id": "uuid-1", 
       "name": "Мои видео", 
@@ -80,41 +93,43 @@ VFS позволяет работать с библиотекой контент
 }
 ```
 
-**Пример ответа (Папка с контентом и подпапками):**
-```json
-{
-  "type": "directory",
-  "items": [
-    { 
-      "id": "sub-uuid-1", 
-      "name": "Архив", 
-      "type": "directory", 
-      "path": "/sub-uuid-1",
-      "itemsCount": 5
-    },
-    {
-      "id": "item-uuid",
-      "name": "Интервью",
-      "type": "file",
-      "path": "/uuid-1/item-uuid",
-      "text": "Полный текст транскрибации...",
-      "tags": ["важное", "интервью"],
-      "language": "ru-RU",
-      "meta": {},
-      "media": [
-        { 
-          "id": "media-uuid", 
-          "type": "VIDEO", 
-          "url": "/api/v1/media/media-uuid/file?download=1", 
-          "mimeType": "video/mp4",
-          "size": 10485760,
-          "meta": { "width": 1920, "height": 1080 }
-        }
-      ]
-    }
-  ]
-}
-```
+### Управление коллекциями (Folders)
+
+#### Создание папки
+`POST /api/v1/external/vfs/collections`
+* **Body:** `{ "name": "Новая папка", "parentId": "optional-uuid" }`
+
+#### Переименование папки
+`PATCH /api/v1/external/vfs/collections/:id`
+* **Body:** `{ "name": "Новое название" }`
+
+#### Удаление папки
+`DELETE /api/v1/external/vfs/collections/:id`
+*Внимание: При удалении папки в Gran Publicador, вложенные элементы не удаляются, а перемещаются уровнем выше или становятся "сиротами" (появляются в папке All).*
+
+---
+
+### Управление файлами (Items)
+
+#### Загрузка файла (Upload)
+Загрузка файла напрямую в указанную коллекцию.
+
+`POST /api/v1/external/vfs/upload`
+*   **Body:** `multipart/form-data`
+*   **Fields:**
+    *   `file`: (binary) Файл
+    *   `collectionId`: (string) ID коллекции или `virtual-all`
+    *   `projectId`: (string, optional) ID проекта (если токен имеет доступ к нескольким проектам)
+
+#### Обновление файла (Rename/Tags)
+`PATCH /api/v1/external/vfs/items/:id`
+* **Body:** `{ "name": "Новое имя.mp4", "tags": ["важное", "ready"] }`
+
+#### Удаление файла (Delete)
+`DELETE /api/v1/external/vfs/items/:id`
+*Полное удаление контента и связанных медиа-файлов.*
+
+---
 
 ### Поиск (Search)
 Поиск элементов по названию, тексту или тегам с фильтрацией по типу.
@@ -123,46 +138,12 @@ VFS позволяет работать с библиотекой контент
 
 **Доступные типы (`type`):** `video`, `audio`, `image`, `text`, `document`.
 
-**Пример ответа:**
-```json
-[
-  {
-    "id": "item-uuid",
-    "name": "Заголовок новости",
-    "type": "file",
-    "text": "Текст новости...",
-    "tags": ["важное"],
-    "language": "ru-RU",
-    "meta": {},
-    "media": [
-      { 
-        "id": "media-uuid", 
-        "type": "VIDEO", 
-        "url": "/api/v1/media/media-uuid/file?download=1", 
-        "mimeType": "video/mp4",
-        "meta": { "duration": 120 }
-      }
-    ]
-  }
-]
-```
-
-### Загрузка контента (Upload)
-Загрузка файла напрямую в указанную коллекцию.
-
-`POST /api/v1/external/vfs/upload`
-*   **Body:** `multipart/form-data`
-*   **Fields:**
-    *   `file`: (binary) Файл
-    *   `collectionId`: (string) ID коллекции
-    *   `projectId`: (string, optional) ID проекта
-
 ---
 
 ## Сервисы (Proxy)
 
 ### Speech-to-Text (STT)
-Преобразование аудио в текст с использованием лимитов пользователя.
+Преобразование аудио в текст.
 
 `POST /api/v1/external/stt/transcribe`
 *   **Body:** `multipart/form-data`
