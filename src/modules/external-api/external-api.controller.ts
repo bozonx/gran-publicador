@@ -269,6 +269,7 @@ export class ExternalApiController {
     const models = (headers['x-stt-models'] as string)?.split(',').map(m => m.trim()).filter(Boolean);
     const apiKey = headers['x-stt-api-key'] as string;
     const maxWaitMinutes = headers['x-stt-max-wait-minutes'] ? parseInt(headers['x-stt-max-wait-minutes'] as string, 10) : undefined;
+    const includeWords = headers['x-stt-include-words'] === 'true';
     const mimetype = headers['content-type'] || 'application/octet-stream';
     const contentLength = headers['content-length'] ? parseInt(headers['content-length'] as string, 10) : undefined;
 
@@ -285,6 +286,7 @@ export class ExternalApiController {
       apiKey,
       maxWaitMinutes,
       contentLength,
+      includeWords,
     });
   }
 

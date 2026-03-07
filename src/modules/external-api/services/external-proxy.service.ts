@@ -35,6 +35,7 @@ export class ExternalProxyService {
     apiKey?: string;
     maxWaitMinutes?: number;
     contentLength?: number;
+    includeWords?: boolean;
   }) {
     return this.sttService.transcribeAudioStream({
       file: params.stream,
@@ -48,6 +49,7 @@ export class ExternalProxyService {
       apiKey: params.apiKey,
       maxWaitMinutes: params.maxWaitMinutes,
       contentLength: params.contentLength,
+      includeWords: params.includeWords,
     });
   }
 

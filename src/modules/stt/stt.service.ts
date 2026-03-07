@@ -62,6 +62,7 @@ export class SttService {
     apiKey?: string;
     maxWaitMinutes?: number;
     contentLength?: number;
+    includeWords?: boolean;
   }): Promise<{ text: string }> {
     const config = this.configService.get<SttConfig>('stt');
 
@@ -152,6 +153,10 @@ export class SttService {
 
       if (params.maxWaitMinutes !== undefined) {
         headers['X-STT-Max-Wait-Minutes'] = String(params.maxWaitMinutes);
+      }
+      
+      if (params.includeWords !== undefined) {
+        headers['X-STT-Include-Words'] = String(params.includeWords);
       }
 
       if (params.contentLength) {

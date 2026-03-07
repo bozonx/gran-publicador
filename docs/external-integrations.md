@@ -126,6 +126,7 @@ VFS позволяет работать с библиотекой контент
 - `X-STT-Language: en` (optional)
 - `X-STT-Restore-Punctuation: true|false` (optional)
 - `X-STT-Format-Text: true|false` (optional)
+- `X-STT-Include-Words: true|false` (optional)
 - `X-STT-Models: universal-3-pro,universal-2` (optional)
 - `X-STT-Api-Key: ...` (optional)
 
