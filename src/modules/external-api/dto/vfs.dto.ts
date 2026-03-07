@@ -21,7 +21,7 @@ export class VfsListQueryDto {
 
 export class VfsSearchQueryDto {
   @IsString()
-  query: string;
+  query!: string;
 
   @IsString({ each: true })
   @IsOptional()

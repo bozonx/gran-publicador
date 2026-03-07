@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { MediaService } from '../media/media.service.js';
-import { MediaType, StorageType } from '../../generated/prisma/index.js';
+import { MediaService } from '../../media/media.service.js';
+import { MediaType, StorageType } from '../../../generated/prisma/index.js';
 
 @Injectable()
 export class ExternalVfsService {
