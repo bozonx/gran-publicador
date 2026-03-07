@@ -56,6 +56,7 @@ import { ProjectTemplatesModule } from './modules/project-templates/project-temp
 import { TagsModule } from './modules/tags/tags.module.js';
 import { PinoLogger } from 'nestjs-pino';
 import { GuardsModule } from './common/guards/guards.module.js';
+import { ExternalApiModule } from './modules/external-api/external-api.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 
 function validateEnvironment(config: Record<string, unknown>): Record<string, unknown> {
@@ -292,6 +293,7 @@ function validateEnvironment(config: Record<string, unknown>): Record<string, un
     ProjectTemplatesModule,
     TagsModule,
     DashboardModule,
+    ExternalApiModule,
     ...(process.env.TELEGRAM_BOT_ENABLED === 'true' ? [TelegramBotModule] : []),
   ],
   controllers: [],

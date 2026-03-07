@@ -94,6 +94,7 @@
 
 ### Интеграции
 - **n8n Node** — официальная нода для интеграции с платформой n8n (`n8n-nodes-bozonx-gran-publicador`). Позволяет автоматизировать создание черновиков, публикаций и постов из внешних систем.
+- **External App API** — REST API для интеграции внешних приложений (VFS, STT, LLM). Поддерживает Connect Flow и ручные токены. См. [docs/external-integrations.md](docs/external-integrations.md).
 
 ### Безопасность и аутентификация
 - Авторизация через Telegram (проверка initData)
