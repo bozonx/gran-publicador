@@ -37,22 +37,6 @@ Gran Publicador предоставляет REST API для интеграции 
 
 `GET /api/v1/external/health`
 
-**Пример ответа:**
-```json
-{
-  "status": "ok",
-  "timestamp": "2024-03-07T12:00:00.000Z",
-  "user": { "id": "user-uuid" },
-  "token": {
-    "id": "token-uuid",
-    "name": "My App",
-    "scopes": ["vfs:read", "stt:transcribe"],
-    "allProjects": true,
-    "projectIds": []
-  }
-}
-```
-
 ---
 
 ## Virtual File System (VFS)
@@ -64,30 +48,20 @@ VFS позволяет работать с библиотекой контент
 
 `GET /api/v1/external/vfs/list?path=/`
 
-**Параметры:**
-* `path`: Путь (например, `/`, `/uuid-folder`, `/virtual-all`)
-* `limit`: Количество элементов (по умолчанию 50)
-* `offset`: Смещение
-
-**Пример ответа (Root):**
-В корне всегда присутствует виртуальная папка `All` (`virtual-all`), содержащая все элементы без папок (orphans).
+**Пример ответа (Файлы):**
+Для каждого медиа-файла возвращаются `url` и `thumbnailUrl`. Эти ссылки уже **подписаны** и не требуют передачи токена авторизации.
 ```json
 {
-  "type": "directory",
-  "items": [
-    { 
-      "id": "virtual-all", 
-      "name": "All", 
-      "type": "directory", 
-      "path": "/virtual-all",
-      "itemsCount": 42
-    },
-    { 
-      "id": "uuid-1", 
-      "name": "Мои видео", 
-      "type": "directory", 
-      "path": "/uuid-1",
-      "itemsCount": 15
+  "id": "item-uuid",
+  "name": "Интервью",
+  "type": "file",
+  "media": [
+    {
+      "id": "media-uuid",
+      "type": "VIDEO",
+      "url": "/api/v1/media/p/media-uuid/SIGNATURE?download=1",
+      "thumbnailUrl": "/api/v1/media/p/media-uuid/SIGNATURE/thumbnail?w=400&h=400",
+      "mimeType": "video/mp4"
     }
   ]
 }
@@ -112,57 +86,40 @@ VFS позволяет работать с библиотекой контент
 
 #### Загрузка файла (Upload)
 Загрузка файла напрямую в указанную коллекцию.
-
-`POST /api/v1/external/vfs/upload`
-*   **Body:** `multipart/form-data`
-*   **Fields:**
-    *   `file`: (binary) Файл
-    *   `collectionId`: (string) ID коллекции или `virtual-all`
-    *   `projectId`: (string, optional) ID проекта
+`POST /api/v1/external/vfs/upload` (Multipart form-data)
 
 #### Обновление файла (Rename/Tags)
 `PATCH /api/v1/external/vfs/items/:id`
-* **Body:** `{ "name": "Новое имя.mp4", "tags": ["важное", "ready"] }`
+* **Body:** `{ "name": "Новое имя.mp4", "tags": ["важное"] }`
 
 #### Удаление файла (Delete)
 `DELETE /api/v1/external/vfs/items/:id`
 
-#### Получение файла (Download/Stream)
-`GET /api/v1/external/vfs/media/:id/file`
-* **Query:** `download=1` (для принудительного скачивания)
-* Поддерживает `Range` запросы для стриминга видео.
-
-#### Получение превью (Thumbnail)
-`GET /api/v1/external/vfs/media/:id/thumbnail`
-* **Query:**
-    * `w`: Ширина (по умолчанию 400)
-    * `h`: Высота (по умолчанию 400)
-    * `quality`: Качество 1-100 (optional)
-    * `fit`: Режим обрезки (`cover`, `contain` и т.д.)
+#### Безопасный доступ к медиа (Signed URLs)
+Поля `url` и `thumbnailUrl` в VFS ответах уже содержат `publicToken`. Это позволяет:
+* Вставлять превью напрямую в `<img>` и `<video>`.
+* Передавать ссылки во внешние плееры/редакторы без риска компрометации основного API-ключа.
+* Стримить видео по прямым ссылкам.
 
 ---
 
 ### Поиск (Search)
 Поиск элементов по названию, тексту или тегам с фильтрацией по типу.
 
-`GET /api/v1/external/vfs/search?query=новость&tags=важное,видео&type=video`
+`GET /api/v1/external/vfs/search?query=новость`
 
 ---
 
 ## Сервисы (Proxy)
 
 ### Speech-to-Text (STT)
-Преобразование аудио в текст.
-
 `POST /api/v1/external/stt/transcribe`
 
 ### AI Assistant (LLM)
-Доступ к чату с ИИ-ассистентом.
-
 `POST /api/v1/external/llm/chat`
 
 ---
 
 ## Базовый URL
 Все запросы должны идти на: `https://your-gran-instance.com/api/v1/`
-Обязательный заголовок: `Authorization: Bearer <your_token>`
+Обязательный заголовок для API методов: `Authorization: Bearer <your_token>`

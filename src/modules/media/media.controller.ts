@@ -522,4 +522,41 @@ export class MediaController {
     res.headers(headers);
     return res.send(stream);
   }
+
+  /**
+   * Public endpoint for media thumbnails.
+   * Verifies a signature token instead of requiring JWT.
+   */
+  @Get('p/:id/:token/thumbnail')
+  async getPublicThumbnail(
+    @Param('id') id: string,
+    @Param('token') token: string,
+    @Req() req: FastifyRequest,
+    @Res() res: FastifyReply,
+    @Query('w') widthStr?: string,
+    @Query('h') heightStr?: string,
+    @Query('quality') qualityStr?: string,
+  ) {
+    if (!this.mediaService.verifyPublicToken(id, token)) {
+      throw new BadRequestException('Invalid media token');
+    }
+
+    const width = widthStr ? parseInt(widthStr, 10) : 400;
+    const height = heightStr ? parseInt(heightStr, 10) : 400;
+    const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+    const fit = (req.query as any)?.fit;
+
+    const { stream, status, headers } = await this.mediaService.getMediaThumbnail(
+      id,
+      width,
+      height,
+      quality,
+      undefined, // Skip permission check
+      fit,
+    );
+
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
+  }
 }

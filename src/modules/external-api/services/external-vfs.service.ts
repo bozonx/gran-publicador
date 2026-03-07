@@ -228,16 +228,16 @@ export class ExternalVfsService {
       meta: item.meta,
       media: item.media.map((m: any) => {
         const isStorage = m.media.storageType === StorageType.STORAGE;
-        const baseUrl = `/api/v1/external/vfs/media/${m.media.id}`;
+        const signature = isStorage ? this.mediaService.generatePublicToken(m.media.id) : '';
         
         return {
           id: m.media.id,
           type: m.media.type,
           url: isStorage
-            ? `${baseUrl}/file?download=1`
+            ? `/api/v1/media/p/${m.media.id}/${signature}?download=1`
             : m.media.storagePath,
           thumbnailUrl: isStorage
-            ? `${baseUrl}/thumbnail?w=400&h=400`
+            ? `/api/v1/media/p/${m.media.id}/${signature}/thumbnail?w=400&h=400`
             : m.media.storagePath,
           mimeType: m.media.mimeType,
           size: m.media.sizeBytes ? Number(m.media.sizeBytes) : 0,
@@ -333,16 +333,16 @@ export class ExternalVfsService {
       meta: item.meta,
       media: item.media.map((m: any) => {
         const isStorage = m.media.storageType === StorageType.STORAGE;
-        const baseUrl = `/api/v1/external/vfs/media/${m.media.id}`;
+        const signature = isStorage ? this.mediaService.generatePublicToken(m.media.id) : '';
         
         return {
           id: m.media.id,
           type: m.media.type,
           url: isStorage
-            ? `${baseUrl}/file?download=1`
+            ? `/api/v1/media/p/${m.media.id}/${signature}?download=1`
             : m.media.storagePath,
           thumbnailUrl: isStorage
-            ? `${baseUrl}/thumbnail?w=400&h=400`
+            ? `/api/v1/media/p/${m.media.id}/${signature}/thumbnail?w=400&h=400`
             : m.media.storagePath,
           mimeType: m.media.mimeType,
           meta: m.media.meta,
