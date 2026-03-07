@@ -299,21 +299,23 @@ function toggleHiddenOnly() {
 <template>
       <UCard>
         <template #header>
-          <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('llm.manageTemplates') }}</h3>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ title }}</p>
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">{{ t('llm.manageTemplates') }}</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ title }}</p>
+            </div>
+            <UButton
+              v-if="sourceFilter !== 'system'"
+              icon="i-heroicons-plus"
+              color="primary"
+              variant="soft"
+              size="sm"
+              @click="openCreateModal"
+            >
+              {{ t('llm.addTemplate') }}
+            </UButton>
+          </div>
         </template>
-    <template #actions>
-      <UButton
-        v-if="sourceFilter !== 'system'"
-        icon="i-heroicons-plus"
-        color="primary"
-        variant="soft"
-        size="sm"
-        @click="openCreateModal"
-      >
-        {{ t('llm.addTemplate') }}
-      </UButton>
-    </template>
 
     <!-- Filters -->
     <div class="mb-4">
