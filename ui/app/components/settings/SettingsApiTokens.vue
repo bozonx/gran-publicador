@@ -22,6 +22,7 @@ const showEditTokenModal = ref(false)
 const editingToken = ref<any>(null)
 const newTokenName = ref('')
 const newTokenScope = ref<string[]>([])
+const newTokenFunctionalScopes = ref<string[]>([])
 const limitToProjects = ref(false)
 const visibleTokens = ref<Set<string>>(new Set())
 const showDeleteTokenModal = ref(false)
@@ -84,10 +85,12 @@ async function handleCreateToken() {
       name: newTokenName.value,
       allProjects: !limitToProjects.value,
       projectIds: limitToProjects.value ? newTokenScope.value : [],
+      scopes: newTokenFunctionalScopes.value,
     })
     showCreateTokenModal.value = false
     newTokenName.value = ''
     newTokenScope.value = []
+    newTokenFunctionalScopes.value = []
     limitToProjects.value = false
   } catch (err) {
     // Error handled in composable
@@ -99,6 +102,7 @@ function openEditModal(token: any) {
   editingToken.value = token
   newTokenName.value = token.name
   newTokenScope.value = token.projectIds || []
+  newTokenFunctionalScopes.value = token.scopes || []
   limitToProjects.value = !token.allProjects
   showEditTokenModal.value = true
 }
@@ -111,11 +115,13 @@ async function handleUpdateToken() {
       name: newTokenName.value,
       allProjects: !limitToProjects.value,
       projectIds: limitToProjects.value ? newTokenScope.value : [],
+      scopes: newTokenFunctionalScopes.value,
     })
     showEditTokenModal.value = false
     editingToken.value = null
     newTokenName.value = ''
     newTokenScope.value = []
+    newTokenFunctionalScopes.value = []
     limitToProjects.value = false
   } catch (err) {
     // Error handled in composable
@@ -160,6 +166,13 @@ function formatDate(date: string | null | undefined): string {
   if (isNaN(dObj.getTime())) return '—'
   return d(dObj, 'long')
 }
+
+const availableFunctionalScopes = [
+  { value: 'vfs:read', label: t('externalIntegrations.connect.vfsReadAccess') },
+  { value: 'vfs:write', label: t('externalIntegrations.connect.vfsWriteAccess') },
+  { value: 'stt:transcribe', label: t('externalIntegrations.connect.sttAccess') },
+  { value: 'llm:chat', label: t('externalIntegrations.connect.llmAccess') },
+]
 </script>
 
 <template>
@@ -206,6 +219,9 @@ function formatDate(date: string | null | undefined): string {
             </h3>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {{ t('settings.scope') }}: {{ formatScope(token) }}
+            </p>
+            <p v-if="token.scopes && token.scopes.length > 0" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {{ t('settings.apiScopes', 'API Scopes') }}: {{ token.scopes.join(', ') }}
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -284,6 +300,18 @@ function formatDate(date: string | null | undefined): string {
             class="w-full"
           />
         </UFormField>
+
+        <UFormField :label="t('settings.apiScopes', 'API Scopes')">
+          <USelectMenu
+            v-model="newTokenFunctionalScopes"
+            :items="availableFunctionalScopes"
+            label-key="label"
+            value-key="value"
+            multiple
+            :placeholder="t('settings.selectApiScopes', 'Select API functional scopes')"
+            class="w-full"
+          />
+        </UFormField>
       </div>
 
       <template #footer>
@@ -319,6 +347,17 @@ function formatDate(date: string | null | undefined): string {
             :items="projects || []"
             label-key="name"
             value-key="id"
+            multiple
+            class="w-full"
+          />
+        </UFormField>
+
+        <UFormField :label="t('settings.apiScopes', 'API Scopes')">
+          <USelectMenu
+            v-model="newTokenFunctionalScopes"
+            :items="availableFunctionalScopes"
+            label-key="label"
+            value-key="value"
             multiple
             class="w-full"
           />

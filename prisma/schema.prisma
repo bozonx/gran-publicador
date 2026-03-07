@@ -133,6 +133,8 @@ model ApiToken {
   encryptedToken String    @map("encrypted_token")
   // If true, token has access to all user's projects (including future ones)
   allProjects    Boolean   @default(false) @map("all_projects")
+  // List of authorized scopes (e.g., 'vfs:read', 'stt:transcribe')
+  scopes         String[]  @default([])
   // Last time this token was used for authentication
   lastUsedAt     DateTime? @map("last_used_at")
   createdAt      DateTime  @default(now()) @map("created_at")

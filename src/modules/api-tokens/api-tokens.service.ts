@@ -131,6 +131,7 @@ export class ApiTokensService {
           hashedToken,
           encryptedToken,
           allProjects,
+          scopes: dto.scopes || [],
           projects: {
             create: projectIds.map(projectId => ({
               projectId,
@@ -152,6 +153,7 @@ export class ApiTokensService {
           ...apiToken,
           plainToken,
           projectIds: apiToken.projects.map(p => p.projectId),
+          scopes: apiToken.scopes,
         },
         { excludeExtraneousValues: true },
       );
@@ -187,6 +189,7 @@ export class ApiTokensService {
           ...token,
           plainToken: this.decryptToken(token.encryptedToken),
           projectIds: token.projects.map(p => p.projectId),
+          scopes: token.scopes,
         },
         { excludeExtraneousValues: true },
       ),
@@ -220,6 +223,10 @@ export class ApiTokensService {
 
     if (dto.name !== undefined) {
       updateData.name = dto.name;
+    }
+
+    if (dto.scopes !== undefined) {
+      updateData.scopes = dto.scopes;
     }
 
     // Handle allProjects flag update
@@ -300,6 +307,7 @@ export class ApiTokensService {
         ...updated,
         plainToken: this.decryptToken(updated.encryptedToken),
         projectIds: updated.projects.map(p => p.projectId),
+        scopes: updated.scopes,
       },
       { excludeExtraneousValues: true },
     );
@@ -335,6 +343,8 @@ export class ApiTokensService {
     allProjects: boolean;
     projectIds: string[];
     tokenId: string;
+    scopes: string[];
+    name: string;
   } | null> {
     const hashedToken = this.hashToken(plainToken);
 
@@ -358,6 +368,8 @@ export class ApiTokensService {
       allProjects: token.allProjects,
       projectIds: token.projects.map(p => p.projectId),
       tokenId: token.id,
+      scopes: token.scopes,
+      name: token.name,
     };
   }
 

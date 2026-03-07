@@ -14,11 +14,23 @@ const { createToken, loading, error: tokenError } = useApiTokens()
 // Parameters from URL
 const appName = computed(() => (route.query.name as string) || 'External App')
 const redirectUri = computed(() => route.query.redirect_uri as string)
+const requestedScopes = computed(() => {
+  const scopes = route.query.scopes as string
+  if (!scopes) return []
+  return scopes.split(',').map(s => s.trim()).filter(Boolean)
+})
 
 const isSuccess = ref(false)
 const localError = ref<string | null>(null)
 
 const combinedError = computed(() => localError.value || tokenError.value)
+
+const scopeLabels: Record<string, { label: string, icon: string }> = {
+  'vfs:read': { label: t('externalIntegrations.connect.vfsReadAccess'), icon: 'i-heroicons-eye' },
+  'vfs:write': { label: t('externalIntegrations.connect.vfsWriteAccess'), icon: 'i-heroicons-document-plus' },
+  'stt:transcribe': { label: t('externalIntegrations.connect.sttAccess'), icon: 'i-heroicons-microphone' },
+  'llm:chat': { label: t('externalIntegrations.connect.llmAccess'), icon: 'i-heroicons-chat-bubble-left-right' },
+}
 
 async function handleAllow() {
   if (!redirectUri.value) {
@@ -28,10 +40,11 @@ async function handleAllow() {
 
   try {
     localError.value = null
-    // Create a new API token for this application
+    // Create a new API token for this application with specific scopes
     const token = await createToken({
       name: `Integration: ${appName.value}`,
-      expiresAt: null, // Perpetual token for the app
+      allProjects: true, // For now, assume full project access for connect flow
+      scopes: requestedScopes.value.length > 0 ? requestedScopes.value : ['vfs:read', 'stt:transcribe', 'llm:chat'], // Default if none provided
     })
 
     isSuccess.value = true
@@ -89,20 +102,20 @@ onMounted(() => {
 
       <div class="space-y-4">
         <p class="text-sm text-gray-600 dark:text-gray-300" v-html="t('externalIntegrations.connect.wantsAccessTo', { appName })"></p>
-        
+
         <ul class="space-y-3">
-          <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
-            <span>{{ t('externalIntegrations.connect.vfsAccess') }}</span>
-          </li>
-          <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
-            <span>{{ t('externalIntegrations.connect.sttAccess') }}</span>
-          </li>
-          <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
-            <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
-            <span>{{ t('externalIntegrations.connect.llmAccess') }}</span>
-          </li>
+          <template v-if="requestedScopes.length > 0">
+            <li v-for="scope in requestedScopes" :key="scope" class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+              <UIcon :name="scopeLabels[scope]?.icon || 'i-heroicons-key'" class="w-5 h-5 text-primary-500 shrink-0" />
+              <span>{{ scopeLabels[scope]?.label || scope }}</span>
+            </li>
+          </template>
+          <template v-else>
+            <li class="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+              <UIcon name="i-heroicons-check-circle" class="w-5 h-5 text-green-500 shrink-0" />
+              <span>{{ t('externalIntegrations.connect.fullAccess') }}</span>
+            </li>
+          </template>
         </ul>
       </div>
     </div>

@@ -13,17 +13,42 @@ import { ApiTokenRequest } from '../../common/types/api-token-user.interface.js'
 import { ExternalVfsService } from './services/external-vfs.service.js';
 import { ExternalProxyService } from './services/external-proxy.service.js';
 import { VfsListQueryDto, VfsSearchQueryDto } from './dto/vfs.dto.js';
+import { ScopesGuard } from '../../common/guards/scopes.guard.js';
+import { RequireScopes } from '../../common/decorators/require-scopes.decorator.js';
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 
 @Controller('external')
-@UseGuards(ApiTokenGuard)
+@UseGuards(ApiTokenGuard, ScopesGuard)
 export class ExternalApiController {
   constructor(
     private readonly vfsService: ExternalVfsService,
     private readonly proxyService: ExternalProxyService,
   ) {}
+  
+  /**
+   * Health check and token verification endpoint.
+   * Returns information about the authorized token and user.
+   */
+  @Get('health')
+  async health(@Request() req: ApiTokenRequest) {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      user: {
+        id: req.user.userId,
+      },
+      token: {
+        id: req.user.tokenId,
+        name: req.user.name,
+        scopes: req.user.scopes || [],
+        allProjects: req.user.allProjects,
+        projectIds: req.user.projectIds || [],
+      }
+    };
+  }
 
   @Get('vfs/list')
+  @RequireScopes('vfs:read')
   async list(@Request() req: ApiTokenRequest, @Query() query: VfsListQueryDto) {
     return this.vfsService.list(
       req.user.userId,
@@ -36,6 +61,7 @@ export class ExternalApiController {
   }
 
   @Get('vfs/search')
+  @RequireScopes('vfs:read')
   async search(@Request() req: ApiTokenRequest, @Query() query: VfsSearchQueryDto) {
     return this.vfsService.search(
       req.user.userId,
@@ -49,6 +75,7 @@ export class ExternalApiController {
   }
 
   @Post('vfs/upload')
+  @RequireScopes('vfs:write')
   async upload(@Request() req: UnifiedAuthRequest) {
     if (!req.isMultipart?.()) {
       throw new BadRequestException('Request is not multipart');
@@ -88,6 +115,7 @@ export class ExternalApiController {
   }
 
   @Post('stt/transcribe')
+  @RequireScopes('stt:transcribe')
   async transcribe(@Request() req: UnifiedAuthRequest) {
     if (!req.isMultipart?.()) {
       throw new BadRequestException('Request is not multipart');
@@ -113,6 +141,7 @@ export class ExternalApiController {
   }
 
   @Post('llm/chat')
+  @RequireScopes('llm:chat')
   async chat(@Request() req: UnifiedAuthRequest, @Body() body: any) {
     const { messages, ...options } = body;
     return this.proxyService.chat(messages, options);

@@ -12,6 +12,10 @@ export interface ApiTokenUser {
   projectIds: string[];
   /** The unique identifier of the API token itself. */
   tokenId: string;
+  /** List of authorized scopes (e.g., 'vfs:read', 'stt:transcribe'). */
+  scopes: string[];
+  /** The human-readable name of the token. */
+  name: string;
 }
 
 /**

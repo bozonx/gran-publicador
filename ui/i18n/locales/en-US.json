@@ -742,6 +742,23 @@
     "userTemplates_desc": "Your personal prompt templates available in all projects",
     "voiceInputAppend": "Append voice input to text"
   },
+  "externalIntegrations": {
+    "connect": {
+      "title": "Application Connection",
+      "description": "An application wants to access your account",
+      "wantsAccessTo": "The app **{appName}** is requesting access to the following features:",
+      "vfsReadAccess": "View content library",
+      "vfsWriteAccess": "Upload files to library",
+      "sttAccess": "Speech-to-Text (STT)",
+      "llmAccess": "AI Assistant (LLM)",
+      "fullAccess": "Full API Access (External API)",
+      "allow": "Allow Access",
+      "deny": "Deny",
+      "success": "Access granted successfully. Redirecting...",
+      "error": "Error granting access",
+      "invalidRedirect": "Invalid redirect URL"
+    }
+  },
   "media": {
     "add": "Add Media",
     "addError": "Failed to add media",

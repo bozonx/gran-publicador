@@ -25,6 +25,11 @@ export class CreateApiTokenDto {
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  public scopes?: string[];
 }
 
 export class UpdateApiTokenDto {
@@ -43,6 +48,11 @@ export class UpdateApiTokenDto {
   @IsOptional()
   @ArrayMaxSize(VALIDATION_LIMITS.MAX_PROJECTS_PER_TOKEN)
   public projectIds?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  public scopes?: string[];
 }
 
 export class ApiTokenDto {
@@ -63,6 +73,9 @@ export class ApiTokenDto {
 
   @Expose()
   public projectIds!: string[];
+
+  @Expose()
+  public scopes!: string[];
 
   @Expose()
   @Type(() => Date)

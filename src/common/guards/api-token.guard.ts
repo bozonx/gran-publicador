@@ -44,6 +44,8 @@ export class ApiTokenGuard implements CanActivate {
       allProjects: tokenData.allProjects,
       projectIds: tokenData.projectIds,
       tokenId: tokenData.tokenId,
+      scopes: tokenData.scopes,
+      name: tokenData.name,
     };
 
     // Update last used timestamp (awaited to ensure it's saved correctly)
