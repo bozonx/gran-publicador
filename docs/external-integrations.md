@@ -114,26 +114,10 @@ VFS позволяет работать с библиотекой контент
 
 ### Speech-to-Text (STT)
 
-#### 1. Transcribe from URL
-**Endpoint:** `POST /api/v1/external/api/v1/transcribe`
-
-**Description:** Transcribes audio from a public URL.
-
-**Request Body:**
-```json
-{
-  "fileUrl": "https://example.com/audio.mp3",
-  "language": "en",
-  "provider": "assemblyai",
-  "restorePunctuation": true,
-  "formatText": true
-}
-```
-
-#### 2. Transcribe Audio Stream
+#### 1. Transcribe Audio Stream
 **Endpoint:** `POST /api/v1/external/api/v1/transcribe/stream`
 
-**Description:** Transcribes audio by uploading the raw audio bytes directly as a stream. The service forwards the uploaded bytes to `tmp-files-microservice`, obtains a temporary public URL, and then proceeds with transcription.
+**Description:** Transcribes audio by uploading the raw audio bytes directly as a stream. The service forwards the uploaded bytes to the STT microservice.
 
 **Request Headers:**
 - `Content-Type: audio/*`
@@ -146,6 +130,13 @@ VFS позволяет работать с библиотекой контент
 - `X-STT-Api-Key: ...` (optional)
 
 **Body:** Raw audio bytes
+
+**Success Response (200 OK):**
+```json
+{
+  "text": "Transcription text here..."
+}
+```
 
 ### AI Assistant (LLM)
 `POST /api/v1/external/llm/chat`

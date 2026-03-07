@@ -51,19 +51,6 @@ export class ExternalProxyService {
     });
   }
 
-  async transcribeUrl(params: {
-    url: string;
-    language?: string;
-    provider?: string;
-    restorePunctuation?: boolean;
-    formatText?: boolean;
-    models?: string[];
-    apiKey?: string;
-    maxWaitMinutes?: number;
-  }) {
-    return this.sttService.transcribeAudioUrl(params);
-  }
-
   async chat(messages: Array<{ role: string; content: string }>, options?: any) {
     return this.llmService.generateChat(messages, options);
   }

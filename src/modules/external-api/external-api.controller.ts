@@ -288,40 +288,6 @@ export class ExternalApiController {
     });
   }
 
-  /**
-   * Standardized STT endpoint for transcription from URL.
-   * Path: POST /api/v1/external/api/v1/transcribe
-   */
-  @Post('api/v1/transcribe')
-  @RequireScopes('stt:transcribe')
-  async transcribeUrl(@Body() body: any) {
-    const {
-      fileUrl,
-      language,
-      provider,
-      restorePunctuation,
-      formatText,
-      models,
-      apiKey,
-      maxWaitMinutes,
-    } = body;
-
-    if (!fileUrl) {
-      throw new BadRequestException('fileUrl is required');
-    }
-
-    return this.proxyService.transcribeUrl({
-      url: fileUrl,
-      language,
-      provider,
-      restorePunctuation,
-      formatText,
-      models,
-      apiKey,
-      maxWaitMinutes,
-    });
-  }
-
   @Post('llm/chat')
   @RequireScopes('llm:chat')
   async chat(@Request() req: UnifiedAuthRequest, @Body() body: any) {
