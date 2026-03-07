@@ -15,6 +15,8 @@ export interface UnifiedAuthUser {
   projectIds?: string[];
   /** Optional token ID if authenticated via API token. */
   tokenId?: string;
+  /** List of authorized scopes. For API tokens, these are defined on creation. For JWT, typically all scopes are allowed. */
+  scopes?: string[];
 }
 
 /**

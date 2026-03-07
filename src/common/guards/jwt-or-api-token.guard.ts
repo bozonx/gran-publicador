@@ -46,6 +46,7 @@ export class JwtOrApiTokenGuard implements CanActivate {
         allProjects: apiTokenRequest.user.allProjects,
         projectIds: apiTokenRequest.user.projectIds,
         tokenId: apiTokenRequest.user.tokenId,
+        scopes: apiTokenRequest.user.scopes,
       };
 
       return true;
@@ -74,6 +75,8 @@ export class JwtOrApiTokenGuard implements CanActivate {
       allProjects: undefined, // JWT users have access to all their projects
       projectIds: undefined,
       tokenId: undefined,
+      // Full users authenticated via JWT get all scopes for the external API by default
+      scopes: ['vfs:read', 'vfs:write', 'stt:transcribe', 'llm:chat'],
     };
 
     return true;
