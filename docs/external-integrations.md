@@ -135,7 +135,20 @@ VFS позволяет работать с библиотекой контент
 **Success Response (200 OK):**
 ```json
 {
-  "text": "Transcription text here..."
+  "text": "Transcription text here...",
+  "provider": "assemblyai",
+  "requestId": "req-uuid",
+  "durationSec": 12.5,
+  "language": "en",
+  "confidenceAvg": 0.957,
+  "wordsCount": 25,
+  "words": [
+    { "text": "Hello", "start": 0, "end": 500, "confidence": 0.99 },
+    ...
+  ],
+  "processingMs": 1200,
+  "punctuationRestored": true,
+  "raw": { ... }
 }
 ```
 

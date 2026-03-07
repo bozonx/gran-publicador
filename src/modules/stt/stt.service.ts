@@ -63,7 +63,7 @@ export class SttService {
     maxWaitMinutes?: number;
     contentLength?: number;
     includeWords?: boolean;
-  }): Promise<{ text: string }> {
+  }): Promise<any> {
     const config = this.configService.get<SttConfig>('stt');
 
     if (!config?.serviceUrl) {
@@ -209,12 +209,10 @@ export class SttService {
         throw new InternalServerErrorException(message);
       }
 
-      const result = (await response.body.json()) as { text: string };
+      const result = (await response.body.json()) as any;
       this.logger.log(`Transcription successful for ${filename}`);
 
-      return {
-        text: result.text,
-      };
+      return result;
     } catch (error) {
       this.logger.error(
         `Failed to transcribe audio stream: ${(error as Error).message}`,
@@ -249,5 +247,72 @@ export class SttService {
       );
     }
   }
+  /**
+   * Transcribes audio from a public URL by proxying to STT Gateway.
+   */
+  async transcribeAudioUrl(params: {
+    url: string;
+    language?: string;
+    provider?: string;
+    restorePunctuation?: boolean;
+    formatText?: boolean;
+    models?: string[];
+    apiKey?: string;
+    maxWaitMinutes?: number;
+    includeWords?: boolean;
+  }): Promise<any> {
+    const config = this.configService.get<SttConfig>('stt');
 
+    if (!config?.serviceUrl) {
+      throw new InternalServerErrorException('STT service is not configured');
+    }
+
+    try {
+      const provider = params.provider ?? config?.defaultProvider;
+      const models = params.models ?? (config?.defaultModels ? config.defaultModels.split(',').map(m => m.trim()).filter(Boolean) : undefined);
+      const restorePunctuation = params.restorePunctuation !== undefined ? params.restorePunctuation : config?.restorePunctuation;
+      const formatText = params.formatText !== undefined ? params.formatText : config?.formatText;
+      const language = config?.sendUserLanguage === false ? undefined : params.language;
+
+      const body: any = {
+        url: params.url,
+      };
+
+      if (provider) body.provider = provider;
+      if (language) body.language = language;
+      if (restorePunctuation !== undefined) body.restorePunctuation = restorePunctuation;
+      if (formatText !== undefined) body.formatText = formatText;
+      if (models?.length) body.models = models;
+      if (params.apiKey) body.apiKey = params.apiKey;
+      if (params.maxWaitMinutes !== undefined) body.maxWaitMinutes = params.maxWaitMinutes;
+      if (params.includeWords !== undefined) body.includeWords = params.includeWords;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
+      const response = await request(`${config.serviceUrl}/transcribe`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        headersTimeout: this.getRequestTimeoutMs(),
+        bodyTimeout: this.getRequestTimeoutMs(),
+      });
+
+      if (response.statusCode !== 200) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        const message = (errorBody as any)?.message || 'Failed to transcribe audio via URL';
+        throw new InternalServerErrorException(message);
+      }
+
+      return await response.body.json();
+    } catch (error) {
+      this.logger.error(`Failed to transcribe audio URL: ${(error as Error).message}`);
+      throw error;
+    }
+  }
 }

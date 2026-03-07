@@ -61,6 +61,21 @@ export class SttConfig {
   @IsOptional()
   @IsBoolean()
   public formatText?: boolean;
+
+  /**
+   * Base URL for tmp-files-microservice.
+   */
+  @IsOptional()
+  @IsString()
+  @IsUrl({ require_tld: false })
+  public tmpFilesBaseUrl?: string;
+
+  /**
+   * Default TTL for uploaded files in minutes.
+   */
+  @IsOptional()
+  @IsInt()
+  public tmpFilesDefaultTtlMins?: number = 30;
 }
 
 export default registerAs('stt', (): SttConfig => {
@@ -87,6 +102,10 @@ export default registerAs('stt', (): SttConfig => {
       process.env.STT_FORMAT_TEXT !== undefined
         ? process.env.STT_FORMAT_TEXT === 'true'
         : undefined,
+    tmpFilesBaseUrl: process.env.TMP_FILES_BASE_URL,
+    tmpFilesDefaultTtlMins: process.env.TMP_FILES_DEFAULT_TTL_MINS
+      ? parseInt(process.env.TMP_FILES_DEFAULT_TTL_MINS, 10)
+      : undefined,
   };
 
   // Remove undefined and NaN values to let class defaults take over

@@ -234,7 +234,27 @@ export class ExternalApiController {
     }
 
     const fields: any = (part as any).fields;
-    const language = fields?.language?.value;
+    const headers = req.headers;
+
+    const language = fields?.language?.value || (headers['x-stt-language'] as string);
+    const provider = fields?.provider?.value || (headers['x-stt-provider'] as string);
+    
+    const getBool = (field: any, header: any) => {
+      const val = field?.value || header;
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      return undefined;
+    };
+
+    const restorePunctuation = getBool(fields?.restorePunctuation, headers['x-stt-restore-punctuation']);
+    const formatText = getBool(fields?.formatText, headers['x-stt-format-text']);
+    const includeWords = getBool(fields?.includeWords, headers['x-stt-include-words']);
+    
+    const modelsRaw = fields?.models?.value || (headers['x-stt-models'] as string);
+    const models = modelsRaw?.split(',').map((m: string) => m.trim()).filter(Boolean);
+    const apiKey = fields?.apiKey?.value || (headers['x-stt-api-key'] as string);
+    const maxWaitMinutesRaw = fields?.maxWaitMinutes?.value || (headers['x-stt-max-wait-minutes'] as string);
+    const maxWaitMinutes = maxWaitMinutesRaw ? parseInt(maxWaitMinutesRaw, 10) : undefined;
     
     // Convert stream to buffer for STT service
     const buffer = await part.toBuffer();
@@ -244,6 +264,13 @@ export class ExternalApiController {
       filename: part.filename,
       mimetype: part.mimetype,
       language,
+      provider,
+      restorePunctuation,
+      formatText,
+      includeWords,
+      models,
+      apiKey,
+      maxWaitMinutes,
     });
   }
 
@@ -264,12 +291,21 @@ export class ExternalApiController {
     const filename = (headers['x-file-name'] as string) || 'upload';
     const provider = headers['x-stt-provider'] as string;
     const language = headers['x-stt-language'] as string;
-    const restorePunctuation = headers['x-stt-restore-punctuation'] === 'true';
-    const formatText = headers['x-stt-format-text'] === 'true';
+    
+    const getHeaderBool = (header: string) => {
+      const val = headers[header];
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      return undefined;
+    };
+
+    const restorePunctuation = getHeaderBool('x-stt-restore-punctuation');
+    const formatText = getHeaderBool('x-stt-format-text');
+    const includeWords = getHeaderBool('x-stt-include-words');
+    
     const models = (headers['x-stt-models'] as string)?.split(',').map(m => m.trim()).filter(Boolean);
     const apiKey = headers['x-stt-api-key'] as string;
     const maxWaitMinutes = headers['x-stt-max-wait-minutes'] ? parseInt(headers['x-stt-max-wait-minutes'] as string, 10) : undefined;
-    const includeWords = headers['x-stt-include-words'] === 'true';
     const mimetype = headers['content-type'] || 'application/octet-stream';
     const contentLength = headers['content-length'] ? parseInt(headers['content-length'] as string, 10) : undefined;
 
