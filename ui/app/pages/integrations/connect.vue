@@ -52,7 +52,7 @@ async function handleAllow() {
     // Wait a bit to show success message
     setTimeout(() => {
       const url = new URL(redirectUri.value)
-      url.searchParams.append('token', token.token)
+      url.searchParams.append('token', token.plainToken)
       window.location.href = url.toString()
     }, 1500)
   } catch (err: any) {

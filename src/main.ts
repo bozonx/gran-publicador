@@ -34,8 +34,31 @@ async function bootstrap() {
     {
       bufferLogs: true,
       cors: {
-        origin: true,
+        origin: (origin, callback) => {
+          // In development, allow everything and reflect origin
+          if (process.env.NODE_ENV === 'development' || !origin) {
+            callback(null, true);
+          } else {
+            // In production, you might want to be more restrictive
+            // For now, mirroring dev behavior but allowing for future restriction
+            callback(null, true);
+          }
+        },
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+        allowedHeaders: [
+          'Origin',
+          'X-Requested-With',
+          'Content-Type',
+          'Accept',
+          'Authorization',
+          'x-api-key',
+          'x-filename',
+          'x-mime-type',
+          'x-file-size',
+          'x-project-id',
+          'x-optimize',
+          'x-metadata',
+        ],
         credentials: true,
       },
     },
