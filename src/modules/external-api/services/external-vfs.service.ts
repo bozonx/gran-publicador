@@ -188,6 +188,34 @@ export class ExternalVfsService {
     };
   }
 
+  async getThumbnail(
+    mediaId: string,
+    width: number,
+    height: number,
+    quality: number | undefined,
+    userId: string,
+    fit?: string,
+  ) {
+    // Media access check is performed by mediaService inside getMediaThumbnail
+    return this.mediaService.getMediaThumbnail(
+      mediaId,
+      width,
+      height,
+      quality,
+      userId,
+      fit,
+    );
+  }
+
+  async getFile(
+    mediaId: string,
+    userId: string,
+    range?: string,
+    download?: boolean,
+  ) {
+    return this.mediaService.getMediaFile(mediaId, userId, range, download);
+  }
+
   private mapFileItem(item: any, parentCollectionId: string) {
     return {
       id: item.id,
@@ -198,17 +226,24 @@ export class ExternalVfsService {
       language: item.language,
       tags: item.tagObjects.map((t: any) => t.name),
       meta: item.meta,
-      media: item.media.map((m: any) => ({
-        id: m.media.id,
-        type: m.media.type,
-        url:
-          m.media.storageType === StorageType.STORAGE
-            ? `/api/v1/media/${m.media.id}/file?download=1`
+      media: item.media.map((m: any) => {
+        const isStorage = m.media.storageType === StorageType.STORAGE;
+        const baseUrl = `/api/v1/external/vfs/media/${m.media.id}`;
+        
+        return {
+          id: m.media.id,
+          type: m.media.type,
+          url: isStorage
+            ? `${baseUrl}/file?download=1`
             : m.media.storagePath,
-        mimeType: m.media.mimeType,
-        size: m.media.sizeBytes ? Number(m.media.sizeBytes) : 0,
-        meta: m.media.meta,
-      })),
+          thumbnailUrl: isStorage
+            ? `${baseUrl}/thumbnail?w=400&h=400`
+            : m.media.storagePath,
+          mimeType: m.media.mimeType,
+          size: m.media.sizeBytes ? Number(m.media.sizeBytes) : 0,
+          meta: m.media.meta,
+        };
+      }),
     };
   }
 
@@ -296,16 +331,23 @@ export class ExternalVfsService {
       language: item.language,
       tags: item.tagObjects.map((t: any) => t.name),
       meta: item.meta,
-      media: item.media.map((m: any) => ({
-        id: m.media.id,
-        type: m.media.type,
-        url:
-          m.media.storageType === StorageType.STORAGE
-            ? `/api/v1/media/${m.media.id}/file?download=1`
+      media: item.media.map((m: any) => {
+        const isStorage = m.media.storageType === StorageType.STORAGE;
+        const baseUrl = `/api/v1/external/vfs/media/${m.media.id}`;
+        
+        return {
+          id: m.media.id,
+          type: m.media.type,
+          url: isStorage
+            ? `${baseUrl}/file?download=1`
             : m.media.storagePath,
-        mimeType: m.media.mimeType,
-        meta: m.media.meta,
-      })),
+          thumbnailUrl: isStorage
+            ? `${baseUrl}/thumbnail?w=400&h=400`
+            : m.media.storagePath,
+          mimeType: m.media.mimeType,
+          meta: m.media.meta,
+        };
+      }),
     }));
   }
 

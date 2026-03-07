@@ -9,9 +9,12 @@ import {
   Request,
   Body,
   Param,
+  Res,
   BadRequestException,
 } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import { ApiTokenGuard } from '../../common/guards/api-token.guard.js';
+import { JwtOrApiTokenGuard } from '../../common/guards/jwt-or-api-token.guard.js';
 import { ApiTokenRequest } from '../../common/types/api-token-user.interface.js';
 import { ExternalVfsService } from './services/external-vfs.service.js';
 import { ExternalProxyService } from './services/external-proxy.service.js';
@@ -27,7 +30,7 @@ import { RequireScopes } from '../../common/decorators/require-scopes.decorator.
 import type { UnifiedAuthRequest } from '../../common/types/unified-auth-request.interface.js';
 
 @Controller('external')
-@UseGuards(ApiTokenGuard, ScopesGuard)
+@UseGuards(JwtOrApiTokenGuard, ScopesGuard)
 export class ExternalApiController {
   constructor(
     private readonly vfsService: ExternalVfsService,
@@ -166,6 +169,56 @@ export class ExternalApiController {
   @RequireScopes('vfs:write')
   async deleteItem(@Request() req: ApiTokenRequest, @Param('id') id: string) {
     return this.vfsService.deleteItem(req.user.userId, id);
+  }
+
+  @Get('vfs/media/:id/thumbnail')
+  @RequireScopes('vfs:read')
+  async getThumbnail(
+    @Param('id') id: string,
+    @Request() req: UnifiedAuthRequest,
+    @Res() res: FastifyReply,
+    @Query('w') widthStr?: string,
+    @Query('h') heightStr?: string,
+    @Query('quality') qualityStr?: string,
+  ) {
+    const width = widthStr ? parseInt(widthStr, 10) : 400;
+    const height = heightStr ? parseInt(heightStr, 10) : 400;
+    const quality = qualityStr ? parseInt(qualityStr, 10) : undefined;
+    const fit = (req.query as any)?.fit;
+
+    const { stream, status, headers } = await this.vfsService.getThumbnail(
+      id,
+      width,
+      height,
+      quality,
+      req.user.userId,
+      fit,
+    );
+
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
+  }
+
+  @Get('vfs/media/:id/file')
+  @RequireScopes('vfs:read')
+  async getFile(
+    @Param('id') id: string,
+    @Request() req: UnifiedAuthRequest,
+    @Res() res: FastifyReply,
+    @Query('download') download?: string,
+  ) {
+    const range = req.headers.range;
+    const { stream, status, headers } = await this.vfsService.getFile(
+      id,
+      req.user.userId,
+      range,
+      download === '1' || download === 'true',
+    );
+
+    res.status(status);
+    res.headers(headers);
+    return res.send(stream);
   }
 
   @Post('stt/transcribe')

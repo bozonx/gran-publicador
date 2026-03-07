@@ -105,7 +105,6 @@ VFS позволяет работать с библиотекой контент
 
 #### Удаление папки
 `DELETE /api/v1/external/vfs/collections/:id`
-*Внимание: При удалении папки в Gran Publicador, вложенные элементы не удаляются, а перемещаются уровнем выше или становятся "сиротами" (появляются в папке All).*
 
 ---
 
@@ -119,7 +118,7 @@ VFS позволяет работать с библиотекой контент
 *   **Fields:**
     *   `file`: (binary) Файл
     *   `collectionId`: (string) ID коллекции или `virtual-all`
-    *   `projectId`: (string, optional) ID проекта (если токен имеет доступ к нескольким проектам)
+    *   `projectId`: (string, optional) ID проекта
 
 #### Обновление файла (Rename/Tags)
 `PATCH /api/v1/external/vfs/items/:id`
@@ -127,7 +126,19 @@ VFS позволяет работать с библиотекой контент
 
 #### Удаление файла (Delete)
 `DELETE /api/v1/external/vfs/items/:id`
-*Полное удаление контента и связанных медиа-файлов.*
+
+#### Получение файла (Download/Stream)
+`GET /api/v1/external/vfs/media/:id/file`
+* **Query:** `download=1` (для принудительного скачивания)
+* Поддерживает `Range` запросы для стриминга видео.
+
+#### Получение превью (Thumbnail)
+`GET /api/v1/external/vfs/media/:id/thumbnail`
+* **Query:**
+    * `w`: Ширина (по умолчанию 400)
+    * `h`: Высота (по умолчанию 400)
+    * `quality`: Качество 1-100 (optional)
+    * `fit`: Режим обрезки (`cover`, `contain` и т.д.)
 
 ---
 
@@ -135,8 +146,6 @@ VFS позволяет работать с библиотекой контент
 Поиск элементов по названию, тексту или тегам с фильтрацией по типу.
 
 `GET /api/v1/external/vfs/search?query=новость&tags=важное,видео&type=video`
-
-**Доступные типы (`type`):** `video`, `audio`, `image`, `text`, `document`.
 
 ---
 
@@ -146,23 +155,11 @@ VFS позволяет работать с библиотекой контент
 Преобразование аудио в текст.
 
 `POST /api/v1/external/stt/transcribe`
-*   **Body:** `multipart/form-data`
-*   **Fields:**
-    *   `file`: (binary) Аудиофайл
-    *   `language`: (string, optional) Код языка (например, `ru`, `en`)
 
 ### AI Assistant (LLM)
 Доступ к чату с ИИ-ассистентом.
 
 `POST /api/v1/external/llm/chat`
-*   **Body:** `application/json`
-```json
-{
-  "messages": [
-    { "role": "user", "content": "Напиши заголовок для видео о кошках" }
-  ]
-}
-```
 
 ---
 

@@ -64,13 +64,19 @@ export class ApiTokenGuard implements CanActivate {
   }
 
   private extractToken(request: FastifyRequest): string | undefined {
-    // Try to get token from x-api-key header
+    // 1. Try to get token from x-api-key header
     const headerKey = request.headers['x-api-key'];
     if (headerKey) {
       return Array.isArray(headerKey) ? headerKey[0] : headerKey;
     }
 
-    // Try to get token from Authorization header (Bearer)
+    // 2. Try to get token from query parameters (useful for images/video)
+    const queryToken = (request.query as any)?.token || (request.query as any)?.api_key;
+    if (queryToken && typeof queryToken === 'string') {
+      return queryToken;
+    }
+
+    // 3. Try to get token from Authorization header (Bearer)
     const authHeader = request.headers['authorization'];
     if (authHeader && !Array.isArray(authHeader) && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);
