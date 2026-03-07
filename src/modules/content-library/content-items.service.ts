@@ -279,7 +279,7 @@ export class ContentItemsService {
             archivedAt: null,
             ...(groupIds.length > 0
               ? {
-                  groups: {
+                  collectionItems: {
                     some: {
                       collectionId: {
                         in: groupIds,

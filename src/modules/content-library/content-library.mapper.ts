@@ -19,8 +19,11 @@ export class ContentLibraryMapper {
     return {
       ...item,
       tags: this.mapTags(item.tagObjects),
-      groups: Array.isArray(item.groups)
-        ? item.groups.map((g: any) => this.mapCollection(g.group))
+      groups: Array.isArray(item.collectionItems)
+        ? item.collectionItems.map((ci: any) => ({
+            collectionId: ci.collectionId,
+            collection: this.mapCollection(ci.collection),
+          }))
         : [],
     };
   }
