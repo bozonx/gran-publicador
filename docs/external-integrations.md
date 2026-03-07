@@ -60,7 +60,7 @@ Gran Publicador предоставляет REST API для интеграции 
 VFS позволяет работать с библиотекой контента Gran Publicador как с файловой структурой.
 
 ### Получение списка (List)
-Отображает коллекции (папки) или элементы коллекции.
+Отображает коллекции (папки), подпапки и элементы коллекции.
 
 `GET /api/v1/external/vfs/list?path=/`
 
@@ -69,15 +69,59 @@ VFS позволяет работать с библиотекой контент
 {
   "type": "directory",
   "items": [
-    { "id": "uuid-1", "name": "Мои видео", "type": "directory", "path": "/uuid-1" }
+    { 
+      "id": "uuid-1", 
+      "name": "Мои видео", 
+      "type": "directory", 
+      "path": "/uuid-1",
+      "itemsCount": 15
+    }
+  ]
+}
+```
+
+**Пример ответа (Папка с контентом и подпапками):**
+```json
+{
+  "type": "directory",
+  "items": [
+    { 
+      "id": "sub-uuid-1", 
+      "name": "Архив", 
+      "type": "directory", 
+      "path": "/sub-uuid-1",
+      "itemsCount": 5
+    },
+    {
+      "id": "item-uuid",
+      "name": "Интервью",
+      "type": "file",
+      "path": "/uuid-1/item-uuid",
+      "text": "Полный текст транскрибации...",
+      "tags": ["важное", "интервью"],
+      "language": "ru-RU",
+      "meta": {},
+      "media": [
+        { 
+          "id": "media-uuid", 
+          "type": "VIDEO", 
+          "url": "/api/v1/media/media-uuid/file?download=1", 
+          "mimeType": "video/mp4",
+          "size": 10485760,
+          "meta": { "width": 1920, "height": 1080 }
+        }
+      ]
+    }
   ]
 }
 ```
 
 ### Поиск (Search)
-Поиск элементов по названию, тексту или тегам.
+Поиск элементов по названию, тексту или тегам с фильтрацией по типу.
 
-`GET /api/v1/external/vfs/search?query=новость&tags=важное,видео`
+`GET /api/v1/external/vfs/search?query=новость&tags=важное,видео&type=video`
+
+**Доступные типы (`type`):** `video`, `audio`, `image`, `text`, `document`.
 
 **Пример ответа:**
 ```json
@@ -86,8 +130,18 @@ VFS позволяет работать с библиотекой контент
     "id": "item-uuid",
     "name": "Заголовок новости",
     "type": "file",
+    "text": "Текст новости...",
+    "tags": ["важное"],
+    "language": "ru-RU",
+    "meta": {},
     "media": [
-      { "id": "media-uuid", "type": "VIDEO", "url": "/api/v1/media/media-uuid/file", "mimeType": "video/mp4" }
+      { 
+        "id": "media-uuid", 
+        "type": "VIDEO", 
+        "url": "/api/v1/media/media-uuid/file?download=1", 
+        "mimeType": "video/mp4",
+        "meta": { "duration": 120 }
+      }
     ]
   }
 ]

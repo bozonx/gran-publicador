@@ -19,6 +19,14 @@ export class VfsListQueryDto {
   offset?: number = 0;
 }
 
+export enum VfsMediaType {
+  VIDEO = 'video',
+  AUDIO = 'audio',
+  IMAGE = 'image',
+  TEXT = 'text',
+  DOCUMENT = 'document',
+}
+
 export class VfsSearchQueryDto {
   @IsString()
   query!: string;
@@ -26,6 +34,10 @@ export class VfsSearchQueryDto {
   @IsString({ each: true })
   @IsOptional()
   tags?: string[];
+
+  @IsString()
+  @IsOptional()
+  type?: VfsMediaType;
 
   @IsInt()
   @Min(1)

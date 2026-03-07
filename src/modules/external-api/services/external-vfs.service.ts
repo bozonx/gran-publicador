@@ -1,7 +1,7 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { MediaService } from '../../media/media.service.js';
-import { MediaType, StorageType } from '../../../generated/prisma/index.js';
+import { MediaType, StorageType, ContentCollectionType } from '../../../generated/prisma/index.js';
 
 @Injectable()
 export class ExternalVfsService {
@@ -21,8 +21,10 @@ export class ExternalVfsService {
     offset: number = 0,
   ) {
     if (path === '/' || !path) {
-      // List Collections (Folders)
+      // List Root Collections (Folders)
       const where: any = {
+        parentId: null,
+        type: ContentCollectionType.GROUP,
         OR: [{ userId }, { project: { members: { some: { userId } } } }],
       };
 
@@ -33,6 +35,14 @@ export class ExternalVfsService {
       const collections = await this.prisma.contentCollection.findMany({
         where,
         orderBy: { title: 'asc' },
+        include: {
+          _count: {
+            select: {
+              items: true,
+              children: true,
+            },
+          },
+        },
         take: limit,
         skip: offset,
       });
@@ -44,6 +54,7 @@ export class ExternalVfsService {
           name: c.title,
           type: 'directory',
           path: `/${c.id}`,
+          itemsCount: (c._count?.items || 0) + (c._count?.children || 0),
         })),
       };
     }
@@ -63,6 +74,24 @@ export class ExternalVfsService {
       return { type: 'directory', items: [] };
     }
 
+    // 1. Get subcollections
+    const subcollections = await this.prisma.contentCollection.findMany({
+      where: {
+        parentId: collection.id,
+        type: ContentCollectionType.GROUP,
+      },
+      orderBy: { title: 'asc' },
+      include: {
+        _count: {
+          select: {
+            items: true,
+            children: true,
+          },
+        },
+      },
+    });
+
+    // 2. Get items (files)
     const items = await this.prisma.contentItem.findMany({
       where: { collectionItems: { some: { collectionId: collection.id } } },
       include: {
@@ -70,30 +99,47 @@ export class ExternalVfsService {
           include: { media: true },
           orderBy: { order: 'asc' },
         },
+        tagObjects: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
     });
 
-    return {
-      type: 'directory',
-      items: items.map(item => ({
+    const directoryItems = [
+      ...subcollections.map(c => ({
+        id: c.id,
+        name: c.title,
+        type: 'directory',
+        path: `/${c.id}`,
+        itemsCount: (c._count?.items || 0) + (c._count?.children || 0),
+      })),
+      ...items.map(item => ({
         id: item.id,
         name: item.title || 'Untitled',
         type: 'file',
         path: `/${collection.id}/${item.id}`,
+        text: item.text,
+        language: item.language,
+        tags: item.tagObjects.map(t => t.name),
+        meta: item.meta,
         media: item.media.map(m => ({
           id: m.media.id,
           type: m.media.type,
           url:
             m.media.storageType === StorageType.STORAGE
-              ? `/api/v1/media/${m.media.id}/download`
+              ? `/api/v1/media/${m.media.id}/file?download=1`
               : m.media.storagePath,
           mimeType: m.media.mimeType,
           size: m.media.sizeBytes ? Number(m.media.sizeBytes) : 0,
+          meta: m.media.meta,
         })),
       })),
+    ];
+
+    return {
+      type: 'directory',
+      items: directoryItems,
     };
   }
 
@@ -105,6 +151,7 @@ export class ExternalVfsService {
     allProjects: boolean,
     limit: number = 50,
     offset: number = 0,
+    type?: string,
   ) {
     const where: any = {
       OR: [{ userId }, { project: { members: { some: { userId } } } }],
@@ -134,6 +181,30 @@ export class ExternalVfsService {
       });
     }
 
+    if (type) {
+      if (type === 'text') {
+        where.AND.push({
+          OR: [
+            { text: { not: null } },
+            { media: { some: { media: { type: MediaType.DOCUMENT } } } },
+          ],
+        });
+      } else {
+        const mediaTypeMap: Record<string, MediaType> = {
+          video: MediaType.VIDEO,
+          audio: MediaType.AUDIO,
+          image: MediaType.IMAGE,
+          document: MediaType.DOCUMENT,
+        };
+        const prismaMediaType = mediaTypeMap[type];
+        if (prismaMediaType) {
+          where.AND.push({
+            media: { some: { media: { type: prismaMediaType } } },
+          });
+        }
+      }
+    }
+
     const items = await this.prisma.contentItem.findMany({
       where,
       include: {
@@ -141,6 +212,7 @@ export class ExternalVfsService {
           include: { media: true },
           orderBy: { order: 'asc' },
         },
+        tagObjects: { select: { name: true } },
       },
       take: limit,
       skip: offset,
@@ -150,14 +222,19 @@ export class ExternalVfsService {
       id: item.id,
       name: item.title || 'Untitled',
       type: 'file',
+      text: item.text,
+      language: item.language,
+      tags: item.tagObjects.map(t => t.name),
+      meta: item.meta,
       media: item.media.map(m => ({
         id: m.media.id,
         type: m.media.type,
         url:
           m.media.storageType === StorageType.STORAGE
-            ? `/api/v1/media/${m.media.id}/download`
+            ? `/api/v1/media/${m.media.id}/file?download=1`
             : m.media.storagePath,
         mimeType: m.media.mimeType,
+        meta: m.media.meta,
       })),
     }));
   }

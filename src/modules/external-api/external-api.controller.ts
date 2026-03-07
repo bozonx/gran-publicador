@@ -71,6 +71,7 @@ export class ExternalApiController {
       req.user.allProjects || false,
       query.limit,
       query.offset,
+      query.type,
     );
   }
 
