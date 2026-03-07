@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { SttService } from '../../stt/stt.service.js';
 import { LlmService } from '../../llm/llm.service.js';
 import { Readable } from 'stream';
@@ -10,6 +11,7 @@ export class ExternalProxyService {
   constructor(
     private readonly sttService: SttService,
     private readonly llmService: LlmService,
+    private readonly configService: ConfigService,
   ) {}
 
   async transcribe(params: {
@@ -19,6 +21,47 @@ export class ExternalProxyService {
     language?: string;
   }) {
     return this.sttService.transcribeAudioStream(params);
+  }
+
+  async transcribeStream(params: {
+    stream: Readable;
+    filename?: string;
+    mimetype: string;
+    language?: string;
+    provider?: string;
+    restorePunctuation?: boolean;
+    formatText?: boolean;
+    models?: string[];
+    apiKey?: string;
+    maxWaitMinutes?: number;
+    contentLength?: number;
+  }) {
+    return this.sttService.transcribeAudioStream({
+      file: params.stream,
+      filename: params.filename,
+      mimetype: params.mimetype,
+      language: params.language,
+      provider: params.provider,
+      restorePunctuation: params.restorePunctuation,
+      formatText: params.formatText,
+      models: params.models,
+      apiKey: params.apiKey,
+      maxWaitMinutes: params.maxWaitMinutes,
+      contentLength: params.contentLength,
+    });
+  }
+
+  async transcribeUrl(params: {
+    url: string;
+    language?: string;
+    provider?: string;
+    restorePunctuation?: boolean;
+    formatText?: boolean;
+    models?: string[];
+    apiKey?: string;
+    maxWaitMinutes?: number;
+  }) {
+    return this.sttService.transcribeAudioUrl(params);
   }
 
   async chat(messages: Array<{ role: string; content: string }>, options?: any) {

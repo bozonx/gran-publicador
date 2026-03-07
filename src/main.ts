@@ -150,7 +150,6 @@ async function bootstrap() {
   const fastifyInstance = app.getHttpAdapter().getInstance();
   fastifyInstance.addContentTypeParser(
     /^audio\/.*$/,
-    { parseAs: 'buffer' },
     (_req: unknown, payload: unknown, done: (err: Error | null, body?: unknown) => void) => {
       done(null, payload);
     },

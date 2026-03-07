@@ -61,6 +61,7 @@ export class SttService {
     models?: string[];
     apiKey?: string;
     maxWaitMinutes?: number;
+    contentLength?: number;
   }): Promise<{ text: string }> {
     const config = this.configService.get<SttConfig>('stt');
 
@@ -153,7 +154,9 @@ export class SttService {
         headers['X-STT-Max-Wait-Minutes'] = String(params.maxWaitMinutes);
       }
 
-      if (Buffer.isBuffer(params.file)) {
+      if (params.contentLength) {
+        headers['Content-Length'] = String(params.contentLength);
+      } else if (Buffer.isBuffer(params.file)) {
         headers['Content-Length'] = String(params.file.length);
       }
 
@@ -234,6 +237,139 @@ export class SttService {
         throw new ServiceUnavailableException(
           'STT Gateway microservice is unavailable. Please check if the service is running.',
         );
+      }
+
+      throw new InternalServerErrorException(
+        `Transcription service error: ${(error as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Transcribes audio by providing a public URL of the audio file.
+   */
+  async transcribeAudioUrl(params: {
+    url: string;
+    language?: string;
+    provider?: string;
+    restorePunctuation?: boolean;
+    formatText?: boolean;
+    models?: string[];
+    apiKey?: string;
+    maxWaitMinutes?: number;
+  }): Promise<{ text: string }> {
+    const config = this.configService.get<SttConfig>('stt');
+
+    if (!config?.serviceUrl) {
+      this.logger.error('STT service URL is not configured');
+      throw new InternalServerErrorException('STT service is not configured');
+    }
+
+    try {
+      const provider = params.provider ?? config?.defaultProvider;
+      const models =
+        params.models ??
+        (config?.defaultModels
+          ? config.defaultModels
+              .split(',')
+              .map(m => m.trim())
+              .filter(Boolean)
+          : undefined);
+      const restorePunctuation =
+        params.restorePunctuation !== undefined
+          ? params.restorePunctuation
+          : config?.restorePunctuation;
+      const formatText = params.formatText !== undefined ? params.formatText : config?.formatText;
+      const language = config?.sendUserLanguage === false ? undefined : params.language;
+
+      this.logger.log(`Proxying audio URL to STT Gateway: ${params.url}`);
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (config.apiToken) {
+        headers['Authorization'] = `Bearer ${config.apiToken}`;
+      }
+
+      const body = {
+        fileUrl: params.url,
+        provider,
+        language,
+        restorePunctuation,
+        formatText,
+        models,
+        apiKey: params.apiKey,
+        maxWaitMinutes: params.maxWaitMinutes,
+      };
+
+      const response = await request(`${config.serviceUrl}/transcribe`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body),
+        headersTimeout: this.getRequestTimeoutMs(),
+        bodyTimeout: this.getRequestTimeoutMs(),
+      });
+
+      if (response.statusCode !== 200) {
+        const errorBody = await response.body.json().catch(() => ({}));
+        this.logger.error(
+          `STT Gateway returned HTTP ${response.statusCode}: ${JSON.stringify(errorBody)}`,
+        );
+
+        const message =
+          (errorBody as any)?.message ||
+          (errorBody as any)?.error ||
+          'Failed to transcribe audio via gateway';
+
+        if (response.statusCode === 401) {
+          throw new UnauthorizedException(message);
+        }
+
+        if (response.statusCode === 400) {
+          throw new BadRequestException(message);
+        }
+
+        if (response.statusCode === 504) {
+          throw new RequestTimeoutException(message);
+        }
+
+        if (response.statusCode >= 500) {
+          throw new BadGatewayException(`STT Gateway error: ${message}`);
+        }
+
+        throw new InternalServerErrorException(message);
+      }
+
+      const result = (await response.body.json()) as { text: string };
+      this.logger.log(`Transcription successful for URL`);
+
+      return {
+        text: result.text,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to transcribe audio URL: ${(error as Error).message}`,
+        (error as Error).stack,
+      );
+
+      if (
+        error instanceof InternalServerErrorException ||
+        error instanceof BadGatewayException ||
+        error instanceof ServiceUnavailableException ||
+        error instanceof BadRequestException ||
+        error instanceof UnauthorizedException ||
+        error instanceof RequestTimeoutException
+      ) {
+        throw error;
+      }
+
+      if (this.isTimeoutError(error)) {
+        throw new RequestTimeoutException('STT Gateway request timed out.');
+      }
+
+      if (this.isConnectionError(error)) {
+        throw new ServiceUnavailableException('STT Gateway microservice is unavailable.');
       }
 
       throw new InternalServerErrorException(

@@ -247,6 +247,81 @@ export class ExternalApiController {
     });
   }
 
+  /**
+   * Standardized STT streaming endpoint that mimics the STT microservice API.
+   * Path: POST /api/v1/external/api/v1/transcribe/stream
+   * (Matches {BASE_PATH}/api/v1/transcribe/stream pattern)
+   */
+  @Post('api/v1/transcribe/stream')
+  @RequireScopes('stt:transcribe')
+  async transcribeStream(@Request() req: UnifiedAuthRequest) {
+    // Check if it's a raw stream (not multipart)
+    if (req.isMultipart?.()) {
+      throw new BadRequestException('This endpoint expects raw audio stream, not multipart');
+    }
+
+    const headers = req.headers;
+    const filename = (headers['x-file-name'] as string) || 'upload';
+    const provider = headers['x-stt-provider'] as string;
+    const language = headers['x-stt-language'] as string;
+    const restorePunctuation = headers['x-stt-restore-punctuation'] === 'true';
+    const formatText = headers['x-stt-format-text'] === 'true';
+    const models = (headers['x-stt-models'] as string)?.split(',').map(m => m.trim()).filter(Boolean);
+    const apiKey = headers['x-stt-api-key'] as string;
+    const maxWaitMinutes = headers['x-stt-max-wait-minutes'] ? parseInt(headers['x-stt-max-wait-minutes'] as string, 10) : undefined;
+    const mimetype = headers['content-type'] || 'application/octet-stream';
+    const contentLength = headers['content-length'] ? parseInt(headers['content-length'] as string, 10) : undefined;
+
+    // req.raw is the underlying Node.js IncomingMessage which is a Readable stream
+    return this.proxyService.transcribeStream({
+      stream: (req as any).raw,
+      filename,
+      mimetype,
+      language,
+      provider,
+      restorePunctuation,
+      formatText,
+      models,
+      apiKey,
+      maxWaitMinutes,
+      contentLength,
+    });
+  }
+
+  /**
+   * Standardized STT endpoint for transcription from URL.
+   * Path: POST /api/v1/external/api/v1/transcribe
+   */
+  @Post('api/v1/transcribe')
+  @RequireScopes('stt:transcribe')
+  async transcribeUrl(@Body() body: any) {
+    const {
+      fileUrl,
+      language,
+      provider,
+      restorePunctuation,
+      formatText,
+      models,
+      apiKey,
+      maxWaitMinutes,
+    } = body;
+
+    if (!fileUrl) {
+      throw new BadRequestException('fileUrl is required');
+    }
+
+    return this.proxyService.transcribeUrl({
+      url: fileUrl,
+      language,
+      provider,
+      restorePunctuation,
+      formatText,
+      models,
+      apiKey,
+      maxWaitMinutes,
+    });
+  }
+
   @Post('llm/chat')
   @RequireScopes('llm:chat')
   async chat(@Request() req: UnifiedAuthRequest, @Body() body: any) {
