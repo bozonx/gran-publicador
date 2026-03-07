@@ -144,7 +144,7 @@ export class MediaService {
     const optimizedSize =
       this.parsePositiveInteger(result.size) ?? this.parsePositiveInteger(result.originalSize) ?? 0;
 
-    return {
+    const mapped = {
       originalSize:
         this.parsePositiveInteger(result.originalSize) ??
         this.parsePositiveInteger(result.original?.size) ??
@@ -160,6 +160,8 @@ export class MediaService {
       exif: result.exif,
       status: result.status,
     };
+    this.logger.debug(`[MediaService] Internal mapped metadata (has exif: ${!!mapped.exif})`);
+    return mapped;
   }
 
   private isConnectionError(error: unknown): boolean {
@@ -589,6 +591,7 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
+      this.logger.debug(`[MediaService] upload result for ${filename}: ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
@@ -639,6 +642,7 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
+      this.logger.debug(`[MediaService] URL upload result for ${url}: ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
@@ -679,6 +683,7 @@ export class MediaService {
       }
 
       const result = (await response.body.json()) as Record<string, any>;
+      this.logger.debug(`[MediaService] reprocess result for ${media.id}: ${JSON.stringify(result)}`);
 
       return {
         fileId: result.id,
