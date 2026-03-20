@@ -364,7 +364,7 @@ const showPagination = computed(() => {
 
         <!-- Issues Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('channel.filter.problems.title')">
-          <UiAppButtonGroup
+          <AppButtonGroup
             v-model="selectedIssueType"
             :options="[
               { value: 'problematic', label: t('channel.filter.problems.onlyProblems') },
@@ -379,7 +379,7 @@ const showPagination = computed(() => {
 
         <!-- Ownership Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('channel.filter.ownership.title')">
-          <UiAppButtonGroup
+          <AppButtonGroup
             v-model="ownershipFilter"
             :options="[
               { value: 'own', label: t('channel.filter.ownership.own') },
@@ -394,7 +394,7 @@ const showPagination = computed(() => {
 
         <!-- Archive Filter (Button group) -->
         <div class="flex items-center gap-2" :title="t('channel.filter.archiveStatus.tooltip')">
-          <UiAppButtonGroup
+          <AppButtonGroup
             v-model="archiveStatus"
             :options="[
               { value: 'archived', label: t('channel.filter.archiveStatus.archived') },

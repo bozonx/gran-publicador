@@ -274,7 +274,7 @@ const mediaValidation = computed(() => {
 <template>
   <div class="border border-gray-200 dark:border-gray-700/50 rounded-lg bg-white dark:bg-gray-800/50 overflow-hidden shadow-sm">
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isDeleteModalOpen"
       :title="t('media.deleteConfirm')"
       :description="t('archive.delete_permanent_warning')"

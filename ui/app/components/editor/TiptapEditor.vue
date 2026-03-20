@@ -920,7 +920,7 @@ function getLinkHrefNearCursor(editor: any): string | null {
 </template>
 
 <style>
-@reference "../../assets/css/main.css";
+@reference "~/assets/css/main.css";
 
 .tiptap {
   &:focus {

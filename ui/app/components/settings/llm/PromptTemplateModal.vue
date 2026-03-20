@@ -73,7 +73,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="open"
     :title="mode === 'create' ? t('llm.addTemplate') : t('llm.editTemplate')"
   >
@@ -156,5 +156,5 @@ function handleSubmit() {
         </div>
       </div>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

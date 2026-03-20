@@ -64,7 +64,7 @@ function closeModal() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('projectMember.invite')">
+  <AppModal v-model:open="isOpen" :title="t('projectMember.invite')">
     <form id="invite-member-form" class="space-y-4" @submit.prevent="handleInvite">
       <UFormField :label="t('projectMember.userUsernameOrId')">
         <UInput
@@ -99,5 +99,5 @@ function closeModal() {
         {{ t('projectMember.invite') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

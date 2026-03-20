@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import AppModal from '~/components/ui/AppModal.vue'
-import AppButtonGroup from '~/components/ui/AppButtonGroup.vue'
+import AppModal from '~/components/AppModal.vue'
+import AppButtonGroup from '~/components/AppButtonGroup.vue'
 
 const props = defineProps<{
   open: boolean

@@ -366,7 +366,7 @@ async function handleDragEnd() {
     </template>
 
     <!-- Edit/Create Modal -->
-    <UiAppModal
+    <AppModal
       v-model:open="isModalOpen"
       :title="editingSignature ? t('common.edit') : t('common.add')"
     >
@@ -461,9 +461,9 @@ async function handleDragEnd() {
           </div>
         </div>
       </template>
-    </UiAppModal>
+    </AppModal>
 
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="showDeleteModal"
       :title="t('authorSignature.deleteTitle', 'Delete Signature')"
       :description="t('authorSignature.deleteWarning', 'Are you sure you want to delete this signature?')"

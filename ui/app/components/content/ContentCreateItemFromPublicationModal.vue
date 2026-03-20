@@ -167,7 +167,7 @@ async function handleActionToSavedView(collectionId: string) {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
@@ -209,5 +209,5 @@ async function handleActionToSavedView(collectionId: string) {
         {{ t('common.cancel') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

@@ -76,7 +76,7 @@ function handleSavedViewAction() {
   <div class="space-y-4">
     <!-- Scope selector -->
     <UFormField v-if="showScope" :label="t('videoEditor.export.destination')">
-      <UiAppButtonGroup
+      <AppButtonGroup
         v-model="internalScope"
         :options="scopeOptions"
         :disabled="disabled"

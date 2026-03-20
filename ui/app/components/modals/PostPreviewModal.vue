@@ -238,7 +238,7 @@ watch(sourceMode, () => {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('post.previewTitle', 'Post Preview')"
   >
@@ -295,11 +295,11 @@ watch(sourceMode, () => {
         {{ t('common.close') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>
 
 <style scoped>
-@reference "../../assets/css/main.css";
+@reference "~/assets/css/main.css";
 
 .post-preview-html {
   @apply text-gray-800 dark:text-gray-200 text-sm leading-6;

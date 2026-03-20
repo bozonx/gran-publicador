@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { type ContentCollection } from '~/composables/useContentCollections'
-import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import AppConfirmModal from '~/components/AppConfirmModal.vue'
 import ContentItemEditor from './ContentItemEditor.vue'
 import ContentMoveModal from './ContentMoveModal.vue'
 import PublicationPreview from '~/components/publications/PublicationPreview.vue'
@@ -119,7 +119,7 @@ const editorHasContent = ref(false)
 <template>
   <div>
     <!-- Purge Archived -->
-    <UiConfirmModal
+    <AppConfirmModal
       :open="isPurgeConfirmModalOpen"
       :title="t('contentLibrary.actions.purgeConfirmTitle')"
       :description="t('contentLibrary.actions.purgeConfirmDescription')"
@@ -132,7 +132,7 @@ const editorHasContent = ref(false)
     />
 
     <!-- Bulk Delete/Archive -->
-    <UiConfirmModal
+    <AppConfirmModal
       :open="isBulkOperationModalOpen"
       :title="t('contentLibrary.bulk.deleteTitle')"
       :description="t('contentLibrary.bulk.deleteDescription', { count: selectedIdsCount })"
@@ -145,7 +145,7 @@ const editorHasContent = ref(false)
     />
 
     <!-- Bulk Merge -->
-    <UiConfirmModal
+    <AppConfirmModal
       :open="isMergeConfirmModalOpen"
       :title="t('contentLibrary.bulk.merge')"
       :description="t('contentLibrary.bulk.mergeConfirm', { count: selectedIdsCount })"
@@ -158,7 +158,7 @@ const editorHasContent = ref(false)
     />
 
     <!-- Item Editor -->
-    <UiAppModal
+    <AppModal
       :open="isEditModalOpen"
       :title="t('contentLibrary.editTitle')"
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
@@ -199,7 +199,7 @@ const editorHasContent = ref(false)
           </UButton>
         </div>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <ContentCreateItemFromPublicationModal
       v-model:open="isCreateItemFromPublicationModalOpenModel"
@@ -216,7 +216,7 @@ const editorHasContent = ref(false)
     />
 
     <!-- Publication Preview -->
-    <UiAppModal
+    <AppModal
       :open="isPublicationPreviewModalOpen"
       :title="t('common.view', 'View')"
       :ui="{ content: 'w-[90vw] max-w-5xl' }"
@@ -242,7 +242,7 @@ const editorHasContent = ref(false)
           </UButton>
         </div>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Move Items -->
     <ContentMoveModal
@@ -260,7 +260,7 @@ const editorHasContent = ref(false)
     />
 
     <!-- Rename Collection -->
-    <UiAppModal
+    <AppModal
       :open="isRenameCollectionModalOpen"
       :title="t('contentLibrary.collections.renameTitle')"
       :ui="{ content: 'w-full max-w-md' }"
@@ -283,10 +283,10 @@ const editorHasContent = ref(false)
                 {{ t('common.save') }}
              </UButton>
         </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Delete Collection -->
-    <UiConfirmModal
+    <AppConfirmModal
       :open="isDeleteCollectionConfirmModalOpen"
       :title="t('contentLibrary.collections.deleteTitle')"
       :description="t('contentLibrary.collections.deleteDescription')"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick } from 'vue'
-import AppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 import { useNews } from '~/composables/useNews'
 import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'

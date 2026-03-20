@@ -2,7 +2,7 @@
 import { useRoles } from '~/composables/useRoles'
 import type { Role, RoleWithMemberCount } from '~/types/roles.types'
 import type { TableColumn } from '@nuxt/ui'
-import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import AppConfirmModal from '~/components/AppConfirmModal.vue'
 import RoleEditorModal from './RoleEditorModal.vue'
 
 const props = defineProps<{
@@ -165,7 +165,7 @@ function handleSuccess() {
     />
 
     <!-- Delete Confirmation -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isDeleteModalOpen"
       :title="t('roles.deleteRole')"
       :description="roleToDelete?.memberCount && roleToDelete.memberCount > 0 

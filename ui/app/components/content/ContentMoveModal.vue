@@ -370,7 +370,7 @@ watch(isOpen, (next) => {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('contentLibrary.bulk.moveMode')"
     :ui="{ content: 'max-w-md' }"
@@ -383,7 +383,7 @@ watch(isOpen, (next) => {
       <UAccordion :items="accordionItems" multiple>
         <template #to-group>
           <div class="p-4 space-y-3">
-            <UiAppButtonGroup
+            <AppButtonGroup
               v-model="moveMode"
               :options="[
                 { value: 'MOVE', label: t('common.move', 'Move') },
@@ -426,7 +426,7 @@ watch(isOpen, (next) => {
 
             <div v-if="targetCollectionId" class="py-2">
               <div v-if="selectedCollection?.type === 'GROUP'" class="space-y-3">
-                <UiAppButtonGroup
+                <AppButtonGroup
                   v-model="otherCollectionMoveMode"
                   :options="[
                     { value: 'MOVE', label: t('common.move', 'Move') },
@@ -461,7 +461,7 @@ watch(isOpen, (next) => {
         <template #to-project>
           <div class="p-4 space-y-4">
             <div class="flex items-center justify-between gap-3">
-              <UiAppButtonGroup
+              <AppButtonGroup
                 v-model="projectActionMode"
                 :options="[
                   { value: 'MOVE', label: t('common.move', 'Move') },
@@ -555,11 +555,11 @@ watch(isOpen, (next) => {
         {{ t('common.cancel') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>
 
 <style scoped>
-@reference "../../assets/css/main.css";
+@reference "~/assets/css/main.css";
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;

@@ -348,7 +348,7 @@ const toolbarMenuItems = computed(() => {
               :label="t('contentLibrary.filter.withMedia')"
               class="mr-2"
             />
-            <UiAppButtonGroup
+            <AppButtonGroup
               v-if="!isPublicationMediaVirtual && !isUnsplash"
               v-model="sortBy"
               :options="sortByToggleOptions"

@@ -27,7 +27,7 @@ async function handleDelete() {
 </script>
 
 <template>
-  <UiConfirmModal
+  <AppConfirmModal
     v-if="isOpen"
     v-model:open="isOpen"
     :title="t('publication.deleteConfirm')"

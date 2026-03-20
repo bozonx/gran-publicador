@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import yaml from 'js-yaml'
-import AppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 
 const isOpen = defineModel<boolean>('open', { required: true })
 

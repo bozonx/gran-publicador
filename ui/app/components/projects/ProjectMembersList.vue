@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ProjectMemberWithUser } from '~/stores/projects'
 import type { TableColumn } from '@nuxt/ui'
-import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import AppConfirmModal from '~/components/AppConfirmModal.vue'
 import { useRoles } from '~/composables/useRoles'
 
 const props = defineProps<{
@@ -189,7 +189,7 @@ function getActionItems(row: any) {
       </template>
     </UTable>
 
-    <UiConfirmModal
+    <AppConfirmModal
         v-model:open="isConfirmModalOpen"
         :title="confirmModalConfig.title"
         :description="confirmModalConfig.description"

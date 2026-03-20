@@ -41,7 +41,7 @@ const isAudioDisabled = computed(() => props.disabled || !props.hasAudio)
     </div>
 
     <UFormField :label="t('videoEditor.export.outputFormat', 'Output format')">
-      <UiAppButtonGroup
+      <AppButtonGroup
         v-model="outputFormat"
         :options="props.formatOptions"
         :disabled="props.disabled"

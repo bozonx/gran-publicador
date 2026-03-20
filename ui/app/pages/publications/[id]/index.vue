@@ -478,7 +478,7 @@ async function handleApplyLlm(data: any) {
     />
 
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isDeleteModalOpen"
       v-model:open="isDeleteModalOpen"
       :title="t('publication.deleteConfirm')"

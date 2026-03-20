@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import UiAppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 
 const props = defineProps<{
   modelValue?: string
@@ -219,7 +219,7 @@ onMounted(() => {
     </div>
 
     <!-- Modal -->
-    <UiAppModal
+    <AppModal
       v-model:open="isOpen"
       :title="t('news.selectSourceTags') || 'Select Source Tags'"
       :ui="{ body: '!p-0', footer: '!justify-between' }"
@@ -366,12 +366,12 @@ v-for="(group, catLabel) in searchResults.reduce((acc, tag) => {
             </UButton>
          </div>
       </template>
-    </UiAppModal>
+    </AppModal>
   </div>
 </template>
 
 <style scoped>
-@reference "../../assets/css/main.css";
+@reference "~/assets/css/main.css";
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-in-out;

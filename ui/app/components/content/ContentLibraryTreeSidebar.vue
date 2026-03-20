@@ -2,7 +2,7 @@
 import type { TreeItem } from '@nuxt/ui'
 import { type ContentCollection } from '~/composables/useContentCollections'
 import { getApiErrorMessage } from '~/utils/error'
-import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import AppConfirmModal from '~/components/AppConfirmModal.vue'
 import { buildGroupTreeFromRoot, getRootGroupId } from '~/composables/useContentLibraryGroupsTree'
 
 interface GroupTreeNode extends TreeItem {
@@ -157,7 +157,7 @@ const treeCreateParentId = ref<string | null>(null)
 const treeCreateTitle = ref('')
 const isCreatingTreeGroup = ref(false)
 
-const isTreeRenameModalOpen = ref(false)
+const isTreeModalsCommonRenameModalOpen = ref(false)
 const treeRenameTargetId = ref<string | null>(null)
 const treeRenameTitle = ref('')
 const isRenamingTreeGroup = ref(false)
@@ -220,13 +220,13 @@ const handleCreateGroupFromTreeModal = async () => {
   }
 }
 
-const openTreeRenameModal = (collectionId: string) => {
+const openTreeModalsCommonRenameModal = (collectionId: string) => {
   const targetCollection = collectionsById.value.get(collectionId)
   if (!targetCollection || targetCollection.type !== 'GROUP' || !targetCollection.parentId) return
 
   treeRenameTargetId.value = collectionId
   treeRenameTitle.value = targetCollection.title
-  isTreeRenameModalOpen.value = true
+  isTreeModalsCommonRenameModalOpen.value = true
 }
 
 const handleRenameGroupFromTree = async () => {
@@ -243,7 +243,7 @@ const handleRenameGroupFromTree = async () => {
 
     emit('select-node', updatedCollection.id)
     emit('refresh-collections')
-    isTreeRenameModalOpen.value = false
+    isTreeModalsCommonRenameModalOpen.value = false
   } catch (e: any) {
     toast.add({ title: t('common.error'), description: getApiErrorMessage(e, 'Failed to rename subgroup'), color: 'error' })
   } finally {
@@ -298,7 +298,7 @@ const getGroupNodeMenuItems = (collectionId: string) => {
     menuItems.push({
       label: t('common.rename'),
       icon: 'i-heroicons-pencil-square',
-      onSelect: () => openTreeRenameModal(collectionId),
+      onSelect: () => openTreeModalsCommonRenameModal(collectionId),
     })
   }
 
@@ -373,7 +373,7 @@ const getGroupNodeMenuItems = (collectionId: string) => {
     </div>
 
     <!-- Subgroup Modals -->
-    <UiAppModal
+    <AppModal
       v-model:open="isTreeCreateModalOpen"
       :title="t('contentLibrary.collections.createSubgroupTitle')"
       :description="t('contentLibrary.groupsTree.selectedParentHint', { title: treeCreateParentLabel })"
@@ -397,20 +397,20 @@ const getGroupNodeMenuItems = (collectionId: string) => {
           {{ t('common.create') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
 
-    <UiAppModal
-      v-model:open="isTreeRenameModalOpen"
+    <AppModal
+      v-model:open="isTreeModalsCommonRenameModalOpen"
       :title="t('contentLibrary.collections.renameTitle', 'Rename group')"
       :ui="{ content: 'w-full max-w-md' }"
-      @close="isTreeRenameModalOpen = false"
+      @close="isTreeModalsCommonRenameModalOpen = false"
     >
       <UFormField :label="t('common.title', 'Title')">
         <UInput v-model="treeRenameTitle" autofocus @keydown.enter="handleRenameGroupFromTree" />
       </UFormField>
 
       <template #footer>
-        <UButton color="neutral" variant="ghost" @click="isTreeRenameModalOpen = false">
+        <UButton color="neutral" variant="ghost" @click="isTreeModalsCommonRenameModalOpen = false">
           {{ t('common.cancel') }}
         </UButton>
         <UButton
@@ -422,9 +422,9 @@ const getGroupNodeMenuItems = (collectionId: string) => {
           {{ t('common.save') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
 
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isTreeDeleteConfirmModalOpen"
       v-model:open="isTreeDeleteConfirmModalOpen"
       :title="t('contentLibrary.collections.deleteTitle')"

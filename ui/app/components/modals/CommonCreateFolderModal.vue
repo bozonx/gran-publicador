@@ -1,32 +1,21 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import AppModal from '~/components/ui/AppModal.vue'
-
-const props = defineProps<{
-  initialName?: string
-}>()
+import AppModal from '~/components/AppModal.vue'
 
 const isOpen = defineModel<boolean>('open', { required: true })
-
+const folderName = ref('')
 const emit = defineEmits<{
-  (e: 'rename', newName: string): void
+  (e: 'create', name: string): void
 }>()
 
 const { t } = useI18n()
-const name = ref('')
 
 watch(isOpen, (val) => {
-  if (val) {
-    name.value = props.initialName ?? ''
-  }
+  if (val) folderName.value = ''
 })
 
-const handleRename = () => {
-  const trimmed = name.value.trim()
-  if (trimmed && trimmed !== props.initialName) {
-    emit('rename', trimmed)
-  }
+const handleCreate = () => {
+  if (!folderName.value.trim()) return
+  emit('create', folderName.value.trim())
   isOpen.value = false
 }
 </script>
@@ -34,16 +23,17 @@ const handleRename = () => {
 <template>
   <AppModal
     v-model:open="isOpen"
-    :title="t('common.rename', 'Rename')"
+    :title="t('videoEditor.fileManager.actions.createFolder', 'Create Folder')"
     :ui="{ content: 'sm:max-w-md' }"
   >
     <div class="space-y-4">
       <UFormField :label="t('common.name', 'Name')">
         <UInput
-          v-model="name"
+          v-model="folderName"
+          :placeholder="t('videoEditor.fileManager.createFolder.placeholder', 'Folder name')"
           autofocus
           class="w-full"
-          @keyup.enter="handleRename"
+          @keyup.enter="handleCreate"
         />
       </UFormField>
     </div>
@@ -58,10 +48,10 @@ const handleRename = () => {
       </UButton>
       <UButton
         color="primary"
-        :disabled="!name.trim() || name.trim() === initialName"
-        @click="handleRename"
+        :disabled="!folderName.trim()"
+        @click="handleCreate"
       >
-        {{ t('common.save', 'Save') }}
+        {{ t('common.create', 'Create') }}
       </UButton>
     </template>
   </AppModal>

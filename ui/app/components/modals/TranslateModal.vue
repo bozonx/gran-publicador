@@ -49,7 +49,7 @@ async function handleTranslate() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('translate.title')"
   >
@@ -79,5 +79,5 @@ async function handleTranslate() {
         {{ props.isFullReplace ? t('translate.translateContentButton') : t('translate.translateSelectionButton') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

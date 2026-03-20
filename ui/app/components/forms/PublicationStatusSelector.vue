@@ -35,7 +35,7 @@ function selectStatus(status: string) {
 
 <template>
   <div class="flex items-center gap-2">
-    <UiAppButtonGroup
+    <AppButtonGroup
       :model-value="modelValue"
       :options="options.map(opt => ({
         ...opt,

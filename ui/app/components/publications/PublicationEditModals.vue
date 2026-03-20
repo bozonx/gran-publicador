@@ -92,7 +92,7 @@ defineExpose({
     />
 
     <!-- Republish Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isRepublishModalOpen"
       v-model:open="isRepublishModalOpen"
       :title="t('publication.republishConfirm')"
@@ -104,7 +104,7 @@ defineExpose({
     />
 
     <!-- Archive Warning Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isArchiveWarningModalOpen"
       v-model:open="isArchiveWarningModalOpen"
       :title="t('publication.archiveWarning.title')"
@@ -116,7 +116,7 @@ defineExpose({
     />
 
     <!-- Published Warning Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isPublishedWarningModalOpen"
       v-model:open="isPublishedWarningModalOpen"
       :title="t('publication.editPublishedConfirmTitle')"

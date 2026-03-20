@@ -688,7 +688,7 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
         />
 
         <!-- Delete Post Modal -->
-         <UiConfirmModal
+         <AppConfirmModal
            v-if="showDeletePostModal"
            v-model:open="showDeletePostModal"
            :title="t('post.deletePost')"
@@ -701,7 +701,7 @@ function truncateContent(content: string | null | undefined, maxLength = 150): s
          />
 
         <!-- Delete Publication Modal (Drafts) -->
-         <UiConfirmModal
+         <AppConfirmModal
            v-if="showDeletePublicationModal"
            v-model:open="showDeletePublicationModal"
            :title="t('publication.deleteConfirm')"

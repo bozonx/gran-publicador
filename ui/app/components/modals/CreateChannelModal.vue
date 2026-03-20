@@ -47,7 +47,7 @@ function handleClose() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
+  <AppModal v-model:open="isOpen" :title="t('channel.createChannel')" :ui="{ content: 'sm:max-w-2xl' }">
     <div ref="modalRootRef">
       <FormsChannelCreateForm
         id="create-channel-form"
@@ -77,5 +77,5 @@ function handleClose() {
         {{ t('common.create') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

@@ -17,7 +17,7 @@ function setMode(mode: ViewMode) {
 </script>
 
 <template>
-  <UiAppButtonGroup
+  <AppButtonGroup
     :model-value="modelValue"
     :options="[
       { value: 'list', icon: 'i-heroicons-list-bullet', title: t('common.viewMode.list') },

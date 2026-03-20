@@ -81,7 +81,7 @@ const archiveOptions = computed(() => [
     <div class="flex flex-wrap items-center gap-4">
       <!-- Status Group -->
       <div class="flex items-center gap-2">
-         <UiAppButtonGroup
+         <AppButtonGroup
           :model-value="status"
           :options="statusGroupOptions"
           variant="outline"
@@ -94,7 +94,7 @@ const archiveOptions = computed(() => [
 
       <!-- Ownership -->
       <div class="flex items-center gap-2">
-        <UiAppButtonGroup
+        <AppButtonGroup
           :model-value="ownership"
           :options="ownershipOptions"
           variant="outline"
@@ -105,7 +105,7 @@ const archiveOptions = computed(() => [
       </div>
 
       <!-- Archive -->
-      <UiAppButtonGroup
+      <AppButtonGroup
         :model-value="archived"
         :options="archiveOptions"
         variant="outline"

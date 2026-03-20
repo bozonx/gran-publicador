@@ -65,7 +65,7 @@ watch(() => props.open, (next) => {
 </script>
 
 <template>
-  <UiAppModal 
+  <AppModal 
     v-model:open="isOpen" 
     :title="title || t('contentLibrary.unsplash.photoAlt')"
     :ui="{ content: 'w-[90vw] max-w-7xl h-[90vh]' }"
@@ -220,7 +220,7 @@ watch(() => props.open, (next) => {
         </div>
       </div>
     </div>
-  </UiAppModal>
+  </AppModal>
 </template>
 
 <style scoped>

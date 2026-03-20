@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useNews } from '~/composables/useNews'
 import { useProjects } from '~/composables/useProjects'
-import AppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 import AppTabs from '~/components/ui/AppTabs.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'

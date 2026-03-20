@@ -273,7 +273,7 @@ const availableFunctionalScopes = [
     </div>
 
     <!-- Create Token Modal -->
-    <UiAppModal 
+    <AppModal 
       v-model:open="showCreateTokenModal" 
       :title="t('settings.createToken', 'Create API Token')"
     >
@@ -322,10 +322,10 @@ const availableFunctionalScopes = [
           {{ t('common.create') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Edit Token Modal -->
-    <UiAppModal 
+    <AppModal 
       v-model:open="showEditTokenModal" 
       :title="t('settings.editToken', 'Edit API Token')"
     >
@@ -372,10 +372,10 @@ const availableFunctionalScopes = [
           {{ t('common.save') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Delete Token Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="showDeleteTokenModal"
       :title="t('settings.deleteTokenTitle', 'Delete API Token')"
       :description="t('settings.deleteTokenDescription', 'Are you sure you want to delete this API token? This action cannot be undone.')"

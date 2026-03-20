@@ -149,7 +149,7 @@ async function handleCopyToSavedView() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('contentLibrary.actions.copyToContentItem')"
     :ui="{ content: 'max-w-md' }"
@@ -211,5 +211,5 @@ async function handleCopyToSavedView() {
         {{ t('common.cancel') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

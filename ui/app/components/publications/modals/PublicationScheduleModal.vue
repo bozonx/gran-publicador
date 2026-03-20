@@ -37,7 +37,7 @@ async function handleSave() {
 </script>
 
 <template>
-  <UiAppModal v-if="isOpen" v-model:open="isOpen" :title="t('publication.changeScheduleTitle')">
+  <AppModal v-if="isOpen" v-model:open="isOpen" :title="t('publication.changeScheduleTitle')">
     <p class="text-gray-500 dark:text-gray-400 mb-4">{{ t('publication.changeScheduleInfo') }}</p>
     <UFormField :label="t('publication.newScheduleTime')" required>
       <UInput v-model="newScheduledDate" type="datetime-local" class="w-full" icon="i-heroicons-clock" />
@@ -46,5 +46,5 @@ async function handleSave() {
       <UButton color="neutral" variant="ghost" :label="t('common.cancel')" @click="isOpen = false" />
       <UButton color="primary" :label="t('common.save')" :loading="isSaving" @click="handleSave" />
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

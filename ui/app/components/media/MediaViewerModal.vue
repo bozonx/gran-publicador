@@ -49,7 +49,7 @@ function handleClose() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="props.title || t('media.preview', 'Media Preview')"
     :description="props.description || t('media.previewDescription', 'View and edit media details')"
@@ -89,5 +89,5 @@ function handleClose() {
     <template v-if="$slots.footer" #footer>
       <slot name="footer" />
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

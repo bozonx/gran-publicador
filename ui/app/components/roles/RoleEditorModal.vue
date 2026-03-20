@@ -103,7 +103,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <UiAppModal 
+  <AppModal 
     v-model:open="isOpen" 
     :title="isEditing ? t('roles.editRole') : t('roles.createRole')"
     :description="isSystem ? t('roles.cannotDeleteSystem') : undefined"
@@ -158,5 +158,5 @@ async function handleSubmit() {
         {{ t('common.save') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

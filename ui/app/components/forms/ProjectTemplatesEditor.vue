@@ -449,7 +449,7 @@ const allBlocks = computed(() => {
     </div>
 
     <!-- Template Edit Modal -->
-    <UiAppModal
+    <AppModal
       v-model:open="isModalOpen"
       :title="t('projectTemplates.edit')"
       :ui="{ content: 'w-[90vw] max-w-4xl' }"
@@ -712,10 +712,10 @@ const allBlocks = computed(() => {
           </UButton>
         </div>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Delete Confirmation -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="showDeleteModal"
       :title="t('projectTemplates.deleteTitle')"
       :description="t('projectTemplates.deleteWarning')"

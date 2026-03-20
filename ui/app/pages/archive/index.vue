@@ -149,7 +149,7 @@ const columns = computed(() => [
             </div>
         </UContainer>
 
-        <ArchiveDeleteModal
+        <ModalsArchiveDeleteModal
             v-model:open="isDeleteModalOpen"
             :entity-name="deletingEntityName"
             @confirm="handleDeleteConfirm"

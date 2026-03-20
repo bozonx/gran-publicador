@@ -283,7 +283,7 @@ async function handleDelete() {
     </div>
 
     <!-- Delete confirmation modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="showDeleteModal"
       :title="t('channel.deleteChannel', 'Delete Channel')"
       :description="t('channel.deleteConfirm', 'Are you sure you want to delete this channel?')"

@@ -4,7 +4,7 @@ import { usePublications } from '~/composables/usePublications'
 import { useProjects } from '~/composables/useProjects'
 import { useAutosave } from '~/composables/useAutosave'
 import type { NewsItem } from '~/composables/useNews'
-import AppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 import NewsCreatePublicationModal from '~/components/news/CreatePublicationModal.vue'
 import CommonDraggableTabs from '~/components/common/CommonDraggableTabs.vue'
 import NewsProjectHeader from '~/components/news/ProjectNewsHeader.vue'
@@ -270,7 +270,7 @@ async function addCollection() {
 }
 
 // Rename handlers
-function openRenameModal(id: string, name: string) {
+function openModalsCommonRenameModal(id: string, name: string) {
   editingCollectionId.value = id
   editingCollectionName.value = name
   isEditModalOpen.value = true
@@ -382,7 +382,7 @@ async function handleCollectionsUpdate(newItems: any[]) {
           :save-error="saveError"
           @update:query="handleQueryUpdate"
           @update:is-collapsed="val => collapsedQueries.set(currentQuery!.id, val)"
-          @rename="openRenameModal"
+          @rename="openModalsCommonRenameModal"
           @delete="openDeleteModal"
           @search="handleSearch"
         />
@@ -509,7 +509,7 @@ async function handleCollectionsUpdate(newItems: any[]) {
     </AppModal>
 
     <!-- Delete Collection Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isDeleteModalOpen"
       :title="t('common.confirmDelete')"
       :description="t('news.deleteCollectionConfirm')"

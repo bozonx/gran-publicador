@@ -433,7 +433,7 @@ function toggleHiddenOnly() {
     />
 
     <!-- Copy Modal -->
-    <UiAppModal
+    <AppModal
       v-model:open="isCopyModalOpen"
       :title="t('llm.copyTemplate')"
     >
@@ -469,10 +469,10 @@ function toggleHiddenOnly() {
           {{ t('common.copy') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
 
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isDeleteConfirmOpen"
       :title="t('llm.deleteTemplateTitle')"
       :description="t('llm.confirmDelete')"

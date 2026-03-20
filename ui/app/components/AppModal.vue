@@ -92,7 +92,7 @@ function handleClose(close?: () => void) {
 </template>
 
 <style scoped>
-@reference "../../assets/css/main.css";
+@reference "~/assets/css/main.css";
 
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

@@ -14,7 +14,7 @@ const { t } = useI18n()
     </p>
     
     <ClientOnly>
-      <UiAppButtonGroup
+      <AppButtonGroup
         :model-value="colorMode.preference"
         :options="[
           { value: 'system', label: t('settings.systemTheme', 'system'), icon: 'i-heroicons-computer-desktop' },

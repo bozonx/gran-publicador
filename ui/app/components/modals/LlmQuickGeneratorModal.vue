@@ -242,7 +242,7 @@ async function handleGenerate() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('llm.quickGenerate')" size="xl">
+  <AppModal v-model:open="isOpen" :title="t('llm.quickGenerate')" size="xl">
     <template #header>
       <div class="flex items-center gap-2">
         <UIcon name="i-heroicons-sparkles" class="w-5 h-5 text-primary" />
@@ -350,5 +350,5 @@ async function handleGenerate() {
         </div>
       </div>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

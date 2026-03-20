@@ -272,7 +272,7 @@ const formattedPreferences = computed(() => {
     </div>
 
     <!-- Ban user modal -->
-    <UiAppModal
+    <AppModal
       v-if="showBanModal"
       v-model:open="showBanModal"
       :title="user?.isBanned ? t('admin.unbanUser') : t('admin.banUser')"
@@ -311,10 +311,10 @@ const formattedPreferences = computed(() => {
           {{ user?.isBanned ? t('admin.unban') : t('admin.ban') }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
     
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
         v-if="showDeleteConfirm"
         v-model:open="showDeleteConfirm"
         :title="t('admin.deleteUserTitle')"
@@ -326,7 +326,7 @@ const formattedPreferences = computed(() => {
         @confirm="handleDelete"
     />
 
-    <UiConfirmModal
+    <AppConfirmModal
         v-if="showLogoutConfirm"
         v-model:open="showLogoutConfirm"
         :title="t('admin.logoutUserTitle')"

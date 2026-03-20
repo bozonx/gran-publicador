@@ -219,7 +219,7 @@ const publicationTagsSuggestions = computed(() => {
       @delete="showBulkDeleteModal = true"
     />
 
-    <UiConfirmModal v-model:open="showDeleteModal" :title="t('publication.deleteConfirm')" color="error" :loading="isDeleting" @confirm="handleDelete" />
-    <UiConfirmModal v-model:open="showBulkDeleteModal" :title="t('publication.bulkDeleteConfirm', { count: selectedIds.length })" color="error" :loading="bulkActionPending" @confirm="handleBulkAction('DELETE')" />
+    <AppConfirmModal v-model:open="showDeleteModal" :title="t('publication.deleteConfirm')" color="error" :loading="isDeleting" @confirm="handleDelete" />
+    <AppConfirmModal v-model:open="showBulkDeleteModal" :title="t('publication.bulkDeleteConfirm', { count: selectedIds.length })" color="error" :loading="bulkActionPending" @confirm="handleBulkAction('DELETE')" />
   </div>
 </template>

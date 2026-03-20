@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ContentItemCard from '~/components/content/ContentItemCard.vue'
 import ContentItemEditor from '~/components/content/ContentItemEditor.vue'
-import AppModal from '~/components/ui/AppModal.vue'
+import AppModal from '~/components/AppModal.vue'
 import { sanitizeContentPreserveMarkdown } from '~/utils/text'
 import { getApiErrorMessage } from '~/utils/error'
 

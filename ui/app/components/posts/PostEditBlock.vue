@@ -470,7 +470,7 @@ const isSaveDisabled = computed(() => {
     :class="{ 'ring-2 ring-primary-500/20': isCreating }"
   >
     <!-- Delete Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isDeleteModalOpen"
       :title="t('post.deleteConfirm')"
       :description="t('archive.delete_permanent_warning')"
@@ -482,7 +482,7 @@ const isSaveDisabled = computed(() => {
     />
 
     <!-- Republish Confirmation Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isRepublishModalOpen"
       :title="t('publication.republishConfirm')"
       :description="props.post?.status === 'FAILED' ? t('publication.republishFailedWarning') : t('publication.republishPostWarning')"
@@ -494,7 +494,7 @@ const isSaveDisabled = computed(() => {
     />
 
     <!-- Archive Warning Modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-model:open="isArchiveWarningModalOpen"
       :title="t('publication.archiveWarning.title')"
       :description="archiveWarningMessage + '\n\n' + t('publication.archiveWarning.confirm')"

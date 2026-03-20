@@ -44,7 +44,7 @@ async function handleCopy() {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
+  <AppModal v-model:open="isOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
     <div class="space-y-4">
       <UFormField :label="t('project.title')">
         <CommonProjectSelect v-model="targetProjectId" class="w-full" />
@@ -54,5 +54,5 @@ async function handleCopy() {
       <UButton color="neutral" variant="ghost" @click="isOpen = false">{{ t('common.cancel') }}</UButton>
       <UButton color="primary" :loading="isSaving" :disabled="!targetProjectId" @click="handleCopy">{{ t('common.copy') }}</UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

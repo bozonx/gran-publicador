@@ -3,7 +3,7 @@ import type { LlmPromptTemplate } from '~/types/llm-prompt-template'
 import type { ApplyData, ChatMessage, LlmContextTag, PostChannelInfo } from '~/types/llm'
 import { useModalAutoFocus } from '~/composables/useModalAutoFocus'
 import LlmPromptTemplatePickerModal from '~/components/modals/LlmPromptTemplatePickerModal.vue'
-import UiConfirmModal from '~/components/ui/UiConfirmModal.vue'
+import AppConfirmModal from '~/components/AppConfirmModal.vue'
 import LlmContextPicker from '~/components/llm/LlmContextPicker.vue'
 import LlmChatMessages from '~/components/llm/LlmChatMessages.vue'
 import LlmChatInput from '~/components/llm/LlmChatInput.vue'
@@ -860,7 +860,7 @@ async function confirmResetChat() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="step === 1 ? t('llm.title') : t('llm.reviewTitle')"
     :description="step === 1 ? t('llm.description') : t('llm.reviewDescription')"
@@ -1077,7 +1077,7 @@ async function confirmResetChat() {
       </div>
     </template>
 
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="isResetChatConfirmOpen"
       v-model:open="isResetChatConfirmOpen"
       :title="t('llm.resetChat')"
@@ -1087,5 +1087,5 @@ async function confirmResetChat() {
       icon="i-heroicons-exclamation-triangle"
       @confirm="confirmResetChat"
     />
-  </UiAppModal>
+  </AppModal>
 </template>

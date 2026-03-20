@@ -588,7 +588,7 @@ async function handleDelete() {
         <FeaturesChannelsList :project-id="currentProject.id" />
       </div>
       </div>
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="showDeleteModal"
       v-model:open="showDeleteModal"
       :title="t('publication.deleteConfirm')"

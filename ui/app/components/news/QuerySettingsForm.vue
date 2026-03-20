@@ -165,7 +165,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           {{ t('news.mode') }}
         </label>
-        <UiAppButtonGroup
+        <AppButtonGroup
           :model-value="query.mode"
           :options="[
             { value: 'text', label: t('news.modeText') },
@@ -274,7 +274,7 @@ function updateField<K extends keyof NewsQuery>(key: K, value: NewsQuery[K]) {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             {{ t('news.orderBy') }}
           </label>
-          <UiAppButtonGroup
+          <AppButtonGroup
             :model-value="query.orderBy"
             :options="[
               { value: 'relevance', label: t('news.orderByRelevance') },

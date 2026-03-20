@@ -52,7 +52,7 @@ watch(isOpen, (val) => {
 </script>
 
 <template>
-  <UiAppModal v-model:open="isOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
+  <AppModal v-model:open="isOpen" :title="t('publication.copyToProject')" :ui="{ content: 'sm:max-w-md' }">
     <div class="space-y-4">
       <p class="text-sm text-gray-500 dark:text-gray-400">
         {{ t('publication.copyToProjectDescription', 'Select a target project to copy this publication to.') }}
@@ -69,5 +69,5 @@ watch(isOpen, (val) => {
         {{ t('common.copy') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

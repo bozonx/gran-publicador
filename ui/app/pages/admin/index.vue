@@ -523,7 +523,7 @@ const hasActiveFilters = computed(() => {
     </div>
 
     <!-- Confirm toggle admin modal -->
-    <UiConfirmModal
+    <AppConfirmModal
       v-if="showConfirmModal"
       v-model:open="showConfirmModal"
       :title="userToToggle?.isAdmin ? t('admin.revokeAdmin') : t('admin.grantAdmin')"
@@ -552,10 +552,10 @@ const hasActiveFilters = computed(() => {
           </div>
         </div>
       </div>
-    </UiConfirmModal>
+    </AppConfirmModal>
 
     <!-- Ban user modal -->
-    <UiAppModal
+    <AppModal
       v-if="showBanModal"
       v-model:open="showBanModal"
       :title="userToBan?.isBanned ? t('admin.unbanUser') : t('admin.banUser')"
@@ -604,6 +604,6 @@ const hasActiveFilters = computed(() => {
           }}
         </UButton>
       </template>
-    </UiAppModal>
+    </AppModal>
   </div>
 </template>

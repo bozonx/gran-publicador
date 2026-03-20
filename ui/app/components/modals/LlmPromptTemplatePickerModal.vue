@@ -146,7 +146,7 @@ function handleClose() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('llm.selectTemplate')"
     :description="t('llm.selectTemplateDescription', 'Choose a prompt template')"
@@ -241,5 +241,5 @@ function handleClose() {
         </div>
       </div>
     </div>
-  </UiAppModal>
+  </AppModal>
 </template>

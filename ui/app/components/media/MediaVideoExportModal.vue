@@ -254,7 +254,7 @@ function handleCancel() {
 </script>
 
 <template>
-  <UiAppModal
+  <AppModal
     v-model:open="isOpen"
     :title="t('videoEditor.export.title')"
     :prevent-close="isExporting"
@@ -376,5 +376,5 @@ function handleCancel() {
         {{ t('videoEditor.export.confirm') }}
       </UButton>
     </template>
-  </UiAppModal>
+  </AppModal>
 </template>

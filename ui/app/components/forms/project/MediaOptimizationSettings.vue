@@ -104,7 +104,7 @@ function updateField<K extends keyof MediaOptimizationPreferences>(field: K, val
             <label class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ t('settings.mediaOptimization.quality', 'Image Quality') }}</label>
             <span v-if="t('settings.mediaOptimization.qualityHelp')" class="text-xs text-gray-500">{{ t('settings.mediaOptimization.qualityHelp') }}</span>
           </div>
-          <UiAppButtonGroup
+          <AppButtonGroup
             :model-value="state.quality"
             :options="qualityOptions"
             :disabled="disabled"
